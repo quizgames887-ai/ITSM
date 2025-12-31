@@ -6,6 +6,7 @@ interface CardProps {
   padding?: "sm" | "md" | "lg";
   hover?: boolean;
   style?: React.CSSProperties;
+  onClick?: () => void;
 }
 
 export function Card({
@@ -14,6 +15,7 @@ export function Card({
   padding = "md",
   hover = false,
   style,
+  onClick,
 }: CardProps) {
   const paddings = {
     sm: "p-3 sm:p-4",
@@ -27,6 +29,7 @@ export function Card({
         hover ? "hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5 hover:scale-[1.01]" : ""
       } ${paddings[padding]} ${className}`}
       style={style}
+      onClick={onClick}
     >
       {children}
     </div>
