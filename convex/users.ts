@@ -8,6 +8,15 @@ export const get = query({
   },
 });
 
+export const getCurrentUser = query({
+  args: { userId: v.string() },
+  handler: async (ctx, args) => {
+    // Convert string ID to Id<"users">
+    const userId = args.userId as any;
+    return await ctx.db.get(userId);
+  },
+});
+
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -24,6 +33,7 @@ export const update = mutation({
   args: {
     id: v.id("users"),
     name: v.optional(v.string()),
+    email: v.optional(v.string()),
     role: v.optional(
       v.union(v.literal("user"), v.literal("admin"), v.literal("agent"))
     ),
@@ -35,6 +45,19 @@ export const update = mutation({
     }
 
     const { id, ...updates } = args;
+    
+    // If email is being updated, check if it's already taken
+    if (updates.email) {
+      const existingUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", updates.email!))
+        .first();
+      
+      if (existingUser && existingUser._id !== id) {
+        throw new Error("Email already in use");
+      }
+    }
+
     await ctx.db.patch(id, {
       ...updates,
       updatedAt: Date.now(),
