@@ -9,7 +9,27 @@ export const listByTicket = query({
       .withIndex("by_ticketId", (q) => q.eq("ticketId", args.ticketId))
       .collect();
 
-    return comments.sort((a, b) => a.createdAt - b.createdAt);
+    // Fetch user details for each comment
+    const commentsWithUsers = await Promise.all(
+      comments.map(async (comment) => {
+        try {
+          const user = await ctx.db.get(comment.userId);
+          return {
+            ...comment,
+            userName: user?.name ?? "Unknown User",
+            userEmail: user?.email ?? "",
+          };
+        } catch (error) {
+          return {
+            ...comment,
+            userName: "Unknown User",
+            userEmail: "",
+          };
+        }
+      })
+    );
+
+    return commentsWithUsers.sort((a, b) => a.createdAt - b.createdAt);
   },
 });
 

@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { TicketAudit } from "@/components/tickets/TicketAudit";
 import { useState, use } from "react";
 import Link from "next/link";
+import { useToastContext } from "@/contexts/ToastContext";
 
 export default function TicketDetailPage({
   params,
@@ -26,11 +27,18 @@ export default function TicketDetailPage({
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const { success, error: showError } = useToastContext();
 
   if (ticket === undefined || comments === undefined) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <p className="text-slate-600">Loading ticket...</p>
+      <div className="min-h-screen bg-slate-50 p-8">
+        <div className="max-w-5xl mx-auto">
+          <div className="animate-pulse space-y-6">
+            <div className="h-10 bg-slate-200 rounded w-1/4"></div>
+            <div className="h-64 bg-slate-200 rounded-xl"></div>
+            <div className="h-48 bg-slate-200 rounded-xl"></div>
+          </div>
+        </div>
       </div>
     );
   }
@@ -80,8 +88,11 @@ export default function TicketDetailPage({
         content: commentText,
       });
       setCommentText("");
-    } catch (error) {
+      success("Comment posted successfully!");
+    } catch (error: any) {
+      const errorMessage = error.message || "Failed to post comment";
       console.error("Failed to create comment:", error);
+      showError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -100,34 +111,60 @@ export default function TicketDetailPage({
     "bg-slate-100 text-slate-800";
 
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-5xl mx-auto">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-8">
+      <div className="max-w-5xl mx-auto animate-fade-in">
         <div className="mb-6">
           <Link href="/tickets">
-            <Button variant="ghost" size="sm">
+            <Button variant="ghost" size="sm" className="mb-4">
               ← Back to Tickets
             </Button>
           </Link>
         </div>
 
         <div className="grid gap-6">
-          <Card>
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h1 className="text-3xl font-bold text-slate-900 mb-2">
+          <Card hover padding="lg">
+            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-3">
                   {ticket.title}
                 </h1>
                 <div className="flex items-center gap-3 flex-wrap">
                   <span
-                    className={`px-3 py-1 rounded-full text-sm font-medium ${statusColor}`}
+                    className={`px-3 py-1.5 rounded-full text-sm font-medium border ${statusColor} border-current/20`}
                   >
                     {ticket.status.replace("_", " ")}
                   </span>
-                  <span className="text-sm text-slate-600">
-                    Priority: {ticket.priority}
+                  <span className="text-sm text-slate-600 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                    {ticket.priority}
                   </span>
-                  <span className="text-sm text-slate-600">
-                    Category: {ticket.category}
+                  <span className="text-sm text-slate-600 flex items-center gap-1">
+                    <svg
+                      className="w-4 h-4"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
+                      />
+                    </svg>
+                    {ticket.category}
                   </span>
                 </div>
               </div>
@@ -141,87 +178,192 @@ export default function TicketDetailPage({
                   { value: "resolved", label: "Resolved" },
                   { value: "closed", label: "Closed" },
                 ]}
-                className="w-48"
+                className="w-full sm:w-48"
               />
             </div>
 
             <div className="prose max-w-none">
-              <h2 className="text-xl font-semibold text-slate-900 mb-3">
+              <h2 className="text-xl font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                <svg
+                  className="w-5 h-5 text-indigo-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
                 Description
               </h2>
-              <p className="text-slate-700 whitespace-pre-wrap">
+              <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
                 {ticket.description}
               </p>
             </div>
 
             <div className="mt-6 pt-6 border-t border-slate-200">
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-slate-500">Type:</span>{" "}
-                  <span className="text-slate-900">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <span className="text-xs text-slate-500 uppercase tracking-wide">
+                    Type
+                  </span>
+                  <p className="text-slate-900 font-medium mt-1">
                     {ticket.type.replace("_", " ")}
+                  </p>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <span className="text-xs text-slate-500 uppercase tracking-wide">
+                    Urgency
                   </span>
+                  <p className="text-slate-900 font-medium mt-1">
+                    {ticket.urgency}
+                  </p>
                 </div>
-                <div>
-                  <span className="text-slate-500">Urgency:</span>{" "}
-                  <span className="text-slate-900">{ticket.urgency}</span>
-                </div>
-                <div>
-                  <span className="text-slate-500">Created:</span>{" "}
-                  <span className="text-slate-900">
+                <div className="p-3 bg-slate-50 rounded-lg">
+                  <span className="text-xs text-slate-500 uppercase tracking-wide">
+                    Created
+                  </span>
+                  <p className="text-slate-900 font-medium mt-1">
                     {new Date(ticket.createdAt).toLocaleString()}
-                  </span>
+                  </p>
                 </div>
                 {ticket.resolvedAt && (
-                  <div>
-                    <span className="text-slate-500">Resolved:</span>{" "}
-                    <span className="text-slate-900">
-                      {new Date(ticket.resolvedAt).toLocaleString()}
+                  <div className="p-3 bg-green-50 rounded-lg">
+                    <span className="text-xs text-green-600 uppercase tracking-wide">
+                      Resolved
                     </span>
+                    <p className="text-green-900 font-medium mt-1">
+                      {new Date(ticket.resolvedAt).toLocaleString()}
+                    </p>
                   </div>
                 )}
               </div>
             </div>
           </Card>
 
-          <Card>
-            <h2 className="text-2xl font-semibold text-slate-900 mb-6">
+          <Card hover padding="lg">
+            <h2 className="text-2xl font-semibold text-slate-900 mb-6 flex items-center gap-2">
+              <svg
+                className="w-6 h-6 text-indigo-600"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                />
+              </svg>
               Comments
             </h2>
 
             <div className="space-y-4 mb-6">
               {comments.length === 0 ? (
-                <p className="text-slate-600">No comments yet.</p>
-              ) : (
-                comments.map((comment) => (
-                  <div
-                    key={comment._id}
-                    className="p-4 bg-slate-50 rounded-lg border border-slate-200"
+                <div className="text-center py-8">
+                  <svg
+                    className="w-12 h-12 mx-auto text-slate-300 mb-3"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="text-sm font-medium text-slate-900">
-                        User {comment.userId.slice(0, 8)}...
-                      </span>
-                      <span className="text-xs text-slate-500">
-                        {new Date(comment.createdAt).toLocaleString()}
-                      </span>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                    />
+                  </svg>
+                  <p className="text-slate-600">No comments yet. Be the first to comment!</p>
+                </div>
+              ) : (
+                comments.map((comment: any, index) => {
+                  const getInitials = (name: string) => {
+                    return name
+                      .split(" ")
+                      .map((n) => n[0])
+                      .join("")
+                      .toUpperCase()
+                      .slice(0, 2);
+                  };
+
+                  const currentUserId = localStorage.getItem("userId");
+                  const isCurrentUser = comment.userId === currentUserId;
+
+                  return (
+                    <div
+                      key={comment._id}
+                      className={`p-4 rounded-lg border transition-all animate-fade-in ${
+                        isCurrentUser
+                          ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200"
+                          : "bg-gradient-to-r from-slate-50 to-indigo-50/30 border-slate-200 hover:border-indigo-200"
+                      }`}
+                      style={{ animationDelay: `${index * 50}ms` }}
+                    >
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-2">
+                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold shadow-md">
+                            {getInitials(comment.userName || "Unknown")}
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-medium text-slate-900">
+                              {comment.userName || "Unknown User"}
+                              {isCurrentUser && (
+                                <span className="ml-2 text-xs text-indigo-600 font-normal">
+                                  (You)
+                                </span>
+                              )}
+                            </span>
+                            {comment.userEmail && (
+                              <span className="text-xs text-slate-500">
+                                {comment.userEmail}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <span className="text-xs text-slate-500 flex items-center gap-1">
+                          <svg
+                            className="w-3 h-3"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
+                            />
+                          </svg>
+                          {new Date(comment.createdAt).toLocaleString()}
+                        </span>
+                      </div>
+                      <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+                        {comment.content}
+                      </p>
                     </div>
-                    <p className="text-slate-700 whitespace-pre-wrap">
-                      {comment.content}
-                    </p>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 
-            <form onSubmit={handleCommentSubmit} className="space-y-4">
+            <form onSubmit={handleCommentSubmit} className="space-y-4 border-t border-slate-200 pt-6">
               <Textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
                 placeholder="Add a comment..."
                 rows={3}
               />
-              <Button type="submit" disabled={loading || !commentText.trim()}>
+              <Button
+                type="submit"
+                variant="gradient"
+                disabled={loading || !commentText.trim()}
+                loading={loading}
+              >
                 {loading ? "Posting..." : "Post Comment"}
               </Button>
             </form>
