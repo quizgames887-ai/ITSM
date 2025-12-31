@@ -42,7 +42,7 @@ export function TicketCard({ ticket }: TicketCardProps) {
 
   return (
     <Link href={`/tickets/${ticket._id}`}>
-      <Card hover className="transition-all duration-300 cursor-pointer group border-l-4 border-l-transparent hover:border-l-indigo-500" padding="md sm:lg">
+      <Card hover className="transition-all duration-300 cursor-pointer group border-l-4 border-l-transparent hover:border-l-indigo-500" padding="md">
         <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
           <div className="flex-1 w-full min-w-0">
             <h3 className="text-lg sm:text-xl font-semibold text-slate-900 mb-2 sm:mb-3 group-hover:text-indigo-600 transition-all duration-200 break-words">
