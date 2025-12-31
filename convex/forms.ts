@@ -5,11 +5,16 @@ import { Id } from "./_generated/dataModel";
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const forms = await ctx.db
-      .query("forms")
-      .collect();
+    try {
+      const forms = await ctx.db
+        .query("forms")
+        .collect();
 
-    return forms.sort((a, b) => b.createdAt - a.createdAt);
+      return forms.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+    } catch (error) {
+      console.error("Error in forms.list:", error);
+      throw new Error("Failed to fetch forms");
+    }
   },
 });
 
