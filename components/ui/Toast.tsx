@@ -63,32 +63,45 @@ const toastIcons = {
 
 export function Toast({ message, type, duration = 5000, onClose }: ToastProps) {
   const [isVisible, setIsVisible] = useState(true);
+  const [progress, setProgress] = useState(100);
 
   useEffect(() => {
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - startTime;
+      const remaining = Math.max(0, 100 - (elapsed / duration) * 100);
+      setProgress(remaining);
+    }, 50);
+
     const timer = setTimeout(() => {
       setIsVisible(false);
       setTimeout(onClose, 300);
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
   }, [duration, onClose]);
 
   if (!isVisible) return null;
 
   return (
     <div
-      className={`flex items-center gap-3 px-4 py-3 rounded-lg border shadow-lg animate-slide-in max-w-md ${
+      className={`flex items-center gap-3 px-4 py-3 rounded-lg border shadow-xl animate-scale-in max-w-md relative overflow-hidden group hover:shadow-2xl transition-all duration-300 ${
         toastStyles[type]
       }`}
     >
-      <div className="flex-shrink-0">{toastIcons[type]}</div>
+      <div className="absolute bottom-0 left-0 h-1 bg-current opacity-20 transition-all duration-50" style={{ width: `${progress}%` }} />
+      <div className="flex-shrink-0 animate-bounce-subtle">{toastIcons[type]}</div>
       <p className="flex-1 text-sm font-medium">{message}</p>
       <button
         onClick={() => {
           setIsVisible(false);
           setTimeout(onClose, 300);
         }}
-        className="flex-shrink-0 hover:opacity-70 transition-opacity"
+        className="flex-shrink-0 hover:opacity-70 hover:scale-110 transition-all p-1 rounded"
+        aria-label="Close notification"
       >
         <svg
           className="w-4 h-4"
@@ -115,12 +128,12 @@ interface ToastContainerProps {
 
 export function ToastContainer({ toasts, onRemove }: ToastContainerProps) {
   return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
+    <div className="fixed top-4 right-4 z-50 space-y-3 max-w-md w-full px-4 sm:px-0">
       {toasts.map((toast, index) => (
         <div
           key={toast.id}
           className="animate-fade-in"
-          style={{ animationDelay: `${index * 100}ms` }}
+          style={{ animationDelay: `${index * 50}ms` }}
         >
           <Toast
             message={toast.message}

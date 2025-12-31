@@ -116,4 +116,52 @@ export default defineSchema({
     userId: v.id("users"),
     passwordHash: v.string(),
   }).index("by_userId", ["userId"]),
+
+  forms: defineTable({
+    name: v.string(),
+    description: v.union(v.string(), v.null()),
+    createdBy: v.id("users"),
+    isActive: v.boolean(),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_createdBy", ["createdBy"])
+    .index("by_isActive", ["isActive"]),
+
+  formFields: defineTable({
+    formId: v.id("forms"),
+    fieldType: v.union(
+      v.literal("text"),
+      v.literal("email"),
+      v.literal("number"),
+      v.literal("textarea"),
+      v.literal("select"),
+      v.literal("checkbox"),
+      v.literal("radio"),
+      v.literal("date"),
+      v.literal("file")
+    ),
+    label: v.string(),
+    name: v.string(),
+    placeholder: v.union(v.string(), v.null()),
+    required: v.boolean(),
+    defaultValue: v.union(v.string(), v.null()),
+    options: v.union(v.array(v.string()), v.null()), // For select, radio
+    validation: v.union(
+      v.object({
+        min: v.union(v.number(), v.null()),
+        max: v.union(v.number(), v.null()),
+        pattern: v.union(v.string(), v.null()),
+        minLength: v.union(v.number(), v.null()),
+        maxLength: v.union(v.number(), v.null()),
+      }),
+      v.null()
+    ),
+    order: v.number(),
+    helpText: v.union(v.string(), v.null()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_formId", ["formId"])
+    .index("by_formId_order", ["formId", "order"]),
 });

@@ -75,14 +75,16 @@ export function StatsCard({ title, value, color = "default", icon }: StatsCardPr
   const displayIcon = icon || defaultIcons[color];
 
   return (
-    <Card hover className={`${config.bg} ${config.border} border-2 animate-fade-in`}>
-      <div className="flex items-center justify-between">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-slate-600 mb-1">{title}</p>
-          <p className={`text-3xl font-bold ${config.text}`}>{value}</p>
+    <Card hover className={`${config.bg} ${config.border} border-2 animate-fade-in group cursor-pointer`} padding="sm sm:md">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex-1 min-w-0">
+          <p className="text-xs sm:text-sm font-medium text-slate-600 mb-1 truncate group-hover:text-slate-700 transition-colors">{title}</p>
+          <p className={`text-2xl sm:text-3xl font-bold ${config.text} transition-transform group-hover:scale-105`}>{value}</p>
         </div>
-        <div className={`${config.iconBg} p-3 rounded-lg ${config.text}`}>
-          {displayIcon}
+        <div className={`${config.iconBg} p-2 sm:p-3 rounded-lg ${config.text} flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-md`}>
+          <div className="w-5 h-5 sm:w-6 sm:h-6">
+            {displayIcon}
+          </div>
         </div>
       </div>
     </Card>

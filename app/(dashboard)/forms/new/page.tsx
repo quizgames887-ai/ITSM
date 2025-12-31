@@ -1,0 +1,129 @@
+"use client";
+
+import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Card } from "@/components/ui/card";
+import { useToastContext } from "@/contexts/ToastContext";
+import Link from "next/link";
+
+export default function NewFormPage() {
+  const router = useRouter();
+  const { success, error: showError } = useToastContext();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const createForm = useMutation(api.forms.create);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim()) {
+      showError("Form name is required");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const userId = localStorage.getItem("userId");
+      if (!userId) {
+        throw new Error("Not authenticated");
+      }
+
+      const formId = await createForm({
+        name: name.trim(),
+        description: description.trim() || undefined,
+        createdBy: userId as any,
+      });
+
+      success("Form created successfully! 🎉");
+      setTimeout(() => {
+        router.push(`/forms/${formId}/design`);
+      }, 500);
+    } catch (err: any) {
+      showError(err.message || "Failed to create form");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
+      <div className="max-w-3xl mx-auto animate-fade-in">
+        <div className="mb-6">
+          <Link href="/forms" className="block mb-4">
+            <Button variant="ghost" size="sm" className="w-full sm:w-auto">
+              <span className="hidden sm:inline">← Back to Forms</span>
+              <span className="sm:hidden">← Back</span>
+            </Button>
+          </Link>
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
+            Create New Form
+          </h1>
+          <p className="text-sm sm:text-base text-slate-600">
+            Start by giving your form a name and description
+          </p>
+        </div>
+
+        <Card hover padding="md sm:lg">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Input
+              label="Form Name"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              required
+              placeholder="e.g., Contact Form, Survey Form"
+              icon={
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                  />
+                </svg>
+              }
+            />
+
+            <Textarea
+              label="Description (Optional)"
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe what this form is for..."
+              rows={4}
+            />
+
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t border-slate-200">
+              <Button
+                type="submit"
+                variant="gradient"
+                disabled={loading}
+                loading={loading}
+                className="flex-1 sm:flex-none order-2 sm:order-1"
+              >
+                {loading ? "Creating..." : "Create Form"}
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => router.back()}
+                className="flex-1 sm:flex-none order-1 sm:order-2"
+              >
+                Cancel
+              </Button>
+            </div>
+          </form>
+        </Card>
+      </div>
+    </div>
+  );
+}

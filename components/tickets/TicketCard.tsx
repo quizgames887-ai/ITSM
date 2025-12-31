@@ -42,26 +42,26 @@ export function TicketCard({ ticket }: TicketCardProps) {
 
   return (
     <Link href={`/tickets/${ticket._id}`}>
-      <Card hover className="transition-all duration-300 cursor-pointer group">
-        <div className="flex justify-between items-start gap-4">
-          <div className="flex-1">
-            <h3 className="text-xl font-semibold text-slate-900 mb-3 group-hover:text-indigo-600 transition-colors">
+      <Card hover className="transition-all duration-300 cursor-pointer group border-l-4 border-l-transparent hover:border-l-indigo-500" padding="md sm:lg">
+        <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
+          <div className="flex-1 w-full min-w-0">
+            <h3 className="text-lg sm:text-xl font-semibold text-slate-900 mb-2 sm:mb-3 group-hover:text-indigo-600 transition-all duration-200 break-words">
               {ticket.title}
             </h3>
-            <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
               <span
-                className={`px-3 py-1.5 rounded-full text-xs font-medium border ${statusColor} transition-all`}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium border ${statusColor} transition-all`}
               >
                 {ticket.status.replace("_", " ")}
               </span>
               <span
-                className={`px-3 py-1.5 rounded-full text-xs font-medium ${priorityColor}`}
+                className={`px-2 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs font-medium ${priorityColor}`}
               >
                 {ticket.priority}
               </span>
-              <span className="text-sm text-slate-600 flex items-center gap-1">
+              <span className="text-xs sm:text-sm text-slate-600 flex items-center gap-1">
                 <svg
-                  className="w-4 h-4"
+                  className="w-3 h-3 sm:w-4 sm:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -73,11 +73,11 @@ export function TicketCard({ ticket }: TicketCardProps) {
                     d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
                   />
                 </svg>
-                {ticket.category}
+                <span className="truncate max-w-[100px] sm:max-w-none">{ticket.category}</span>
               </span>
-              <span className="text-sm text-slate-500 flex items-center gap-1">
+              <span className="text-xs sm:text-sm text-slate-500 flex items-center gap-1">
                 <svg
-                  className="w-4 h-4"
+                  className="w-3 h-3 sm:w-4 sm:h-4"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -93,9 +93,9 @@ export function TicketCard({ ticket }: TicketCardProps) {
               </span>
             </div>
           </div>
-          <div className="flex-shrink-0">
+          <div className="flex-shrink-0 self-end sm:self-auto">
             <svg
-              className="w-5 h-5 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"
+              className="w-4 h-4 sm:w-5 sm:h-5 text-slate-400 group-hover:text-indigo-600 group-hover:translate-x-1 transition-all"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

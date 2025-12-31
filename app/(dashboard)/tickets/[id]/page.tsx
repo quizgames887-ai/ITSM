@@ -11,6 +11,7 @@ import { TicketAudit } from "@/components/tickets/TicketAudit";
 import { useState, use } from "react";
 import Link from "next/link";
 import { useToastContext } from "@/contexts/ToastContext";
+import { EmptyState } from "@/components/ui/EmptyState";
 
 export default function TicketDetailPage({
   params,
@@ -111,32 +112,33 @@ export default function TicketDetailPage({
     "bg-slate-100 text-slate-800";
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-5xl mx-auto animate-fade-in">
         <div className="mb-6">
-          <Link href="/tickets">
-            <Button variant="ghost" size="sm" className="mb-4">
-              ← Back to Tickets
+          <Link href="/tickets" className="block mb-4">
+            <Button variant="ghost" size="sm" className="w-full sm:w-auto">
+              <span className="hidden sm:inline">← Back to Tickets</span>
+              <span className="sm:hidden">← Back</span>
             </Button>
           </Link>
         </div>
 
-        <div className="grid gap-6">
-          <Card hover padding="lg">
+        <div className="grid gap-4 sm:gap-6">
+          <Card hover padding="md sm:lg" className="border-l-4 border-l-indigo-500">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
-              <div className="flex-1">
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-3">
+              <div className="flex-1 w-full">
+                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-3 break-words">
                   {ticket.title}
                 </h1>
-                <div className="flex items-center gap-3 flex-wrap">
+                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
                   <span
-                    className={`px-3 py-1.5 rounded-full text-sm font-medium border ${statusColor} border-current/20`}
+                    className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium border ${statusColor} border-current/20 transition-all hover:scale-105`}
                   >
                     {ticket.status.replace("_", " ")}
                   </span>
-                  <span className="text-sm text-slate-600 flex items-center gap-1">
+                  <span className="text-xs sm:text-sm text-slate-600 flex items-center gap-1">
                     <svg
-                      className="w-4 h-4"
+                      className="w-3 h-3 sm:w-4 sm:h-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -150,9 +152,9 @@ export default function TicketDetailPage({
                     </svg>
                     {ticket.priority}
                   </span>
-                  <span className="text-sm text-slate-600 flex items-center gap-1">
+                  <span className="text-xs sm:text-sm text-slate-600 flex items-center gap-1">
                     <svg
-                      className="w-4 h-4"
+                      className="w-3 h-3 sm:w-4 sm:h-4"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -183,9 +185,9 @@ export default function TicketDetailPage({
             </div>
 
             <div className="prose max-w-none">
-              <h2 className="text-xl font-semibold text-slate-900 mb-3 flex items-center gap-2">
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 flex items-center gap-2">
                 <svg
-                  className="w-5 h-5 text-indigo-600"
+                  className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -199,13 +201,13 @@ export default function TicketDetailPage({
                 </svg>
                 Description
               </h2>
-              <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
+              <p className="text-sm sm:text-base text-slate-700 whitespace-pre-wrap leading-relaxed break-words">
                 {ticket.description}
               </p>
             </div>
 
-            <div className="mt-6 pt-6 border-t border-slate-200">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-200">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div className="p-3 bg-slate-50 rounded-lg">
                   <span className="text-xs text-slate-500 uppercase tracking-wide">
                     Type
@@ -264,22 +266,25 @@ export default function TicketDetailPage({
 
             <div className="space-y-4 mb-6">
               {comments.length === 0 ? (
-                <div className="text-center py-8">
-                  <svg
-                    className="w-12 h-12 mx-auto text-slate-300 mb-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                    />
-                  </svg>
-                  <p className="text-slate-600">No comments yet. Be the first to comment!</p>
-                </div>
+                <EmptyState
+                  icon={
+                    <svg
+                      className="w-12 h-12 text-slate-300"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                      />
+                    </svg>
+                  }
+                  title="No comments yet"
+                  description="Be the first to add a comment. Share updates, ask questions, or provide additional information."
+                />
               ) : (
                 comments.map((comment: any, index) => {
                   const getInitials = (name: string) => {
@@ -297,34 +302,34 @@ export default function TicketDetailPage({
                   return (
                     <div
                       key={comment._id}
-                      className={`p-4 rounded-lg border transition-all animate-fade-in ${
+                      className={`p-4 rounded-lg border transition-all animate-fade-in hover:shadow-md ${
                         isCurrentUser
-                          ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200"
-                          : "bg-gradient-to-r from-slate-50 to-indigo-50/30 border-slate-200 hover:border-indigo-200"
+                          ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 border-l-4"
+                          : "bg-gradient-to-r from-slate-50 to-indigo-50/30 border-slate-200 hover:border-indigo-200 hover:border-l-4"
                       }`}
                       style={{ animationDelay: `${index * 50}ms` }}
                     >
                       <div className="flex justify-between items-start mb-2">
-                        <div className="flex items-center gap-2">
-                          <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold shadow-md">
-                            {getInitials(comment.userName || "Unknown")}
-                          </div>
-                          <div className="flex flex-col">
-                            <span className="text-sm font-medium text-slate-900">
-                              {comment.userName || "Unknown User"}
-                              {isCurrentUser && (
-                                <span className="ml-2 text-xs text-indigo-600 font-normal">
-                                  (You)
-                                </span>
-                              )}
-                            </span>
-                            {comment.userEmail && (
-                              <span className="text-xs text-slate-500">
-                                {comment.userEmail}
+                      <div className="flex items-center gap-2">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all hover:scale-110">
+                          {getInitials(comment.userName || "Unknown")}
+                        </div>
+                        <div className="flex flex-col">
+                          <span className="text-sm font-medium text-slate-900">
+                            {comment.userName || "Unknown User"}
+                            {isCurrentUser && (
+                              <span className="ml-2 text-xs text-indigo-600 font-normal">
+                                (You)
                               </span>
                             )}
-                          </div>
+                          </span>
+                          {comment.userEmail && (
+                            <span className="text-xs text-slate-500 break-all">
+                              {comment.userEmail}
+                            </span>
+                          )}
                         </div>
+                      </div>
                         <span className="text-xs text-slate-500 flex items-center gap-1">
                           <svg
                             className="w-3 h-3"
@@ -351,7 +356,7 @@ export default function TicketDetailPage({
               )}
             </div>
 
-            <form onSubmit={handleCommentSubmit} className="space-y-4 border-t border-slate-200 pt-6">
+            <form onSubmit={handleCommentSubmit} className="space-y-4 border-t border-slate-200 pt-4 sm:pt-6">
               <Textarea
                 value={commentText}
                 onChange={(e) => setCommentText(e.target.value)}
@@ -363,6 +368,7 @@ export default function TicketDetailPage({
                 variant="gradient"
                 disabled={loading || !commentText.trim()}
                 loading={loading}
+                className="w-full sm:w-auto"
               >
                 {loading ? "Posting..." : "Post Comment"}
               </Button>

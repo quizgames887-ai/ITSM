@@ -45,8 +45,10 @@ export default function NewTicketPage() {
         createdBy: userId as any,
       });
 
-      success("Ticket created successfully!");
-      router.push(`/tickets/${ticketId}`);
+      success("Ticket created successfully! 🎉");
+      setTimeout(() => {
+        router.push(`/tickets/${ticketId}`);
+      }, 500);
     } catch (err: any) {
       const errorMessage = err.message || "Failed to create ticket";
       setError(errorMessage);
@@ -57,23 +59,24 @@ export default function NewTicketPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-3xl mx-auto animate-fade-in">
         <div className="mb-6">
-          <Link href="/tickets">
-            <Button variant="ghost" size="sm" className="mb-4">
-              ← Back to Tickets
+          <Link href="/tickets" className="block mb-4">
+            <Button variant="ghost" size="sm" className="w-full sm:w-auto">
+              <span className="hidden sm:inline">← Back to Tickets</span>
+              <span className="sm:hidden">← Back</span>
             </Button>
           </Link>
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
             Create New Ticket
           </h1>
-          <p className="text-slate-600">
+          <p className="text-sm sm:text-base text-slate-600">
             Fill in the details below to create a new support ticket
           </p>
         </div>
 
-        <Card hover padding="lg">
+        <Card hover padding="md sm:lg">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border-l-4 border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm animate-slide-in">
@@ -210,13 +213,13 @@ export default function NewTicketPage() {
               />
             </div>
 
-            <div className="flex gap-4 pt-4 border-t border-slate-200">
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t border-slate-200">
               <Button
                 type="submit"
                 variant="gradient"
                 disabled={loading}
                 loading={loading}
-                className="flex-1"
+                className="flex-1 sm:flex-none order-2 sm:order-1"
               >
                 {loading ? "Creating..." : "Create Ticket"}
               </Button>
@@ -224,6 +227,7 @@ export default function NewTicketPage() {
                 type="button"
                 variant="outline"
                 onClick={() => router.back()}
+                className="flex-1 sm:flex-none order-1 sm:order-2"
               >
                 Cancel
               </Button>

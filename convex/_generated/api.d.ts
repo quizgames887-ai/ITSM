@@ -15,6 +15,7 @@ import type * as auth from "../auth.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as comments from "../comments.js";
 import type * as cron from "../cron.js";
+import type * as forms from "../forms.js";
 import type * as knowledgeBase from "../knowledgeBase.js";
 import type * as notifications from "../notifications.js";
 import type * as sla from "../sla.js";
@@ -35,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   authHelpers: typeof authHelpers;
   comments: typeof comments;
   cron: typeof cron;
+  forms: typeof forms;
   knowledgeBase: typeof knowledgeBase;
   notifications: typeof notifications;
   sla: typeof sla;

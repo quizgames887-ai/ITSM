@@ -82,6 +82,11 @@ export const signIn = mutation({
       throw new Error("Invalid email or password");
     }
 
-    return { userId: user._id, email: user.email, name: user.name };
+    return { 
+      userId: user._id, 
+      email: user.email, 
+      name: user.name,
+      role: user.role 
+    };
   },
 });
