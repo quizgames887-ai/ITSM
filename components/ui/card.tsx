@@ -5,6 +5,7 @@ interface CardProps {
   className?: string;
   padding?: "sm" | "md" | "lg";
   hover?: boolean;
+  style?: React.CSSProperties;
 }
 
 export function Card({
@@ -12,6 +13,7 @@ export function Card({
   className = "",
   padding = "md",
   hover = false,
+  style,
 }: CardProps) {
   const paddings = {
     sm: "p-3 sm:p-4",
@@ -24,6 +26,7 @@ export function Card({
       className={`bg-white rounded-xl shadow-sm border border-slate-200 transition-all duration-300 ${
         hover ? "hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5 hover:scale-[1.01]" : ""
       } ${paddings[padding]} ${className}`}
+      style={style}
     >
       {children}
     </div>
