@@ -1,36 +1,174 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Modern Ticketing System
+
+A full-stack ticketing system built with Next.js, Convex, and OpenAI integration. Features AI-powered triage, categorization, and resolution assistance with a clean document-editor style UI.
+
+## Features
+
+- **Ticket Management**: Create, track, and manage support tickets
+- **Real-time Updates**: Automatic UI updates when data changes (powered by Convex)
+- **AI-Powered Features**: 
+  - Automatic category suggestions
+  - Priority recommendations
+  - Knowledge base article matching
+- **Dashboard & Analytics**: Track KPIs and ticket metrics
+- **Comments & Collaboration**: Add comments and collaborate on tickets
+- **Clean UI**: Document-editor style design with serif fonts
+
+## Tech Stack
+
+- **Frontend**: Next.js 14+ with React, TypeScript, Tailwind CSS
+- **Backend**: Convex (queries, mutations, actions)
+- **Database**: Convex real-time database
+- **Authentication**: Email/password authentication
+- **AI**: OpenAI API integration
+- **File Storage**: Convex Storage API
 
 ## Getting Started
 
-First, run the development server:
+### Prerequisites
 
+- Node.js 18+ 
+- npm or yarn
+- Convex account (free tier available)
+- OpenAI API key (optional, for AI features)
+
+### Installation
+
+1. Clone the repository:
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+git clone <repository-url>
+cd teck
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+2. Install dependencies:
+```bash
+npm install
+```
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+3. Set up Convex:
+```bash
+npx convex dev
+```
+This will:
+- Create a Convex account if you don't have one
+- Set up a new project
+- Generate the deployment URL
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+4. Create `.env.local` file:
+```bash
+cp .env.example .env.local
+```
 
-## Learn More
+5. Add your environment variables to `.env.local`:
+```env
+NEXT_PUBLIC_CONVEX_URL=your_convex_deployment_url
+OPENAI_API_KEY=your_openai_api_key
+```
 
-To learn more about Next.js, take a look at the following resources:
+6. Run the development server:
+```bash
+npm run dev
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+7. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Project Structure
 
-## Deploy on Vercel
+```
+teck/
+├── convex/              # Convex backend functions
+│   ├── schema.ts        # Database schema
+│   ├── tickets.ts       # Ticket queries/mutations
+│   ├── comments.ts      # Comment queries/mutations
+│   ├── ai/              # AI actions
+│   └── ...
+├── app/                 # Next.js app router
+│   ├── (auth)/         # Authentication pages
+│   ├── (dashboard)/    # Dashboard pages
+│   └── ...
+├── components/          # React components
+│   ├── ui/             # Base UI components
+│   ├── tickets/        # Ticket components
+│   └── ...
+└── ...
+```
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Usage
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+### Creating a Ticket
+
+1. Sign up or log in
+2. Navigate to "Tickets" → "Create New Ticket"
+3. Fill in the ticket details
+4. AI will suggest category and priority (if OpenAI key is configured)
+5. Submit the ticket
+
+### Managing Tickets
+
+- View all tickets on the Tickets page
+- Filter by status, priority, or category
+- Click on a ticket to view details and add comments
+- Update ticket status as it progresses
+
+### Dashboard
+
+The dashboard provides an overview of:
+- Total tickets
+- Tickets by status
+- Critical tickets
+- Recent ticket activity
+
+## AI Features
+
+The system uses OpenAI to provide:
+- **Category Suggestions**: Analyzes ticket content to suggest the best category
+- **Priority Recommendations**: Determines priority and urgency based on keywords and context
+- **Knowledge Base Matching**: Finds relevant articles based on ticket content
+
+To enable AI features, add your OpenAI API key to `.env.local`.
+
+## Development
+
+### Convex Functions
+
+Convex functions are automatically synced when you run `npx convex dev`. The functions are:
+- **Queries**: Read data (reactive, auto-updates)
+- **Mutations**: Write data
+- **Actions**: Call external APIs (like OpenAI)
+
+### Adding New Features
+
+1. **Database Schema**: Update `convex/schema.ts`
+2. **Backend Logic**: Add queries/mutations in `convex/`
+3. **Frontend**: Create pages in `app/` and components in `components/`
+
+## Deployment
+
+### Deploy Convex Backend
+
+```bash
+npx convex deploy
+```
+
+### Deploy Next.js Frontend
+
+Deploy to Vercel, Netlify, or your preferred platform:
+
+```bash
+npm run build
+```
+
+Make sure to set environment variables in your deployment platform.
+
+## Environment Variables
+
+- `NEXT_PUBLIC_CONVEX_URL`: Your Convex deployment URL
+- `OPENAI_API_KEY`: Your OpenAI API key (optional, for AI features)
+
+## License
+
+MIT
+
+## Support
+
+For issues and questions, please open an issue on GitHub.
