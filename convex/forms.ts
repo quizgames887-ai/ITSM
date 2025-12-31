@@ -7,7 +7,6 @@ export const list = query({
   handler: async (ctx) => {
     const forms = await ctx.db
       .query("forms")
-      .withIndex("by_createdBy")
       .collect();
 
     return forms.sort((a, b) => b.createdAt - a.createdAt);
