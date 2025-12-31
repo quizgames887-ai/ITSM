@@ -1,0 +1,127 @@
+import { v } from "convex/values";
+import { query } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+
+export const getTicketHistory = query({
+  args: { ticketId: v.id("tickets") },
+  handler: async (ctx, args) => {
+    // First verify the ticket exists
+    const ticket = await ctx.db.get(args.ticketId);
+    if (!ticket) {
+      return [];
+    }
+
+    // Query all history and filter by ticketId (more reliable than index)
+    const allHistory = await ctx.db.query("ticketHistory").collect();
+    const history = allHistory.filter((h) => h.ticketId === args.ticketId);
+
+    if (history.length === 0) {
+      return [];
+    }
+
+    // Fetch user details for each history entry
+    const results = await Promise.all(
+      history.map(async (entry) => {
+        const user = await ctx.db.get(entry.userId);
+        return {
+          _id: entry._id,
+          ticketId: entry.ticketId,
+          userId: entry.userId,
+          action: entry.action,
+          oldValue: entry.oldValue ?? null,
+          newValue: entry.newValue ?? null,
+          createdAt: entry.createdAt,
+          userName: user?.name ?? "Unknown User",
+          userEmail: user?.email ?? "",
+        };
+      })
+    );
+
+    // Sort by createdAt descending (newest first)
+    return results.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+export const getRecentActivity = query({
+  args: {
+    limit: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 50;
+
+    // Get all history entries
+    const allHistory = await ctx.db.query("ticketHistory").collect();
+
+    // Sort by createdAt descending and limit
+    const recentHistory = allHistory
+      .sort((a, b) => b.createdAt - a.createdAt)
+      .slice(0, limit);
+
+    // Fetch user and ticket details
+    const historyWithDetails = await Promise.all(
+      recentHistory.map(async (entry) => {
+        const [user, ticket] = await Promise.all([
+          ctx.db.get(entry.userId),
+          ctx.db.get(entry.ticketId),
+        ]);
+        return {
+          ...entry,
+          userName: user?.name ?? "Unknown User",
+          userEmail: user?.email ?? "",
+          ticketTitle: ticket?.title ?? "Deleted Ticket",
+        };
+      })
+    );
+
+    return historyWithDetails;
+  },
+});
+
+export const getAuditStats = query({
+  args: {
+    days: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    const days = args.days ?? 30;
+    const cutoff = Date.now() - days * 24 * 60 * 60 * 1000;
+
+    const allHistory = await ctx.db.query("ticketHistory").collect();
+    const recentHistory = allHistory.filter((h) => h.createdAt >= cutoff);
+
+    // Count by action type
+    const actionCounts: Record<string, number> = {};
+    for (const entry of recentHistory) {
+      actionCounts[entry.action] = (actionCounts[entry.action] || 0) + 1;
+    }
+
+    // Count by user
+    const userCounts: Record<string, number> = {};
+    for (const entry of recentHistory) {
+      const key = entry.userId.toString();
+      userCounts[key] = (userCounts[key] || 0) + 1;
+    }
+
+    // Get top users
+    const topUserIds = Object.entries(userCounts)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 5);
+
+    const topUsers = await Promise.all(
+      topUserIds.map(async ([userId, count]) => {
+        const user = await ctx.db.get(userId as Id<"users">);
+        return {
+          userId,
+          name: user?.name ?? "Unknown User",
+          count,
+        };
+      })
+    );
+
+    return {
+      totalActions: recentHistory.length,
+      actionCounts,
+      topUsers,
+      periodDays: days,
+    };
+  },
+});

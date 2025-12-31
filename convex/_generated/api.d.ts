@@ -10,6 +10,7 @@
 
 import type * as ai_actions from "../ai/actions.js";
 import type * as analytics from "../analytics.js";
+import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as comments from "../comments.js";
@@ -29,6 +30,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   "ai/actions": typeof ai_actions;
   analytics: typeof analytics;
+  audit: typeof audit;
   auth: typeof auth;
   authHelpers: typeof authHelpers;
   comments: typeof comments;
