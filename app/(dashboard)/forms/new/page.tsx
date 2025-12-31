@@ -69,7 +69,7 @@ export default function NewFormPage() {
           </p>
         </div>
 
-        <Card hover padding="md sm:lg">
+        <Card hover padding="lg">
           <form onSubmit={handleSubmit} className="space-y-6">
             <Input
               label="Form Name"

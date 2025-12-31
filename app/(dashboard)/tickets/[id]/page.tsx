@@ -124,7 +124,7 @@ export default function TicketDetailPage({
         </div>
 
         <div className="grid gap-4 sm:gap-6">
-          <Card hover padding="md sm:lg" className="border-l-4 border-l-indigo-500">
+          <Card hover padding="lg" className="border-l-4 border-l-indigo-500">
             <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
               <div className="flex-1 w-full">
                 <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-3 break-words">

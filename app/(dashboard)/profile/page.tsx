@@ -139,7 +139,7 @@ export default function ProfilePage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          <Card className="lg:col-span-2" hover padding="md sm:lg">
+          <Card className="lg:col-span-2" hover padding="lg">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
               <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
                 Personal Information
@@ -295,7 +295,7 @@ export default function ProfilePage() {
             </div>
           </Card>
 
-          <Card hover padding="md sm:lg">
+          <Card hover padding="lg">
             <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-4 sm:mb-6 flex items-center gap-2">
               <svg
                 className="w-5 h-5 text-indigo-600"

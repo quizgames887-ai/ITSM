@@ -126,7 +126,7 @@ export default function UsersPage() {
           </div>
         </div>
 
-        <Card hover padding="md sm:lg" className="mb-6">
+        <Card hover padding="lg" className="mb-6">
           <Input
             label="Search Users"
             value={searchTerm}

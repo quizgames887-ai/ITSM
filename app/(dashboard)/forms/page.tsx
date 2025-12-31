@@ -98,7 +98,7 @@ export default function FormsPage() {
               <Card
                 key={form._id}
                 hover
-                padding="md sm:lg"
+                padding="lg"
                 className="animate-fade-in cursor-pointer"
                 style={{ animationDelay: `${index * 50}ms` }}
                 onClick={() => router.push(`/forms/${form._id}/design`)}

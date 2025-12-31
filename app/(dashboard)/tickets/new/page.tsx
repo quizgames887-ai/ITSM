@@ -76,7 +76,7 @@ export default function NewTicketPage() {
           </p>
         </div>
 
-        <Card hover padding="md sm:lg">
+        <Card hover padding="lg">
           <form onSubmit={handleSubmit} className="space-y-6">
             {error && (
               <div className="bg-red-50 border-l-4 border-red-400 text-red-700 px-4 py-3 rounded-lg text-sm animate-slide-in">

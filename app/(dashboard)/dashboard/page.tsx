@@ -90,7 +90,7 @@ export default function DashboardPage() {
           <StatsCard title="Critical" value={stats.critical} color="red" />
         </div>
 
-        <Card hover padding="md sm:lg">
+        <Card hover padding="lg">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
             <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
               Recent Tickets
