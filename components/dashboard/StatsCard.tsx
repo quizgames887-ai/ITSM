@@ -75,7 +75,7 @@ export function StatsCard({ title, value, color = "default", icon }: StatsCardPr
   const displayIcon = icon || defaultIcons[color];
 
   return (
-    <Card hover className={`${config.bg} ${config.border} border-2 animate-fade-in group cursor-pointer`} padding="sm sm:md">
+    <Card hover className={`${config.bg} ${config.border} border-2 animate-fade-in group cursor-pointer`} padding="sm">
       <div className="flex items-center justify-between gap-3">
         <div className="flex-1 min-w-0">
           <p className="text-xs sm:text-sm font-medium text-slate-600 mb-1 truncate group-hover:text-slate-700 transition-colors">{title}</p>
