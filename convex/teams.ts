@@ -317,14 +317,15 @@ export const getAvailableAgents = query({
       .withIndex("by_role", (q) => q.eq("role", "agent"))
       .collect();
     
-    if (!args.teamId) {
+    const teamId = args.teamId;
+    if (!teamId) {
       return allAgents;
     }
     
     // Get current team members
     const teamMembers = await ctx.db
       .query("teamMembers")
-      .withIndex("by_teamId", (q) => q.eq("teamId", args.teamId))
+      .withIndex("by_teamId", (q) => q.eq("teamId", teamId))
       .collect();
     
     const teamMemberIds = new Set(teamMembers.map((m) => m.userId));
