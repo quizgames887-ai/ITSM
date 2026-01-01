@@ -24,7 +24,7 @@ type User = {
 type EditingField = "name" | "email" | "role" | "onboarding" | "password" | null;
 
 export default function UsersPage() {
-  const users = useQuery(api.users.listAll, {});
+  const users = useQuery(api.users.list, {});
   const updateUser = useMutation(api.users.update);
   const resetUserPassword = useMutation(api.users.resetUserPassword);
   const { success, error: showError } = useToastContext();

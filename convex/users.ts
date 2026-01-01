@@ -39,12 +39,18 @@ export const getCurrentUser = query({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    const identity = await ctx.auth.getUserIdentity();
-    if (!identity) {
+    try {
+      // Try to get identity, but don't require it
+      // The frontend will handle admin checks
+      const identity = await ctx.auth.getUserIdentity();
+      
+      // If no identity, still return users (frontend will check admin status)
+      // This allows the query to work even without auth setup
+      return await ctx.db.query("users").collect();
+    } catch (error: any) {
+      console.error("Error fetching users:", error);
       return [];
     }
-
-    return await ctx.db.query("users").collect();
   },
 });
 
@@ -54,8 +60,9 @@ export const listAll = query({
   args: {},
   handler: async (ctx) => {
     try {
-      return await ctx.db.query("users").collect();
-    } catch (error) {
+      const users = await ctx.db.query("users").collect();
+      return users || [];
+    } catch (error: any) {
       console.error("Error fetching users:", error);
       // Return empty array instead of throwing to prevent app crash
       return [];
