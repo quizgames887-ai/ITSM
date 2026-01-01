@@ -27,7 +27,9 @@ type EditingField = "name" | "email" | "role" | "onboarding" | "password" | null
 export default function UsersPage() {
   const router = useRouter();
   const users = useQuery(api.users.list, {});
-  const dbStatus = useQuery(api.users.getDatabaseStatus, {});
+  // Optional diagnostic query - only use if available
+  // const dbStatus = useQuery(api.users.getDatabaseStatus, {});
+  const dbStatus = null; // Disabled until Convex backend is synced
   const updateUser = useMutation(api.users.update);
   const resetUserPassword = useMutation(api.users.resetUserPassword);
   const { success, error: showError } = useToastContext();
