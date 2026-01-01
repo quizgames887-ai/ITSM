@@ -27,6 +27,7 @@ type EditingField = "name" | "email" | "role" | "onboarding" | "password" | null
 export default function UsersPage() {
   const router = useRouter();
   const users = useQuery(api.users.list, {});
+  const dbStatus = useQuery(api.users.getDatabaseStatus, {});
   const updateUser = useMutation(api.users.update);
   const resetUserPassword = useMutation(api.users.resetUserPassword);
   const { success, error: showError } = useToastContext();
@@ -294,10 +295,22 @@ export default function UsersPage() {
         console.warn("[UsersPage] No users found in database!");
         console.warn("[UsersPage] Current user:", currentUser);
         console.warn("[UsersPage] Current user ID from localStorage:", currentUserId);
+        console.warn("[UsersPage] Database status:", dbStatus);
         console.warn("[UsersPage] This might indicate:");
         console.warn("  1. The database is empty");
         console.warn("  2. The query is failing silently");
         console.warn("  3. There's a connection issue with Convex");
+        console.warn("  4. Check Convex dashboard logs for [users:list] messages");
+      }
+    }
+    
+    if (dbStatus) {
+      console.log("[UsersPage] Database status from diagnostic query:", dbStatus);
+      if (dbStatus.userCount > 0 && users && users.length === 0) {
+        console.error("[UsersPage] INCONSISTENCY DETECTED:");
+        console.error("[UsersPage] Diagnostic query found", dbStatus.userCount, "users");
+        console.error("[UsersPage] But list query returned", users.length, "users");
+        console.error("[UsersPage] This suggests a query issue, not a data issue");
       }
     }
   }
@@ -461,6 +474,20 @@ export default function UsersPage() {
                         <p className="font-medium text-amber-800 mb-1">⚠️ Diagnostic Info:</p>
                         <p>You are logged in as: {currentUser.email}</p>
                         <p>Your user ID: {currentUser._id}</p>
+                        {dbStatus && (
+                          <div className="mt-2 p-2 bg-white rounded border border-amber-300">
+                            <p className="font-medium text-amber-900 mb-1">Database Status Query:</p>
+                            <p>User count: {dbStatus.userCount}</p>
+                            {dbStatus.error && (
+                              <p className="text-red-600">Error: {dbStatus.error}</p>
+                            )}
+                            {dbStatus.userCount > 0 && users && users.length === 0 && (
+                              <p className="text-red-600 font-semibold mt-1">
+                                ⚠️ INCONSISTENCY: Diagnostic found {dbStatus.userCount} users, but list query returned 0!
+                              </p>
+                            )}
+                          </div>
+                        )}
                         <p className="mt-2 text-amber-700">
                           Your user exists in the database, but the list query returned empty.
                           This may indicate:
@@ -469,6 +496,7 @@ export default function UsersPage() {
                           <li>The database is empty (no users created yet)</li>
                           <li>A database connection issue</li>
                           <li>The query is failing silently</li>
+                          <li>Check Convex dashboard logs for [users:list] messages</li>
                         </ul>
                         <p className="mt-2 text-amber-700">
                           Check the browser console (F12) for detailed error messages.

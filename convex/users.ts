@@ -41,8 +41,11 @@ export const getDatabaseStatus = query({
   args: {},
   handler: async (ctx) => {
     try {
+      console.log("[users:getDatabaseStatus] Starting diagnostic query...");
       const userCount = await ctx.db.query("users").collect();
-      return {
+      console.log(`[users:getDatabaseStatus] Found ${userCount.length} users`);
+      
+      const result = {
         userCount: userCount.length,
         hasUsers: userCount.length > 0,
         sampleUsers: userCount.slice(0, 3).map(u => ({
@@ -50,14 +53,22 @@ export const getDatabaseStatus = query({
           email: u.email,
           name: u.name,
           role: u.role
-        }))
+        })),
+        allUserIds: userCount.map(u => u._id),
+        timestamp: Date.now()
       };
+      
+      console.log("[users:getDatabaseStatus] Result:", JSON.stringify(result, null, 2));
+      return result;
     } catch (error: any) {
       console.error("[users:getDatabaseStatus] Error:", error);
+      console.error("[users:getDatabaseStatus] Error details:", JSON.stringify(error, null, 2));
       return {
         userCount: 0,
         hasUsers: false,
-        error: error.message
+        error: error.message,
+        errorStack: error.stack,
+        timestamp: Date.now()
       };
     }
   },
@@ -67,11 +78,18 @@ export const list = query({
   args: {},
   handler: async (ctx) => {
     try {
-      // Return all users - frontend will handle admin checks
-      const users = await ctx.db.query("users").collect();
+      console.log("[users:list] Starting query execution...");
       
-      // Always log the result for debugging
+      // Try multiple query methods to debug
+      const query1 = ctx.db.query("users");
+      console.log("[users:list] Query object created");
+      
+      const users = await query1.collect();
       console.log(`[users:list] Query executed successfully. Found ${users.length} users`);
+      
+      // Try alternative query method to verify
+      const allUsers = await ctx.db.query("users").collect();
+      console.log(`[users:list] Alternative query method found ${allUsers.length} users`);
       
       // Debug: Log first few users if any exist
       if (users.length > 0) {
@@ -82,9 +100,22 @@ export const list = query({
           role: u.role 
         })));
       } else {
-        console.warn(`[users:list] No users found in database. This might indicate the database is empty.`);
-        // Try to verify the table exists by checking schema
-        console.warn(`[users:list] Database query completed but returned empty array.`);
+        console.warn(`[users:list] No users found in database.`);
+        console.warn(`[users:list] This might indicate:`);
+        console.warn(`[users:list] 1. The database is empty`);
+        console.warn(`[users:list] 2. The query is not accessing the correct table`);
+        console.warn(`[users:list] 3. There's a permissions issue`);
+        
+        // Try to verify by querying with an index
+        try {
+          const testUser = await ctx.db
+            .query("users")
+            .withIndex("by_email")
+            .first();
+          console.log(`[users:list] Test query with index found:`, testUser ? "User exists" : "No user found");
+        } catch (indexError: any) {
+          console.warn(`[users:list] Index query test failed:`, indexError?.message);
+        }
       }
       
       // Ensure we always return an array
@@ -93,11 +124,13 @@ export const list = query({
         return [];
       }
       
+      console.log(`[users:list] Returning ${users.length} users`);
       return users;
     } catch (error: any) {
       console.error("[users:list] Error fetching users:", error);
       console.error("[users:list] Error message:", error?.message);
       console.error("[users:list] Error stack:", error?.stack);
+      console.error("[users:list] Error name:", error?.name);
       // Return empty array instead of throwing to prevent app crash
       return [];
     }
