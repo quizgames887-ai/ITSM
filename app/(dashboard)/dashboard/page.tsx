@@ -5,7 +5,8 @@ import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { Id } from "@/convex/_generated/dataModel";
 
 // Service icons for the grid
 const services = [
@@ -52,23 +53,80 @@ function LoadingSkeleton() {
 }
 
 export default function DashboardPage() {
-  const tickets = useQuery(api.tickets.list, {});
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [votingSelection, setVotingSelection] = useState<string | null>(null);
   const [suggestionCategory, setSuggestionCategory] = useState("");
   const [suggestionText, setSuggestionText] = useState("");
+
+  useEffect(() => {
+    const id = localStorage.getItem("userId");
+    const role = localStorage.getItem("userRole");
+    if (id) setUserId(id);
+    if (role) setUserRole(role);
+  }, []);
+
+  // Admins and agents see all tickets, regular users see only their own
+  const isAdminOrAgent = userRole === "admin" || userRole === "agent";
+  
+  const tickets = useQuery(
+    api.tickets.list, 
+    isAdminOrAgent 
+      ? {} 
+      : userId 
+        ? { createdBy: userId as Id<"users"> } 
+        : "skip"
+  );
+
+  // Fetch all users to get assignee names
+  const users = useQuery(api.users.list, {});
 
   if (tickets === undefined) {
     return <LoadingSkeleton />;
   }
 
+  // Get user name by ID
+  const getUserName = (assignedToId: string | null) => {
+    if (!assignedToId || !users) return "Unassigned";
+    const user = users.find((u) => u._id === assignedToId);
+    return user?.name || "Unknown";
+  };
+
+  // Format time ago
+  const formatTimeAgo = (timestamp: number) => {
+    const diff = Date.now() - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
+  };
+
+  // Get status color
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "new": return "bg-blue-100 text-blue-600";
+      case "in_progress": return "bg-amber-100 text-amber-600";
+      case "on_hold": return "bg-slate-100 text-slate-600";
+      case "resolved": return "bg-green-100 text-green-600";
+      case "closed": return "bg-slate-100 text-slate-500";
+      default: return "bg-slate-100 text-slate-600";
+    }
+  };
+
   const recentUpdates = tickets
     .sort((a, b) => b.updatedAt - a.updatedAt)
-    .slice(0, 4)
+    .slice(0, 5)
     .map((t) => ({
-      title: t.title || "Suggest a Change",
-      id: `#RM-${t._id.slice(-6)}`,
-      assignee: "Mohamed Ali",
-      dueIn: "1 day",
+      _id: t._id,
+      title: t.title || "Untitled Ticket",
+      ticketNumber: `#TK-${t._id.slice(-6).toUpperCase()}`,
+      assignee: getUserName(t.assignedTo),
+      status: t.status,
+      updatedAt: t.updatedAt,
     }));
 
   // Calendar days
@@ -159,7 +217,9 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base lg:text-lg font-semibold text-slate-900">Last update</h2>
-              <p className="text-xs text-slate-500">Top 4 records</p>
+              <p className="text-xs text-slate-500">
+                {isAdminOrAgent ? "All tickets" : "Your tickets"} · Top 5
+              </p>
             </div>
             <Link href="/tickets" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
               Show More
@@ -167,31 +227,35 @@ export default function DashboardPage() {
           </div>
           <div className="space-y-2 lg:space-y-3">
             {recentUpdates.length > 0 ? (
-              recentUpdates.map((update, index) => (
-                <div
-                  key={index}
-                  className="flex items-center justify-between p-2.5 lg:p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+              recentUpdates.map((update) => (
+                <Link
+                  key={update._id}
+                  href={`/tickets/${update._id}`}
+                  className="flex items-center justify-between p-2.5 lg:p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer group"
                 >
                   <div className="flex items-center gap-2 lg:gap-3 min-w-0">
-                    <div className="w-7 h-7 lg:w-8 lg:h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
-                      <span className="text-blue-600 text-xs lg:text-sm">📋</span>
+                    <div className={`w-7 h-7 lg:w-8 lg:h-8 ${getStatusColor(update.status)} rounded-lg flex items-center justify-center flex-shrink-0`}>
+                      <span className="text-xs lg:text-sm">🎫</span>
                     </div>
                     <div className="min-w-0">
-                      <p className="text-xs lg:text-sm font-medium text-slate-900 truncate">{update.title}</p>
-                      <p className="text-xs text-slate-500">{update.id}</p>
+                      <p className="text-xs lg:text-sm font-medium text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                        {update.title}
+                      </p>
+                      <p className="text-xs text-slate-500">{update.ticketNumber}</p>
                       <p className="text-xs text-slate-400 truncate">
-                        Due in {update.dueIn} · <span className="text-blue-600">{update.assignee}</span>
+                        {formatTimeAgo(update.updatedAt)} · <span className="text-blue-600">{update.assignee}</span>
                       </p>
                     </div>
                   </div>
-                  <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-slate-400 flex-shrink-0 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
-                </div>
+                </Link>
               ))
             ) : (
               <div className="text-center py-6 lg:py-8 text-slate-500">
-                <p className="text-xs lg:text-sm">No recent updates</p>
+                <span className="text-3xl mb-2 block">🎫</span>
+                <p className="text-xs lg:text-sm">No tickets yet</p>
                 <Link href="/tickets/new" className="text-xs text-blue-600 hover:underline mt-1 inline-block">
                   Create your first ticket
                 </Link>
