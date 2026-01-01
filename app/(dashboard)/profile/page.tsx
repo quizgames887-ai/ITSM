@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import Link from "next/link";
 import { Id } from "@/convex/_generated/dataModel";
 import { ProfileSkeleton } from "@/components/ui/LoadingSkeleton";
+import { PasswordStrength } from "@/components/ui/PasswordStrength";
 
 export default function ProfilePage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -18,6 +19,15 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  
+  // Password reset state
+  const [showPasswordReset, setShowPasswordReset] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
+  const [passwordLoading, setPasswordLoading] = useState(false);
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
@@ -32,6 +42,7 @@ export default function ProfilePage() {
   );
 
   const updateUser = useMutation(api.users.update);
+  const resetOwnPassword = useMutation(api.users.resetOwnPassword);
 
   useEffect(() => {
     if (user) {
@@ -77,6 +88,68 @@ export default function ProfilePage() {
     setError("");
     setSuccess("");
     setIsEditing(false);
+  };
+
+  const handlePasswordReset = async () => {
+    if (!userId) return;
+
+    setPasswordError("");
+    setPasswordSuccess("");
+
+    // Validation
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      setPasswordError("All fields are required");
+      return;
+    }
+
+    if (newPassword.length < 8) {
+      setPasswordError("New password must be at least 8 characters long");
+      return;
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+
+    if (currentPassword === newPassword) {
+      setPasswordError("New password must be different from current password");
+      return;
+    }
+
+    setPasswordLoading(true);
+
+    try {
+      await resetOwnPassword({
+        userId: userId as Id<"users">,
+        currentPassword,
+        newPassword,
+      });
+
+      setPasswordSuccess("Password reset successfully!");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+      setShowPasswordReset(false);
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setPasswordSuccess("");
+      }, 3000);
+    } catch (err: any) {
+      setPasswordError(err.message || "Failed to reset password");
+    } finally {
+      setPasswordLoading(false);
+    }
+  };
+
+  const handleCancelPasswordReset = () => {
+    setCurrentPassword("");
+    setNewPassword("");
+    setConfirmPassword("");
+    setPasswordError("");
+    setPasswordSuccess("");
+    setShowPasswordReset(false);
   };
 
   if (!userId) {
@@ -293,6 +366,142 @@ export default function ProfilePage() {
                 </div>
               )}
             </div>
+          </Card>
+
+          <Card hover padding="lg" className="mb-4 sm:mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 flex items-center gap-2">
+                <svg
+                  className="w-5 h-5 text-indigo-600"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                  />
+                </svg>
+                Password Reset
+              </h2>
+              {!showPasswordReset && (
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPasswordReset(true)}
+                  className="w-full sm:w-auto"
+                >
+                  Change Password
+                </Button>
+              )}
+            </div>
+
+            {showPasswordReset && (
+              <div className="space-y-4">
+                {passwordError && (
+                  <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded-lg animate-slide-in">
+                    <div className="flex items-center">
+                      <svg
+                        className="w-5 h-5 text-red-400 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <p className="text-sm text-red-600 font-medium">{passwordError}</p>
+                    </div>
+                  </div>
+                )}
+
+                {passwordSuccess && (
+                  <div className="p-4 bg-green-50 border-l-4 border-green-400 rounded-lg animate-slide-in">
+                    <div className="flex items-center">
+                      <svg
+                        className="w-5 h-5 text-green-400 mr-2"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                        />
+                      </svg>
+                      <p className="text-sm text-green-600 font-medium">{passwordSuccess}</p>
+                    </div>
+                  </div>
+                )}
+
+                <div>
+                  <Input
+                    label="Current Password"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter your current password"
+                  />
+                </div>
+
+                <div>
+                  <Input
+                    label="New Password"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter your new password"
+                  />
+                  <PasswordStrength password={newPassword} />
+                </div>
+
+                <div>
+                  <Input
+                    label="Confirm New Password"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your new password"
+                  />
+                  {confirmPassword && newPassword !== confirmPassword && (
+                    <p className="mt-1.5 text-sm text-red-600">Passwords do not match</p>
+                  )}
+                </div>
+
+                <div className="flex gap-3 pt-2">
+                  <Button
+                    variant="gradient"
+                    onClick={handlePasswordReset}
+                    disabled={passwordLoading}
+                    loading={passwordLoading}
+                    className="flex-1"
+                  >
+                    {passwordLoading ? "Resetting..." : "Reset Password"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={handleCancelPasswordReset}
+                    disabled={passwordLoading}
+                    className="flex-1"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {!showPasswordReset && (
+              <p className="text-sm text-slate-600">
+                Keep your account secure by regularly updating your password.
+              </p>
+            )}
           </Card>
 
           <Card hover padding="lg">

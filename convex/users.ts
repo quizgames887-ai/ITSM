@@ -1,6 +1,15 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 
+// Password hashing function (same as in authHelpers)
+async function hashPassword(password: string): Promise<string> {
+  const encoder = new TextEncoder();
+  const data = encoder.encode(password);
+  const hashBuffer = await crypto.subtle.digest("SHA-256", data);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 export const get = query({
   args: { id: v.id("users") },
   handler: async (ctx, args) => {
@@ -210,5 +219,98 @@ export const grantFullAuthority = mutation({
         },
       };
     }
+  },
+});
+
+// Mutation for users to reset their own password
+export const resetOwnPassword = mutation({
+  args: {
+    userId: v.id("users"),
+    currentPassword: v.string(),
+    newPassword: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify the user exists
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Verify current password
+    const passwordRecord = await ctx.db
+      .query("userPasswords")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .first();
+
+    if (!passwordRecord) {
+      throw new Error("Password record not found");
+    }
+
+    const currentPasswordHash = await hashPassword(args.currentPassword);
+    if (passwordRecord.passwordHash !== currentPasswordHash) {
+      throw new Error("Current password is incorrect");
+    }
+
+    // Validate new password
+    if (args.newPassword.length < 8) {
+      throw new Error("New password must be at least 8 characters long");
+    }
+
+    // Update password
+    const newPasswordHash = await hashPassword(args.newPassword);
+    await ctx.db.patch(passwordRecord._id, {
+      passwordHash: newPasswordHash,
+    });
+
+    return {
+      success: true,
+      message: "Password reset successfully",
+    };
+  },
+});
+
+// Mutation for admins to reset any user's password
+export const resetUserPassword = mutation({
+  args: {
+    userId: v.id("users"),
+    newPassword: v.string(),
+  },
+  handler: async (ctx, args) => {
+    // Verify the user exists
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Validate new password
+    if (args.newPassword.length < 8) {
+      throw new Error("Password must be at least 8 characters long");
+    }
+
+    // Get or create password record
+    let passwordRecord = await ctx.db
+      .query("userPasswords")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .first();
+
+    const newPasswordHash = await hashPassword(args.newPassword);
+
+    if (passwordRecord) {
+      // Update existing password
+      await ctx.db.patch(passwordRecord._id, {
+        passwordHash: newPasswordHash,
+      });
+    } else {
+      // Create new password record if it doesn't exist
+      await ctx.db.insert("userPasswords", {
+        userId: args.userId,
+        passwordHash: newPasswordHash,
+      });
+    }
+
+    return {
+      success: true,
+      message: `Password reset successfully for ${user.email}`,
+    };
   },
 });

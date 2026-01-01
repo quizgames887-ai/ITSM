@@ -21,7 +21,7 @@ type User = {
   updatedAt: number;
 };
 
-type EditingField = "name" | "email" | "role" | "onboarding" | null;
+type EditingField = "name" | "email" | "role" | "onboarding" | "password" | null;
 
 export default function UsersPage() {
   const users = useQuery(api.users.listAll, {});
@@ -37,6 +37,8 @@ export default function UsersPage() {
     email?: string;
     role?: string;
     onboardingCompleted?: boolean;
+    newPassword?: string;
+    confirmPassword?: string;
   }>({});
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
@@ -65,7 +67,45 @@ export default function UsersPage() {
       email: user.email,
       role: user.role,
       onboardingCompleted: user.onboardingCompleted,
+      newPassword: "",
+      confirmPassword: "",
     });
+  };
+
+  const handlePasswordReset = async (userId: Id<"users">) => {
+    if (!isAdmin) {
+      showError("Only admins can reset passwords");
+      return;
+    }
+
+    if (!editValues.newPassword || !editValues.confirmPassword) {
+      showError("Please enter and confirm the new password");
+      return;
+    }
+
+    if (editValues.newPassword.length < 8) {
+      showError("Password must be at least 8 characters long");
+      return;
+    }
+
+    if (editValues.newPassword !== editValues.confirmPassword) {
+      showError("Passwords do not match");
+      return;
+    }
+
+    try {
+      await resetUserPassword({
+        id: userId,
+        newPassword: editValues.newPassword,
+      });
+
+      success("Password reset successfully!");
+      setEditingUser(null);
+      setEditingField(null);
+      setEditValues({});
+    } catch (err: any) {
+      showError(err.message || "Failed to reset password");
+    }
   };
 
   const handleSave = async (userId: Id<"users">) => {
@@ -99,6 +139,12 @@ export default function UsersPage() {
       
       if (editingField === "onboarding" && editValues.onboardingCompleted !== undefined) {
         updates.onboardingCompleted = editValues.onboardingCompleted;
+      }
+
+      // Don't handle password reset here - use handlePasswordReset instead
+      if (editingField === "password") {
+        showError("Use the password reset button to change passwords");
+        return;
       }
 
       await updateUser({
@@ -473,7 +519,7 @@ export default function UsersPage() {
                     </div>
 
                     {/* User Details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-200">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-slate-200">
                       {/* Role */}
                       <div>
                         <label className="text-xs font-medium text-slate-600 mb-1 block">
@@ -599,6 +645,77 @@ export default function UsersPage() {
                                   strokeLinejoin="round"
                                   strokeWidth={2}
                                   d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Password Reset */}
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">
+                          Password
+                        </label>
+                        {isEditing && editingField === "password" ? (
+                          <div className="space-y-2">
+                            <Input
+                              type="password"
+                              value={editValues.newPassword || ""}
+                              onChange={(e) =>
+                                setEditValues({ ...editValues, newPassword: e.target.value })
+                              }
+                              placeholder="New password"
+                              className="text-xs"
+                            />
+                            <Input
+                              type="password"
+                              value={editValues.confirmPassword || ""}
+                              onChange={(e) =>
+                                setEditValues({ ...editValues, confirmPassword: e.target.value })
+                              }
+                              placeholder="Confirm password"
+                              className="text-xs"
+                            />
+                            <div className="flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="gradient"
+                                onClick={() => handlePasswordReset(user._id)}
+                                className="text-xs px-2 py-1"
+                              >
+                                Reset
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={handleCancel}
+                                className="text-xs px-2 py-1"
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-slate-500">••••••••</span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEdit(user, "password")}
+                              className="text-xs p-1"
+                            >
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
                                 />
                               </svg>
                             </Button>
