@@ -26,6 +26,7 @@ type EditingField = "name" | "email" | "role" | "onboarding" | "password" | null
 export default function UsersPage() {
   const users = useQuery(api.users.listAll, {});
   const updateUser = useMutation(api.users.update);
+  const resetUserPassword = useMutation(api.users.resetUserPassword);
   const { success, error: showError } = useToastContext();
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
@@ -95,7 +96,7 @@ export default function UsersPage() {
 
     try {
       await resetUserPassword({
-        id: userId,
+        userId: userId,
         newPassword: editValues.newPassword,
       });
 
