@@ -211,30 +211,31 @@ export default function UsersPage() {
 
   const filteredAndSortedUsers = users && Array.isArray(users)
     ? users.filter((user) => {
-      const searchLower = searchTerm.toLowerCase();
-      const matchesSearch =
-        user.name.toLowerCase().includes(searchLower) ||
-        user.email.toLowerCase().includes(searchLower) ||
-        user.role.toLowerCase().includes(searchLower);
-      
-      const matchesRole = roleFilter === "all" || user.role === roleFilter;
-      
-      return matchesSearch && matchesRole;
-    })
-    .sort((a, b) => {
-      switch (sortBy) {
-        case "name":
-          return a.name.localeCompare(b.name);
-        case "email":
-          return a.email.localeCompare(b.email);
-        case "role":
-          return a.role.localeCompare(b.role);
-        case "createdAt":
-          return b.createdAt - a.createdAt;
-        default:
-          return 0;
-      }
-    });
+        const searchLower = searchTerm.toLowerCase();
+        const matchesSearch =
+          user.name.toLowerCase().includes(searchLower) ||
+          user.email.toLowerCase().includes(searchLower) ||
+          user.role.toLowerCase().includes(searchLower);
+        
+        const matchesRole = roleFilter === "all" || user.role === roleFilter;
+        
+        return matchesSearch && matchesRole;
+      })
+      .sort((a, b) => {
+        switch (sortBy) {
+          case "name":
+            return a.name.localeCompare(b.name);
+          case "email":
+            return a.email.localeCompare(b.email);
+          case "role":
+            return a.role.localeCompare(b.role);
+          case "createdAt":
+            return b.createdAt - a.createdAt;
+          default:
+            return 0;
+        }
+      })
+    : [];
 
   // Calculate statistics
   const stats = users
