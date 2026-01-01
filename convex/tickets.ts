@@ -22,6 +22,129 @@ async function createNotification(
   });
 }
 
+// Helper function to find matching assignment rule and get assignee
+async function findAssigneeFromRules(
+  ctx: any,
+  category: string,
+  priority: string,
+  type: string
+): Promise<{ assigneeId: Id<"users">; ruleName: string } | null> {
+  // Get all active rules sorted by priority
+  const rules = await ctx.db
+    .query("assignmentRules")
+    .withIndex("by_isActive", (q: any) => q.eq("isActive", true))
+    .collect();
+
+  const sortedRules = rules.sort((a: any, b: any) => a.priority - b.priority);
+
+  for (const rule of sortedRules) {
+    const { conditions } = rule;
+    let matches = false;
+
+    // Check category match
+    if (conditions.categories && conditions.categories.length > 0) {
+      if (conditions.categories.includes(category)) {
+        matches = true;
+      }
+    }
+
+    // Check priority match
+    if (conditions.priorities && conditions.priorities.length > 0) {
+      if (conditions.priorities.includes(priority)) {
+        matches = true;
+      }
+    }
+
+    // Check type match
+    if (conditions.types && conditions.types.length > 0) {
+      if (conditions.types.includes(type)) {
+        matches = true;
+      }
+    }
+
+    // If no conditions specified, rule matches all
+    if (
+      (!conditions.categories || conditions.categories.length === 0) &&
+      (!conditions.priorities || conditions.priorities.length === 0) &&
+      (!conditions.types || conditions.types.length === 0)
+    ) {
+      matches = true;
+    }
+
+    if (matches) {
+      // Determine assignee based on rule type
+      if (rule.assignTo.type === "agent") {
+        return {
+          assigneeId: rule.assignTo.agentId,
+          ruleName: rule.name,
+        };
+      } else if (rule.assignTo.type === "team") {
+        // Assign to team leader if exists, otherwise first member
+        const teamId = rule.assignTo.teamId;
+        const team = await ctx.db.get(teamId);
+        if (team?.leaderId) {
+          return {
+            assigneeId: team.leaderId,
+            ruleName: rule.name,
+          };
+        }
+
+        const member = await ctx.db
+          .query("teamMembers")
+          .withIndex("by_teamId", (q: any) => q.eq("teamId", teamId))
+          .first();
+
+        if (member) {
+          return {
+            assigneeId: member.userId,
+            ruleName: rule.name,
+          };
+        }
+      } else if (rule.assignTo.type === "round_robin") {
+        // Get team members and find the one with least tickets
+        const teamId = rule.assignTo.teamId;
+        const members = await ctx.db
+          .query("teamMembers")
+          .withIndex("by_teamId", (q: any) => q.eq("teamId", teamId))
+          .collect();
+
+        if (members.length === 0) continue;
+
+        // Count open tickets for each member
+        const memberTicketCounts = await Promise.all(
+          members.map(async (member: any) => {
+            const tickets = await ctx.db
+              .query("tickets")
+              .withIndex("by_assignedTo", (q: any) => q.eq("assignedTo", member.userId))
+              .collect();
+
+            const openTickets = tickets.filter(
+              (t: any) => !["resolved", "closed"].includes(t.status)
+            );
+
+            return {
+              userId: member.userId,
+              ticketCount: openTickets.length,
+            };
+          })
+        );
+
+        // Find member with least tickets
+        const leastBusy = memberTicketCounts.reduce((min: any, curr: any) =>
+          curr.ticketCount < min.ticketCount ? curr : min
+        );
+
+        return {
+          assigneeId: leastBusy.userId,
+          ruleName: rule.name,
+        };
+      }
+    }
+  }
+
+  return null; // No matching rule found
+}
+
 export const list = query({
   args: {
     status: v.optional(
@@ -96,6 +219,25 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+
+    // Find auto-assignee from rules if not manually assigned
+    let assignedTo = args.assignedTo ?? null;
+    let autoAssignRuleName: string | null = null;
+
+    if (!assignedTo) {
+      const autoAssignment = await findAssigneeFromRules(
+        ctx,
+        args.category,
+        args.priority,
+        args.type
+      );
+
+      if (autoAssignment) {
+        assignedTo = autoAssignment.assigneeId;
+        autoAssignRuleName = autoAssignment.ruleName;
+      }
+    }
+
     const ticketId = await ctx.db.insert("tickets", {
       title: args.title,
       description: args.description,
@@ -105,7 +247,7 @@ export const create = mutation({
       urgency: args.urgency,
       category: args.category,
       createdBy: args.createdBy,
-      assignedTo: args.assignedTo ?? null,
+      assignedTo: assignedTo,
       slaDeadline: null,
       resolvedAt: null,
       aiCategorySuggestion: null,
@@ -114,7 +256,7 @@ export const create = mutation({
       updatedAt: now,
     });
 
-    // Create history entry
+    // Create history entry for ticket creation
     await ctx.db.insert("ticketHistory", {
       ticketId,
       userId: args.createdBy,
@@ -124,24 +266,37 @@ export const create = mutation({
       createdAt: now,
     });
 
+    // Create history entry for auto-assignment if applicable
+    if (assignedTo && autoAssignRuleName) {
+      await ctx.db.insert("ticketHistory", {
+        ticketId,
+        userId: args.createdBy,
+        action: "auto_assigned",
+        oldValue: null,
+        newValue: { assignedTo, ruleName: autoAssignRuleName },
+        createdAt: now + 1, // Slightly after creation
+      });
+    }
+
     // Notify the creator that ticket was created
     await createNotification(
       ctx,
       args.createdBy,
       "ticket_created",
       "Ticket Created",
-      `Your ticket "${args.title}" has been created successfully.`,
+      `Your ticket "${args.title}" has been created successfully.${assignedTo ? " An agent has been automatically assigned." : ""}`,
       ticketId
     );
 
-    // If assigned to someone, notify them
-    if (args.assignedTo) {
+    // If assigned to someone (manual or auto), notify them
+    if (assignedTo) {
+      const assignmentType = autoAssignRuleName ? "auto-assigned" : "assigned";
       await createNotification(
         ctx,
-        args.assignedTo,
+        assignedTo,
         "ticket_assigned",
         "New Ticket Assigned",
-        `You have been assigned a new ticket: "${args.title}"`,
+        `You have been ${assignmentType} a new ticket: "${args.title}"${autoAssignRuleName ? ` (Rule: ${autoAssignRuleName})` : ""}`,
         ticketId
       );
     }
