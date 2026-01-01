@@ -233,6 +233,21 @@ export default function UsersPage() {
     );
   }
 
+  // Debug: Log users data (only in development)
+  if (typeof window !== "undefined") {
+    if (users === undefined) {
+      console.log("[UsersPage] Users query is still loading...");
+    } else if (users === null) {
+      console.log("[UsersPage] Users query returned null");
+    } else {
+      console.log("[UsersPage] Users data:", users);
+      console.log("[UsersPage] Users count:", users.length);
+      if (users.length === 0) {
+        console.warn("[UsersPage] No users found in database!");
+      }
+    }
+  }
+
   // Only show access denied if we've confirmed the user is not an admin
   if (!isAdmin && currentUser !== undefined) {
     return (
@@ -285,30 +300,30 @@ export default function UsersPage() {
         </div>
 
         {/* Statistics */}
-        {stats && (
+        {stats !== null && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-slate-900">{stats.total}</div>
+              <div className="text-2xl font-bold text-slate-900">{stats?.total || 0}</div>
               <div className="text-xs text-slate-600 mt-1">Total Users</div>
             </Card>
             <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-purple-700">{stats.admins}</div>
+              <div className="text-2xl font-bold text-purple-700">{stats?.admins || 0}</div>
               <div className="text-xs text-slate-600 mt-1">Admins</div>
             </Card>
             <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-blue-700">{stats.agents}</div>
+              <div className="text-2xl font-bold text-blue-700">{stats?.agents || 0}</div>
               <div className="text-xs text-slate-600 mt-1">Agents</div>
             </Card>
             <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-slate-700">{stats.regularUsers}</div>
+              <div className="text-2xl font-bold text-slate-700">{stats?.regularUsers || 0}</div>
               <div className="text-xs text-slate-600 mt-1">Users</div>
             </Card>
             <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-green-700">{stats.onboardingCompleted}</div>
+              <div className="text-2xl font-bold text-green-700">{stats?.onboardingCompleted || 0}</div>
               <div className="text-xs text-slate-600 mt-1">Onboarded</div>
             </Card>
             <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-amber-700">{stats.onboardingPending}</div>
+              <div className="text-2xl font-bold text-amber-700">{stats?.onboardingPending || 0}</div>
               <div className="text-xs text-slate-600 mt-1">Pending</div>
             </Card>
           </div>
@@ -365,10 +380,17 @@ export default function UsersPage() {
 
         {/* Users List */}
         <div className="space-y-4">
-          {filteredAndSortedUsers && filteredAndSortedUsers.length === 0 ? (
+          {!users || (filteredAndSortedUsers && filteredAndSortedUsers.length === 0) ? (
             <Card hover padding="lg">
               <div className="text-center py-12">
-                <p className="text-slate-600">No users found</p>
+                <p className="text-slate-600 mb-2">
+                  {!users ? "Loading users..." : "No users found"}
+                </p>
+                {users && users.length === 0 && (
+                  <p className="text-xs text-slate-500 mt-2">
+                    The database appears to be empty. Create a user to get started.
+                  </p>
+                )}
               </div>
             </Card>
           ) : (
