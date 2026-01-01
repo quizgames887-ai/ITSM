@@ -1,5 +1,26 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+
+// Helper function to create notification
+async function createNotification(
+  ctx: any,
+  userId: Id<"users">,
+  type: string,
+  title: string,
+  message: string,
+  ticketId?: Id<"tickets">
+) {
+  await ctx.db.insert("notifications", {
+    userId,
+    type,
+    title,
+    message,
+    read: false,
+    ticketId: ticketId ?? null,
+    createdAt: Date.now(),
+  });
+}
 
 export const listByTicket = query({
   args: { ticketId: v.id("tickets") },
@@ -46,6 +67,11 @@ export const create = mutation({
       throw new Error("User not found");
     }
 
+    const ticket = await ctx.db.get(args.ticketId);
+    if (!ticket) {
+      throw new Error("Ticket not found");
+    }
+
     const now = Date.now();
     const commentId = await ctx.db.insert("ticketComments", {
       ticketId: args.ticketId,
@@ -55,6 +81,30 @@ export const create = mutation({
       createdAt: now,
       updatedAt: now,
     });
+
+    // Notify ticket creator if commenter is different
+    if (ticket.createdBy !== args.userId) {
+      await createNotification(
+        ctx,
+        ticket.createdBy,
+        "ticket_comment",
+        "New Comment on Your Ticket",
+        `${user.name} commented on "${ticket.title}": "${args.content.substring(0, 50)}${args.content.length > 50 ? "..." : ""}"`,
+        args.ticketId
+      );
+    }
+
+    // Notify assignee if different from commenter and creator
+    if (ticket.assignedTo && ticket.assignedTo !== args.userId && ticket.assignedTo !== ticket.createdBy) {
+      await createNotification(
+        ctx,
+        ticket.assignedTo,
+        "ticket_comment",
+        "New Comment on Assigned Ticket",
+        `${user.name} commented on "${ticket.title}": "${args.content.substring(0, 50)}${args.content.length > 50 ? "..." : ""}"`,
+        args.ticketId
+      );
+    }
 
     return commentId;
   },

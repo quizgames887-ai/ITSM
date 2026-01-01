@@ -1,5 +1,26 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
+
+// Helper function to create notification
+async function createNotification(
+  ctx: any,
+  userId: Id<"users">,
+  type: string,
+  title: string,
+  message: string,
+  ticketId?: Id<"tickets">
+) {
+  await ctx.db.insert("notifications", {
+    userId,
+    type,
+    title,
+    message,
+    read: false,
+    ticketId: ticketId ?? null,
+    createdAt: Date.now(),
+  });
+}
 
 export const list = query({
   args: {
@@ -103,6 +124,28 @@ export const create = mutation({
       createdAt: now,
     });
 
+    // Notify the creator that ticket was created
+    await createNotification(
+      ctx,
+      args.createdBy,
+      "ticket_created",
+      "Ticket Created",
+      `Your ticket "${args.title}" has been created successfully.`,
+      ticketId
+    );
+
+    // If assigned to someone, notify them
+    if (args.assignedTo) {
+      await createNotification(
+        ctx,
+        args.assignedTo,
+        "ticket_assigned",
+        "New Ticket Assigned",
+        `You have been assigned a new ticket: "${args.title}"`,
+        ticketId
+      );
+    }
+
     return ticketId;
   },
 });
@@ -175,9 +218,75 @@ export const update = mutation({
       });
     }
 
+    // Notify users about ticket updates
+    const usersToNotify = new Set<string>();
+    usersToNotify.add(ticket.createdBy);
+    if (ticket.assignedTo) {
+      usersToNotify.add(ticket.assignedTo);
+    }
+
+    // Status change notification
+    if (changes.status) {
+      const statusMessage = getStatusMessage(changes.status.new);
+      for (const userId of usersToNotify) {
+        await createNotification(
+          ctx,
+          userId as Id<"users">,
+          "ticket_status_updated",
+          "Ticket Status Updated",
+          `Ticket "${ticket.title}" ${statusMessage}`,
+          id
+        );
+      }
+    }
+
+    // Priority change notification
+    if (changes.priority) {
+      for (const userId of usersToNotify) {
+        await createNotification(
+          ctx,
+          userId as Id<"users">,
+          "ticket_priority_updated",
+          "Ticket Priority Changed",
+          `Ticket "${ticket.title}" priority changed from ${changes.priority.old} to ${changes.priority.new}`,
+          id
+        );
+      }
+    }
+
+    // Assignment change notification
+    if (changes.assignedTo && updates.assignedTo) {
+      await createNotification(
+        ctx,
+        updates.assignedTo as Id<"users">,
+        "ticket_assigned",
+        "Ticket Assigned to You",
+        `You have been assigned to ticket: "${ticket.title}"`,
+        id
+      );
+    }
+
     return id;
   },
 });
+
+// Helper function to get status message
+function getStatusMessage(status: string): string {
+  switch (status) {
+    case "new":
+      return "has been set to New";
+    case "in_progress":
+      return "is now In Progress";
+    case "on_hold":
+      return "has been put On Hold";
+    case "resolved":
+      return "has been Resolved";
+    case "closed":
+      return "has been Closed";
+    default:
+      return `status changed to ${status}`;
+  }
+}
 
 export const assign = mutation({
   args: {
@@ -205,6 +314,29 @@ export const assign = mutation({
       newValue: args.assignedTo,
       createdAt: now,
     });
+
+    // Notify the new assignee
+    await createNotification(
+      ctx,
+      args.assignedTo,
+      "ticket_assigned",
+      "Ticket Assigned to You",
+      `You have been assigned to ticket: "${ticket.title}"`,
+      args.id
+    );
+
+    // Notify the ticket creator
+    if (ticket.createdBy !== args.assignedTo) {
+      const assignee = await ctx.db.get(args.assignedTo);
+      await createNotification(
+        ctx,
+        ticket.createdBy,
+        "ticket_assignment_updated",
+        "Ticket Assignment Updated",
+        `Your ticket "${ticket.title}" has been assigned to ${assignee?.name || "an agent"}`,
+        args.id
+      );
+    }
 
     return args.id;
   },

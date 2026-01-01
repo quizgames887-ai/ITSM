@@ -3,6 +3,9 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 
 interface HeaderProps {
   title?: string;
@@ -12,28 +15,48 @@ interface HeaderProps {
 export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   const router = useRouter();
   const [userName, setUserName] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const notifRef = useRef<HTMLDivElement>(null);
 
+  // Get user ID from localStorage
   useEffect(() => {
     const name = localStorage.getItem("userName");
+    const id = localStorage.getItem("userId");
     if (name) setUserName(name);
+    if (id) setUserId(id);
   }, []);
+
+  // Fetch notifications for the current user
+  const notifications = useQuery(
+    api.notifications.list,
+    userId ? { userId: userId as Id<"users"> } : "skip"
+  );
+
+  const markRead = useMutation(api.notifications.markRead);
+  const markAllRead = useMutation(api.notifications.markAllRead);
+
+  const unreadCount = notifications?.filter((n) => !n.read).length || 0;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setShowUserMenu(false);
       }
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
+        setShowNotifications(false);
+      }
     };
 
-    if (showUserMenu) {
+    if (showUserMenu || showNotifications) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showUserMenu]);
+  }, [showUserMenu, showNotifications]);
 
   const handleLogout = () => {
     localStorage.removeItem("userId");
@@ -43,6 +66,20 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
     router.push("/login");
   };
 
+  const handleNotificationClick = async (notificationId: Id<"notifications">, ticketId: string | null) => {
+    await markRead({ id: notificationId });
+    setShowNotifications(false);
+    if (ticketId) {
+      router.push(`/tickets/${ticketId}`);
+    }
+  };
+
+  const handleMarkAllRead = async () => {
+    if (userId) {
+      await markAllRead({ userId: userId as Id<"users"> });
+    }
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -50,6 +87,35 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
       .join("")
       .toUpperCase()
       .slice(0, 2);
+  };
+
+  const getNotificationIcon = (type: string) => {
+    switch (type) {
+      case "ticket_created":
+        return "🎫";
+      case "ticket_assigned":
+        return "👤";
+      case "ticket_status_updated":
+        return "🔄";
+      case "ticket_priority_updated":
+        return "⚡";
+      case "ticket_comment":
+        return "💬";
+      default:
+        return "🔔";
+    }
+  };
+
+  const formatTimeAgo = (timestamp: number) => {
+    const diff = Date.now() - timestamp;
+    const minutes = Math.floor(diff / 60000);
+    const hours = Math.floor(diff / 3600000);
+    const days = Math.floor(diff / 86400000);
+
+    if (minutes < 1) return "Just now";
+    if (minutes < 60) return `${minutes}m ago`;
+    if (hours < 24) return `${hours}h ago`;
+    return `${days}d ago`;
   };
 
   return (
@@ -112,17 +178,95 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
         </button>
 
         {/* Notifications */}
-        <button className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors">
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
-            />
-          </svg>
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 bg-red-500 rounded-full"></span>
-        </button>
+        <div className="relative" ref={notifRef}>
+          <button 
+            onClick={() => setShowNotifications(!showNotifications)}
+            className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+              />
+            </svg>
+            {unreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-medium">
+                {unreadCount > 9 ? "9+" : unreadCount}
+              </span>
+            )}
+          </button>
+
+          {/* Notifications Dropdown */}
+          {showNotifications && (
+            <div className="absolute right-0 mt-2 w-80 sm:w-96 bg-white rounded-xl shadow-xl border border-slate-200 py-2 animate-fade-in z-50 max-h-[70vh] overflow-hidden flex flex-col">
+              <div className="px-4 py-2 border-b border-slate-100 flex items-center justify-between">
+                <h3 className="font-semibold text-slate-900">Notifications</h3>
+                {unreadCount > 0 && (
+                  <button
+                    onClick={handleMarkAllRead}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Mark all read
+                  </button>
+                )}
+              </div>
+              
+              <div className="overflow-y-auto flex-1 max-h-80">
+                {notifications && notifications.length > 0 ? (
+                  notifications.slice(0, 10).map((notification) => (
+                    <button
+                      key={notification._id}
+                      onClick={() => handleNotificationClick(notification._id, notification.ticketId)}
+                      className={`w-full text-left px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0 ${
+                        !notification.read ? "bg-blue-50/50" : ""
+                      }`}
+                    >
+                      <div className="flex items-start gap-3">
+                        <span className="text-lg">{getNotificationIcon(notification.type)}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className={`text-sm ${!notification.read ? "font-semibold" : "font-medium"} text-slate-900 truncate`}>
+                            {notification.title}
+                          </p>
+                          <p className="text-xs text-slate-600 line-clamp-2 mt-0.5">
+                            {notification.message}
+                          </p>
+                          <p className="text-xs text-slate-400 mt-1">
+                            {formatTimeAgo(notification.createdAt)}
+                          </p>
+                        </div>
+                        {!notification.read && (
+                          <span className="w-2 h-2 bg-blue-600 rounded-full flex-shrink-0 mt-2"></span>
+                        )}
+                      </div>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-4 py-8 text-center">
+                    <span className="text-3xl mb-2 block">🔔</span>
+                    <p className="text-sm text-slate-600">No notifications yet</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      You'll see updates about your tickets here
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {notifications && notifications.length > 0 && (
+                <div className="px-4 py-2 border-t border-slate-100">
+                  <Link
+                    href="/profile"
+                    onClick={() => setShowNotifications(false)}
+                    className="text-xs text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    View all notifications
+                  </Link>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Settings - Hidden on small mobile */}
         <button className="hidden sm:flex p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors">
