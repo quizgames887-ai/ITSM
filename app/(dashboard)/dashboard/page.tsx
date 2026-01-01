@@ -5,181 +5,364 @@ import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { StatsCard } from "@/components/dashboard/StatsCard";
-import { EmptyState } from "@/components/ui/EmptyState";
+import { useState } from "react";
+
+// Service icons for the grid
+const services = [
+  { name: "Service Name", icon: "📊", rating: 4.4, color: "bg-blue-100" },
+  { name: "Service Name", icon: "✖️", rating: 4.7, color: "bg-red-100" },
+  { name: "Service Name", icon: "📋", rating: 4.3, color: "bg-amber-100" },
+  { name: "Service Name", icon: "📁", rating: 3.8, color: "bg-green-100" },
+  { name: "Service Name", icon: "📊", rating: 4.2, color: "bg-purple-100" },
+  { name: "Service Name", icon: "🛠️", rating: 4.3, color: "bg-orange-100" },
+  { name: "Service Name", icon: "💡", rating: 4.5, color: "bg-yellow-100" },
+  { name: "Service Name", icon: "📈", rating: 4.3, color: "bg-cyan-100" },
+];
+
+const favoriteLinks = [
+  { name: "Get Help & Support", icon: "❓" },
+  { name: "My Requests / All Requests", icon: "💜" },
+  { name: "Profile Settings", icon: "💚" },
+  { name: "Get Help & Support", icon: "💙" },
+  { name: "Services User Guide", icon: "💛" },
+];
+
+const todoItems = [
+  { title: "Create Services Logo", due: "Due in 2 Days", completed: false },
+  { title: "Create palmware Logo", due: "Due in 3 Days", completed: false },
+  { title: "Create event's for Emp", due: "Due in 3 Days", completed: false },
+  { title: "Create design homepage", due: "Due in 2 Days", completed: false },
+  { title: "Create ui ux dashboard", due: "Due in 3 Days", completed: false },
+];
 
 function LoadingSkeleton() {
   return (
-    <div className="min-h-screen bg-slate-50 p-8">
-      <div className="max-w-7xl mx-auto">
-        <div className="animate-pulse">
-          <div className="h-10 bg-slate-200 rounded w-1/4 mb-4"></div>
-          <div className="h-6 bg-slate-200 rounded w-1/3 mb-8"></div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-24 bg-slate-200 rounded-xl"></div>
-            ))}
-          </div>
-          <div className="h-64 bg-slate-200 rounded-xl"></div>
-        </div>
+    <div className="animate-pulse space-y-6">
+      <div className="grid grid-cols-4 gap-4">
+        {[...Array(8)].map((_, i) => (
+          <div key={i} className="h-24 bg-slate-200 rounded-xl"></div>
+        ))}
       </div>
+      <div className="h-48 bg-slate-200 rounded-xl"></div>
     </div>
   );
 }
 
 export default function DashboardPage() {
   const tickets = useQuery(api.tickets.list, {});
+  const [votingSelection, setVotingSelection] = useState<string | null>(null);
+  const [suggestionCategory, setSuggestionCategory] = useState("");
+  const [suggestionText, setSuggestionText] = useState("");
 
   if (tickets === undefined) {
     return <LoadingSkeleton />;
   }
 
-  const stats = {
-    total: tickets.length,
-    new: tickets.filter((t) => t.status === "new").length,
-    inProgress: tickets.filter((t) => t.status === "in_progress").length,
-    resolved: tickets.filter((t) => t.status === "resolved").length,
-    critical: tickets.filter((t) => t.priority === "critical").length,
-  };
+  const recentUpdates = tickets
+    .sort((a, b) => b.updatedAt - a.updatedAt)
+    .slice(0, 4)
+    .map((t) => ({
+      title: "Suggest a Change",
+      id: `#RM-${t._id.slice(-8)}`,
+      assignee: "Mohamed Ali",
+      dueIn: "1 day",
+    }));
 
-  const recentTickets = tickets
-    .sort((a, b) => b.createdAt - a.createdAt)
-    .slice(0, 5);
+  // Calendar days
+  const today = new Date();
+  const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
+  const currentDay = today.getDay();
+  const calendarDays = [];
+  for (let i = -3; i <= 3; i++) {
+    const d = new Date(today);
+    d.setDate(today.getDate() + i);
+    calendarDays.push({
+      day: days[d.getDay()],
+      date: d.getDate(),
+      isToday: i === 0,
+    });
+  }
 
-  const statusColors: Record<string, string> = {
-    new: "bg-blue-100 text-blue-800 border-blue-200",
-    in_progress: "bg-yellow-100 text-yellow-800 border-yellow-200",
-    on_hold: "bg-orange-100 text-orange-800 border-orange-200",
-    resolved: "bg-green-100 text-green-800 border-green-200",
-    closed: "bg-slate-100 text-slate-800 border-slate-200",
-  };
-
-  const priorityColors: Record<string, string> = {
-    low: "bg-slate-100 text-slate-700",
-    medium: "bg-blue-100 text-blue-700",
-    high: "bg-orange-100 text-orange-700",
-    critical: "bg-red-100 text-red-700",
-  };
+  const events = [
+    { time: "10:00 - 11:00 AM", title: "Project Estimation Meeting" },
+    { time: "10:20 - 11:00 AM", title: "Project Estimation Meeting" },
+    { time: "10:20 - 11:00 AM", title: "Project Estimation Meeting" },
+    { time: "10:20 - 11:00 AM", title: "Project Estimation Meeting" },
+  ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto animate-fade-in">
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
-              Dashboard
-            </h1>
-            <p className="text-sm sm:text-base text-slate-600">
-              Overview of your ticketing system
-            </p>
-          </div>
-          <Link href="/tickets/new" className="w-full sm:w-auto">
-            <Button variant="gradient" size="lg" className="w-full sm:w-auto">
-              <span className="mr-2">+</span>
-              <span className="hidden sm:inline">Create New Ticket</span>
-              <span className="sm:hidden">New Ticket</span>
-            </Button>
-          </Link>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <StatsCard title="Total Tickets" value={stats.total} />
-          <StatsCard title="New" value={stats.new} color="blue" />
-          <StatsCard title="In Progress" value={stats.inProgress} color="yellow" />
-          <StatsCard title="Resolved" value={stats.resolved} color="green" />
-          <StatsCard title="Critical" value={stats.critical} color="red" />
-        </div>
-
-        <Card hover padding="lg">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
-            <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
-              Recent Tickets
-            </h2>
-            <Link href="/tickets" className="w-full sm:w-auto">
-              <Button variant="outline" size="sm" className="w-full sm:w-auto">
-                <span className="hidden sm:inline">View All →</span>
-                <span className="sm:hidden">View All</span>
-              </Button>
-            </Link>
-          </div>
-
-          {recentTickets.length === 0 ? (
-            <EmptyState
-              title="No tickets yet"
-              description="Get started by creating your first support ticket. Track issues, manage requests, and keep everything organized."
-              action={{
-                label: "Create your first ticket",
-                href: "/tickets/new",
-              }}
-            />
-          ) : (
-            <div className="space-y-3">
-              {recentTickets.map((ticket, index) => (
-                <Link
-                  key={ticket._id}
-                  href={`/tickets/${ticket._id}`}
-                  className="block p-5 hover:bg-gradient-to-r hover:from-slate-50 hover:to-indigo-50 rounded-xl transition-all duration-200 border border-slate-100 hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5 animate-fade-in group"
-                  style={{ animationDelay: `${index * 50}ms` }}
+    <div className="space-y-6">
+      {/* Top Row - Services Grid & Announcement */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Most Services Request */}
+        <div className="lg:col-span-2">
+          <Card padding="md">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-slate-900">Most Services Request</h2>
+                <p className="text-xs text-slate-500">Top 8 services</p>
+              </div>
+              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+                Show More
+              </button>
+            </div>
+            <div className="grid grid-cols-4 gap-4">
+              {services.map((service, index) => (
+                <div
+                  key={index}
+                  className="flex flex-col items-center p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
                 >
-                  <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
-                    <div className="flex-1 w-full">
-                      <h3 className="font-semibold text-slate-900 mb-2 text-base sm:text-lg">
-                        {ticket.title}
-                      </h3>
-                      <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
-                        <span
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border uppercase tracking-wide ${
-                            statusColors[ticket.status] || statusColors.closed
-                          }`}
-                        >
-                          {ticket.status.replace("_", " ")}
-                        </span>
-                        <span
-                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border capitalize ${
-                            priorityColors[ticket.priority] || priorityColors.low
-                          }`}
-                        >
-                          {ticket.priority}
-                        </span>
-                        <span className="text-xs sm:text-sm text-slate-600 flex items-center gap-1">
-                          <svg
-                            className="w-3 h-3 sm:w-4 sm:h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                            />
-                          </svg>
-                          <span className="truncate max-w-[120px] sm:max-w-none">{ticket.category}</span>
-                        </span>
-                      </div>
-                    </div>
-                    <span className="text-xs sm:text-sm text-slate-500 flex items-center gap-1 self-start sm:self-auto">
-                      <svg
-                        className="w-3 h-3 sm:w-4 sm:h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"
-                        />
-                      </svg>
-                      {new Date(ticket.createdAt).toLocaleDateString()}
-                    </span>
+                  <div className={`w-12 h-12 ${service.color} rounded-xl flex items-center justify-center text-xl mb-2 group-hover:scale-110 transition-transform`}>
+                    {service.icon}
                   </div>
-                </Link>
+                  <p className="text-sm font-medium text-slate-700 text-center">{service.name}</p>
+                  <div className="flex items-center gap-1 mt-1">
+                    <span className="text-yellow-500">⭐</span>
+                    <span className="text-xs text-slate-500">{service.rating}</span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-0.5">0 day</p>
+                </div>
               ))}
             </div>
-          )}
+          </Card>
+        </div>
+
+        {/* Announcement */}
+        <div className="lg:col-span-1">
+          <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-6 h-full relative overflow-hidden">
+            <div className="relative z-10">
+              <span className="text-xs text-teal-200 font-medium">Announcement</span>
+              <h3 className="text-xl font-bold text-white mt-2 mb-2">Create CRM Reports</h3>
+              <p className="text-sm text-teal-100 mb-4 leading-relaxed">
+                Outlines keep you and honest indulging in the poorly driving keep structure you honest great opportunity.
+              </p>
+              <button className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-sm font-medium rounded-lg transition-colors">
+                Create Report
+              </button>
+            </div>
+            {/* Decorative illustration */}
+            <div className="absolute right-0 bottom-0 w-32 h-32 opacity-20">
+              <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full transform translate-x-8 translate-y-8"></div>
+            </div>
+            <div className="absolute right-8 top-8 w-16 h-16 opacity-30">
+              <div className="w-full h-full bg-gradient-to-br from-pink-300 to-purple-400 rounded-full"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Middle Row - Last Update, Calendar, My Favorite */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Last Update */}
+        <Card padding="md">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Last update</h2>
+              <p className="text-xs text-slate-500">Top 4 records</p>
+            </div>
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              Show More
+            </button>
+          </div>
+          <div className="space-y-3">
+            {recentUpdates.length > 0 ? (
+              recentUpdates.map((update, index) => (
+                <div
+                  key={index}
+                  className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                      <span className="text-blue-600 text-sm">📋</span>
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-slate-900">{update.title}</p>
+                      <p className="text-xs text-slate-500">{update.id}</p>
+                      <p className="text-xs text-slate-400">
+                        Due in {update.dueIn} · <span className="text-blue-600">{update.assignee}</span>
+                      </p>
+                    </div>
+                  </div>
+                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
+              ))
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <p className="text-sm">No recent updates</p>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Calendar Events */}
+        <Card padding="md">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Calendar <span className="text-slate-400 font-normal">Events</span></h2>
+              <p className="text-xs text-slate-500">Top 4 records</p>
+            </div>
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              Show More
+            </button>
+          </div>
+          
+          {/* Calendar Week */}
+          <div className="flex justify-between mb-4">
+            {calendarDays.map((day, index) => (
+              <div
+                key={index}
+                className={`flex flex-col items-center p-2 rounded-xl ${
+                  day.isToday
+                    ? "bg-blue-600 text-white"
+                    : "text-slate-600 hover:bg-slate-50"
+                } transition-colors cursor-pointer`}
+              >
+                <span className="text-xs font-medium">{day.day}</span>
+                <span className={`text-lg font-semibold ${day.isToday ? "text-white" : "text-slate-900"}`}>
+                  {day.date}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          {/* Events List */}
+          <div className="space-y-2 max-h-40 overflow-y-auto">
+            {events.map((event, index) => (
+              <div key={index} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
+                <div>
+                  <p className="text-xs text-slate-500">{event.time}</p>
+                  <p className="text-sm text-slate-700">{event.title}</p>
+                </div>
+                <button className="text-xs text-blue-600 hover:text-blue-700">View</button>
+              </div>
+            ))}
+          </div>
+        </Card>
+
+        {/* My Favorite */}
+        <Card padding="md">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">My Favorite</h2>
+              <p className="text-xs text-slate-500">Top 5 records</p>
+            </div>
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              Show More
+            </button>
+          </div>
+          <div className="space-y-2">
+            {favoriteLinks.map((link, index) => (
+              <div
+                key={index}
+                className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+              >
+                <div className="flex items-center gap-3">
+                  <span className="text-lg">{link.icon}</span>
+                  <span className="text-sm text-slate-700">{link.name}</span>
+                </div>
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Bottom Row - Voting, Suggesting, Todo */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {/* Voting */}
+        <Card padding="md">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900">Voting</h2>
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              Show History
+            </button>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">What do you think of the new portals system.?</p>
+          <div className="space-y-2">
+            {["Great", "Good", "Acceptable"].map((option) => (
+              <button
+                key={option}
+                onClick={() => setVotingSelection(option)}
+                className={`w-full py-3 px-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                  votingSelection === option
+                    ? "border-blue-600 bg-blue-50 text-blue-700"
+                    : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                }`}
+              >
+                {option}
+              </button>
+            ))}
+          </div>
+        </Card>
+
+        {/* Suggesting */}
+        <Card padding="md">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold text-slate-900">Suggesting</h2>
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              Show History
+            </button>
+          </div>
+          <p className="text-sm text-slate-600 mb-4">how we can improve your experience</p>
+          <div className="space-y-3">
+            <select
+              value={suggestionCategory}
+              onChange={(e) => setSuggestionCategory(e.target.value)}
+              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            >
+              <option value="">Select category</option>
+              <option value="ui">UI/UX</option>
+              <option value="features">Features</option>
+              <option value="performance">Performance</option>
+              <option value="other">Other</option>
+            </select>
+            <textarea
+              value={suggestionText}
+              onChange={(e) => setSuggestionText(e.target.value)}
+              placeholder="Type your suggestion here..."
+              rows={3}
+              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+            />
+            <Button variant="gradient" className="w-full">
+              Submit
+            </Button>
+          </div>
+        </Card>
+
+        {/* Todo */}
+        <Card padding="md">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900">Todo</h2>
+              <p className="text-xs text-slate-500">Top 5 records</p>
+            </div>
+            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              Show More
+            </button>
+          </div>
+          <div className="space-y-2">
+            {todoItems.map((todo, index) => (
+              <div
+                key={index}
+                className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={todo.completed}
+                  onChange={() => {}}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-slate-900">{todo.title}</p>
+                  <p className="text-xs text-slate-500">{todo.due}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </Card>
       </div>
     </div>
