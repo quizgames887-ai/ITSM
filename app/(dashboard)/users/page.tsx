@@ -436,6 +436,142 @@ export default function UsersPage() {
             </div>
           </Card>
 
+          {/* Edit User Modal */}
+          {editingUser && editingField && (
+            <Card padding="lg" className="border-2 border-blue-200 bg-blue-50/30">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-slate-900 text-lg">
+                  {editingField === "role" && "Change User Role"}
+                  {editingField === "password" && "Reset User Password"}
+                  {editingField === "name" && "Edit User Name"}
+                  {editingField === "email" && "Edit User Email"}
+                </h3>
+                <button
+                  onClick={handleCancel}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* User Info */}
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 mb-4">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
+                  {users?.find(u => u._id === editingUser)?.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
+                </div>
+                <div>
+                  <p className="font-medium text-slate-900">{users?.find(u => u._id === editingUser)?.name}</p>
+                  <p className="text-sm text-slate-500">{users?.find(u => u._id === editingUser)?.email}</p>
+                </div>
+              </div>
+
+              {/* Role Change */}
+              {editingField === "role" && (
+                <div className="space-y-4">
+                  <Select
+                    label="Select New Role"
+                    value={editValues.role || ""}
+                    onChange={(e) => setEditValues({ ...editValues, role: e.target.value })}
+                    options={[
+                      { value: "user", label: "User - Regular user access" },
+                      { value: "agent", label: "Agent - Support agent access" },
+                      { value: "admin", label: "Admin - Full administrative access" },
+                    ]}
+                  />
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="gradient" onClick={() => handleSave(editingUser)}>
+                      Update Role
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Password Reset */}
+              {editingField === "password" && (
+                <div className="space-y-4">
+                  <Input
+                    label="New Password"
+                    type="password"
+                    value={editValues.newPassword || ""}
+                    onChange={(e) => setEditValues({ ...editValues, newPassword: e.target.value })}
+                    placeholder="Enter new password (min 8 characters)"
+                  />
+                  <Input
+                    label="Confirm Password"
+                    type="password"
+                    value={editValues.confirmPassword || ""}
+                    onChange={(e) => setEditValues({ ...editValues, confirmPassword: e.target.value })}
+                    placeholder="Confirm new password"
+                  />
+                  {editValues.newPassword && editValues.newPassword.length > 0 && editValues.newPassword.length < 8 && (
+                    <p className="text-sm text-amber-600">Password must be at least 8 characters</p>
+                  )}
+                  {editValues.newPassword && editValues.confirmPassword && editValues.newPassword !== editValues.confirmPassword && (
+                    <p className="text-sm text-red-600">Passwords do not match</p>
+                  )}
+                  <div className="flex gap-2 pt-2">
+                    <Button 
+                      variant="gradient" 
+                      onClick={() => handlePasswordReset(editingUser)}
+                      disabled={!editValues.newPassword || editValues.newPassword.length < 8 || editValues.newPassword !== editValues.confirmPassword}
+                    >
+                      Reset Password
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Name Edit */}
+              {editingField === "name" && (
+                <div className="space-y-4">
+                  <Input
+                    label="Name"
+                    value={editValues.name || ""}
+                    onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
+                    placeholder="Enter user name"
+                  />
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="gradient" onClick={() => handleSave(editingUser)}>
+                      Update Name
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              {/* Email Edit */}
+              {editingField === "email" && (
+                <div className="space-y-4">
+                  <Input
+                    label="Email"
+                    type="email"
+                    value={editValues.email || ""}
+                    onChange={(e) => setEditValues({ ...editValues, email: e.target.value })}
+                    placeholder="Enter email address"
+                  />
+                  <div className="flex gap-2 pt-2">
+                    <Button variant="gradient" onClick={() => handleSave(editingUser)}>
+                      Update Email
+                    </Button>
+                    <Button variant="outline" onClick={handleCancel}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </Card>
+          )}
+
           {/* Users Table */}
           <Card padding="none">
             <div className="overflow-x-auto">
