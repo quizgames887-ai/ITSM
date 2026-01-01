@@ -77,63 +77,10 @@ export const getDatabaseStatus = query({
 export const list = query({
   args: {},
   handler: async (ctx) => {
-    try {
-      console.log("[users:list] Starting query execution...");
-      
-      // Try multiple query methods to debug
-      const query1 = ctx.db.query("users");
-      console.log("[users:list] Query object created");
-      
-      const users = await query1.collect();
-      console.log(`[users:list] Query executed successfully. Found ${users.length} users`);
-      
-      // Try alternative query method to verify
-      const allUsers = await ctx.db.query("users").collect();
-      console.log(`[users:list] Alternative query method found ${allUsers.length} users`);
-      
-      // Debug: Log first few users if any exist
-      if (users.length > 0) {
-        console.log(`[users:list] Sample users:`, users.slice(0, 3).map(u => ({ 
-          id: u._id, 
-          email: u.email, 
-          name: u.name,
-          role: u.role 
-        })));
-      } else {
-        console.warn(`[users:list] No users found in database.`);
-        console.warn(`[users:list] This might indicate:`);
-        console.warn(`[users:list] 1. The database is empty`);
-        console.warn(`[users:list] 2. The query is not accessing the correct table`);
-        console.warn(`[users:list] 3. There's a permissions issue`);
-        
-        // Try to verify by querying with an index
-        try {
-          const testUser = await ctx.db
-            .query("users")
-            .withIndex("by_email")
-            .first();
-          console.log(`[users:list] Test query with index found:`, testUser ? "User exists" : "No user found");
-        } catch (indexError: any) {
-          console.warn(`[users:list] Index query test failed:`, indexError?.message);
-        }
-      }
-      
-      // Ensure we always return an array
-      if (!Array.isArray(users)) {
-        console.error("[users:list] Query did not return an array:", typeof users);
-        return [];
-      }
-      
-      console.log(`[users:list] Returning ${users.length} users`);
-      return users;
-    } catch (error: any) {
-      console.error("[users:list] Error fetching users:", error);
-      console.error("[users:list] Error message:", error?.message);
-      console.error("[users:list] Error stack:", error?.stack);
-      console.error("[users:list] Error name:", error?.name);
-      // Return empty array instead of throwing to prevent app crash
-      return [];
-    }
+    // Simple, direct query - no try/catch to ensure errors are visible
+    const users = await ctx.db.query("users").collect();
+    console.log(`[users:list] Found ${users.length} users`);
+    return users;
   },
 });
 
