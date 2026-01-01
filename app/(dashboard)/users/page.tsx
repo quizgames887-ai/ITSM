@@ -11,36 +11,114 @@ import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 
+type User = {
+  _id: Id<"users">;
+  email: string;
+  name: string;
+  role: "user" | "admin" | "agent";
+  onboardingCompleted: boolean;
+  createdAt: number;
+  updatedAt: number;
+};
+
+type EditingField = "name" | "email" | "role" | "onboarding" | null;
+
 export default function UsersPage() {
-  const users = useQuery(api.users.list, {});
+  const users = useQuery(api.users.listAll, {});
   const updateUser = useMutation(api.users.update);
   const { success, error: showError } = useToastContext();
-  const [editingRole, setEditingRole] = useState<Id<"users"> | null>(null);
-  const [newRole, setNewRole] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState("");
+  const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "createdAt">("name");
+  const [editingUser, setEditingUser] = useState<Id<"users"> | null>(null);
+  const [editingField, setEditingField] = useState<EditingField>(null);
+  const [editValues, setEditValues] = useState<{
+    name?: string;
+    email?: string;
+    role?: string;
+    onboardingCompleted?: boolean;
+  }>({});
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
-  const currentUser = users?.find((u) => u._id === currentUserId);
+  
+  // Fetch current user directly to check admin status
+  const currentUser = useQuery(
+    api.users.get,
+    currentUserId ? { id: currentUserId as Id<"users"> } : "skip"
+  );
+  
+  // Also try to find in list as fallback
+  const currentUserFromList = users?.find((u) => u._id === currentUserId);
+  
+  // Check if current user is admin - prefer direct query result
+  const isAdmin = currentUser?.role === "admin" || currentUserFromList?.role === "admin";
 
-  // Check if current user is admin
-  const isAdmin = currentUser?.role === "admin";
-
-  const handleRoleChange = async (userId: Id<"users">, newRole: string) => {
+  const handleEdit = (user: User, field: EditingField) => {
     if (!isAdmin) {
-      showError("Only admins can change user roles");
+      showError("Only admins can edit user details");
+      return;
+    }
+    setEditingUser(user._id);
+    setEditingField(field);
+    setEditValues({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      onboardingCompleted: user.onboardingCompleted,
+    });
+  };
+
+  const handleSave = async (userId: Id<"users">) => {
+    if (!isAdmin) {
+      showError("Only admins can update users");
       return;
     }
 
     try {
+      const updates: any = {};
+      
+      if (editingField === "name" && editValues.name !== undefined) {
+        updates.name = editValues.name.trim();
+        if (!updates.name) {
+          showError("Name cannot be empty");
+          return;
+        }
+      }
+      
+      if (editingField === "email" && editValues.email !== undefined) {
+        updates.email = editValues.email.trim();
+        if (!updates.email || !updates.email.includes("@")) {
+          showError("Please enter a valid email address");
+          return;
+        }
+      }
+      
+      if (editingField === "role" && editValues.role !== undefined) {
+        updates.role = editValues.role;
+      }
+      
+      if (editingField === "onboarding" && editValues.onboardingCompleted !== undefined) {
+        updates.onboardingCompleted = editValues.onboardingCompleted;
+      }
+
       await updateUser({
         id: userId,
-        role: newRole as "user" | "admin" | "agent",
+        ...updates,
       });
-      success("User role updated successfully!");
-      setEditingRole(null);
+
+      success("User updated successfully!");
+      setEditingUser(null);
+      setEditingField(null);
+      setEditValues({});
     } catch (err: any) {
-      showError(err.message || "Failed to update role");
+      showError(err.message || "Failed to update user");
     }
+  };
+
+  const handleCancel = () => {
+    setEditingUser(null);
+    setEditingField(null);
+    setEditValues({});
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -54,16 +132,47 @@ export default function UsersPage() {
     }
   };
 
-  const filteredUsers = users?.filter((user) => {
-    const searchLower = searchTerm.toLowerCase();
-    return (
-      user.name.toLowerCase().includes(searchLower) ||
-      user.email.toLowerCase().includes(searchLower) ||
-      user.role.toLowerCase().includes(searchLower)
-    );
-  });
+  const filteredAndSortedUsers = users
+    ?.filter((user) => {
+      const searchLower = searchTerm.toLowerCase();
+      const matchesSearch =
+        user.name.toLowerCase().includes(searchLower) ||
+        user.email.toLowerCase().includes(searchLower) ||
+        user.role.toLowerCase().includes(searchLower);
+      
+      const matchesRole = roleFilter === "all" || user.role === roleFilter;
+      
+      return matchesSearch && matchesRole;
+    })
+    .sort((a, b) => {
+      switch (sortBy) {
+        case "name":
+          return a.name.localeCompare(b.name);
+        case "email":
+          return a.email.localeCompare(b.email);
+        case "role":
+          return a.role.localeCompare(b.role);
+        case "createdAt":
+          return b.createdAt - a.createdAt;
+        default:
+          return 0;
+      }
+    });
 
-  if (users === undefined) {
+  // Calculate statistics
+  const stats = users
+    ? {
+        total: users.length,
+        admins: users.filter((u) => u.role === "admin").length,
+        agents: users.filter((u) => u.role === "agent").length,
+        regularUsers: users.filter((u) => u.role === "user").length,
+        onboardingCompleted: users.filter((u) => u.onboardingCompleted).length,
+        onboardingPending: users.filter((u) => !u.onboardingCompleted).length,
+      }
+    : null;
+
+  // Wait for both queries to load before checking admin status
+  if (users === undefined || (currentUserId && currentUser === undefined)) {
     return (
       <div className="min-h-screen bg-slate-50 p-8">
         <div className="max-w-7xl mx-auto">
@@ -77,7 +186,8 @@ export default function UsersPage() {
     );
   }
 
-  if (!isAdmin) {
+  // Only show access denied if we've confirmed the user is not an admin
+  if (!isAdmin && currentUser !== undefined) {
     return (
       <div className="min-h-screen bg-slate-50 p-8">
         <div className="max-w-7xl mx-auto">
@@ -115,50 +225,107 @@ export default function UsersPage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto animate-fade-in">
+        {/* Header */}
         <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
           <div>
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
               User Management
             </h1>
             <p className="text-sm sm:text-base text-slate-600">
-              Manage user roles and permissions
+              Manage all user details, roles, and permissions
             </p>
           </div>
         </div>
 
+        {/* Statistics */}
+        {stats && (
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
+            <Card padding="sm" className="text-center">
+              <div className="text-2xl font-bold text-slate-900">{stats.total}</div>
+              <div className="text-xs text-slate-600 mt-1">Total Users</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-2xl font-bold text-purple-700">{stats.admins}</div>
+              <div className="text-xs text-slate-600 mt-1">Admins</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-2xl font-bold text-blue-700">{stats.agents}</div>
+              <div className="text-xs text-slate-600 mt-1">Agents</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-2xl font-bold text-slate-700">{stats.regularUsers}</div>
+              <div className="text-xs text-slate-600 mt-1">Users</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-2xl font-bold text-green-700">{stats.onboardingCompleted}</div>
+              <div className="text-xs text-slate-600 mt-1">Onboarded</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-2xl font-bold text-amber-700">{stats.onboardingPending}</div>
+              <div className="text-xs text-slate-600 mt-1">Pending</div>
+            </Card>
+          </div>
+        )}
+
+        {/* Filters and Search */}
         <Card hover padding="lg" className="mb-6">
-          <Input
-            label="Search Users"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Search by name, email, or role..."
-            icon={
-              <svg
-                className="w-5 h-5"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                />
-              </svg>
-            }
-          />
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Input
+              label="Search Users"
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search by name, email, or role..."
+              icon={
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                  />
+                </svg>
+              }
+            />
+            <Select
+              label="Filter by Role"
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              options={[
+                { value: "all", label: "All Roles" },
+                { value: "admin", label: "Admin" },
+                { value: "agent", label: "Agent" },
+                { value: "user", label: "User" },
+              ]}
+            />
+            <Select
+              label="Sort By"
+              value={sortBy}
+              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+              options={[
+                { value: "name", label: "Name" },
+                { value: "email", label: "Email" },
+                { value: "role", label: "Role" },
+                { value: "createdAt", label: "Date Joined" },
+              ]}
+            />
+          </div>
         </Card>
 
+        {/* Users List */}
         <div className="space-y-4">
-          {filteredUsers && filteredUsers.length === 0 ? (
+          {filteredAndSortedUsers && filteredAndSortedUsers.length === 0 ? (
             <Card hover padding="lg">
               <div className="text-center py-12">
                 <p className="text-slate-600">No users found</p>
               </div>
             </Card>
           ) : (
-            filteredUsers?.map((user, index) => {
+            filteredAndSortedUsers?.map((user, index) => {
               const getInitials = (name: string) => {
                 return name
                   .split(" ")
@@ -169,7 +336,7 @@ export default function UsersPage() {
               };
 
               const isCurrentUser = user._id === currentUserId;
-              const isEditing = editingRole === user._id;
+              const isEditing = editingUser === user._id;
 
               return (
                 <Card
@@ -178,90 +345,292 @@ export default function UsersPage() {
                   className="animate-fade-in"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                    <div className="flex items-center gap-3 sm:gap-4 flex-1 w-full">
-                      <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm sm:text-base font-semibold shadow-md hover:shadow-lg transition-all hover:scale-110 flex-shrink-0">
-                        {getInitials(user.name)}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
-                          <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
-                            {user.name}
-                            {isCurrentUser && (
-                              <span className="ml-2 text-xs sm:text-sm text-indigo-600 font-normal">
-                                (You)
-                              </span>
-                            )}
-                          </h3>
-                          <span
-                            className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(
-                              user.role
-                            )} self-start`}
-                          >
-                            {user.role.toUpperCase()}
-                          </span>
+                  <div className="space-y-4">
+                    {/* User Header */}
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                      <div className="flex items-center gap-3 sm:gap-4 flex-1 w-full">
+                        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-base font-semibold shadow-md hover:shadow-lg transition-all hover:scale-110 flex-shrink-0">
+                          {getInitials(user.name)}
                         </div>
-                        <p className="text-xs sm:text-sm text-slate-600 break-words">{user.email}</p>
-                        <p className="text-xs text-slate-500 mt-1">
-                          Joined: {new Date(user.createdAt).toLocaleDateString()}
-                        </p>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
+                            {isEditing && editingField === "name" ? (
+                              <div className="flex items-center gap-2 flex-1">
+                                <Input
+                                  value={editValues.name || ""}
+                                  onChange={(e) =>
+                                    setEditValues({ ...editValues, name: e.target.value })
+                                  }
+                                  className="flex-1"
+                                  placeholder="Name"
+                                />
+                                <Button
+                                  size="sm"
+                                  variant="gradient"
+                                  onClick={() => handleSave(user._id)}
+                                >
+                                  Save
+                                </Button>
+                                <Button size="sm" variant="outline" onClick={handleCancel}>
+                                  Cancel
+                                </Button>
+                              </div>
+                            ) : (
+                              <>
+                                <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
+                                  {user.name}
+                                  {isCurrentUser && (
+                                    <span className="ml-2 text-xs sm:text-sm text-indigo-600 font-normal">
+                                      (You)
+                                    </span>
+                                  )}
+                                </h3>
+                                {!isCurrentUser && (
+                                  <Button
+                                    size="sm"
+                                    variant="ghost"
+                                    onClick={() => handleEdit(user, "name")}
+                                    className="text-xs"
+                                  >
+                                    <svg
+                                      className="w-4 h-4"
+                                      fill="none"
+                                      stroke="currentColor"
+                                      viewBox="0 0 24 24"
+                                    >
+                                      <path
+                                        strokeLinecap="round"
+                                        strokeLinejoin="round"
+                                        strokeWidth={2}
+                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                      />
+                                    </svg>
+                                  </Button>
+                                )}
+                              </>
+                            )}
+                            <span
+                              className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(
+                                user.role
+                              )} self-start`}
+                            >
+                              {user.role.toUpperCase()}
+                            </span>
+                          </div>
+                          {isEditing && editingField === "email" ? (
+                            <div className="flex items-center gap-2 mt-2">
+                              <Input
+                                value={editValues.email || ""}
+                                onChange={(e) =>
+                                  setEditValues({ ...editValues, email: e.target.value })
+                                }
+                                className="flex-1"
+                                placeholder="Email"
+                                type="email"
+                              />
+                              <Button
+                                size="sm"
+                                variant="gradient"
+                                onClick={() => handleSave(user._id)}
+                              >
+                                Save
+                              </Button>
+                              <Button size="sm" variant="outline" onClick={handleCancel}>
+                                Cancel
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-2 mt-1">
+                              <p className="text-xs sm:text-sm text-slate-600 break-words">
+                                {user.email}
+                              </p>
+                              {!isCurrentUser && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => handleEdit(user, "email")}
+                                  className="text-xs p-1"
+                                >
+                                  <svg
+                                    className="w-3 h-3"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    viewBox="0 0 24 24"
+                                  >
+                                    <path
+                                      strokeLinecap="round"
+                                      strokeLinejoin="round"
+                                      strokeWidth={2}
+                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                    />
+                                  </svg>
+                                </Button>
+                              )}
+                            </div>
+                          )}
+                        </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full sm:w-auto">
-                      {isEditing ? (
-                        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full sm:w-auto">
-                          <Select
-                            value={newRole || user.role}
-                            onChange={(e) => setNewRole(e.target.value)}
-                            options={[
-                              { value: "user", label: "User" },
-                              { value: "agent", label: "Agent" },
-                              { value: "admin", label: "Admin" },
-                            ]}
-                            className="w-full sm:w-32"
-                          />
-                          <Button
-                            size="sm"
-                            variant="gradient"
-                            onClick={() => handleRoleChange(user._id, newRole || user.role)}
-                            className="flex-1 sm:flex-none"
-                          >
-                            Save
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingRole(null);
-                              setNewRole("");
-                            }}
-                            className="flex-1 sm:flex-none"
-                          >
-                            Cancel
-                          </Button>
-                        </div>
-                      ) : (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={() => {
-                              setEditingRole(user._id);
-                              setNewRole(user.role);
-                            }}
-                            disabled={isCurrentUser}
-                            className="w-full sm:w-auto"
-                          >
-                            Change Role
-                          </Button>
-                          <Link href={`/profile?userId=${user._id}`} className="w-full sm:w-auto">
-                            <Button size="sm" variant="ghost" className="w-full sm:w-auto">
-                              View Profile
+                    {/* User Details */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-4 border-t border-slate-200">
+                      {/* Role */}
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">
+                          Role
+                        </label>
+                        {isEditing && editingField === "role" ? (
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={editValues.role || user.role}
+                              onChange={(e) =>
+                                setEditValues({ ...editValues, role: e.target.value })
+                              }
+                              options={[
+                                { value: "user", label: "User" },
+                                { value: "agent", label: "Agent" },
+                                { value: "admin", label: "Admin" },
+                              ]}
+                              className="flex-1"
+                            />
+                            <Button
+                              size="sm"
+                              variant="gradient"
+                              onClick={() => handleSave(user._id)}
+                            >
+                              Save
                             </Button>
-                          </Link>
-                        </>
-                      )}
+                            <Button size="sm" variant="outline" onClick={handleCancel}>
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${getRoleBadgeColor(
+                                user.role
+                              )}`}
+                            >
+                              {user.role.toUpperCase()}
+                            </span>
+                            {!isCurrentUser && (
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                onClick={() => handleEdit(user, "role")}
+                                className="text-xs p-1"
+                              >
+                                <svg
+                                  className="w-3 h-3"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                  />
+                                </svg>
+                              </Button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Onboarding Status */}
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">
+                          Onboarding
+                        </label>
+                        {isEditing && editingField === "onboarding" ? (
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={editValues.onboardingCompleted ? "true" : "false"}
+                              onChange={(e) =>
+                                setEditValues({
+                                  ...editValues,
+                                  onboardingCompleted: e.target.value === "true",
+                                })
+                              }
+                              options={[
+                                { value: "true", label: "Completed" },
+                                { value: "false", label: "Pending" },
+                              ]}
+                              className="flex-1"
+                            />
+                            <Button
+                              size="sm"
+                              variant="gradient"
+                              onClick={() => handleSave(user._id)}
+                            >
+                              Save
+                            </Button>
+                            <Button size="sm" variant="outline" onClick={handleCancel}>
+                              Cancel
+                            </Button>
+                          </div>
+                        ) : (
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={`px-2 py-1 rounded text-xs font-medium ${
+                                user.onboardingCompleted
+                                  ? "bg-green-100 text-green-700 border border-green-200"
+                                  : "bg-amber-100 text-amber-700 border border-amber-200"
+                              }`}
+                            >
+                              {user.onboardingCompleted ? "Completed" : "Pending"}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={() => handleEdit(user, "onboarding")}
+                              className="text-xs p-1"
+                            >
+                              <svg
+                                className="w-3 h-3"
+                                fill="none"
+                                stroke="currentColor"
+                                viewBox="0 0 24 24"
+                              >
+                                <path
+                                  strokeLinecap="round"
+                                  strokeLinejoin="round"
+                                  strokeWidth={2}
+                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                                />
+                              </svg>
+                            </Button>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Created Date */}
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">
+                          Joined
+                        </label>
+                        <p className="text-xs text-slate-900">
+                          {new Date(user.createdAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(user.createdAt).toLocaleTimeString()}
+                        </p>
+                      </div>
+
+                      {/* Last Updated */}
+                      <div>
+                        <label className="text-xs font-medium text-slate-600 mb-1 block">
+                          Last Updated
+                        </label>
+                        <p className="text-xs text-slate-900">
+                          {new Date(user.updatedAt).toLocaleDateString()}
+                        </p>
+                        <p className="text-xs text-slate-500">
+                          {new Date(user.updatedAt).toLocaleTimeString()}
+                        </p>
+                      </div>
                     </div>
                   </div>
                 </Card>

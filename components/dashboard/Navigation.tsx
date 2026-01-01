@@ -4,6 +4,9 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel";
 
 export function Navigation() {
   const pathname = usePathname();
@@ -15,6 +18,12 @@ export function Navigation() {
   const menuRef = useRef<HTMLDivElement>(null);
   const mobileMenuRef = useRef<HTMLDivElement>(null);
 
+  const userId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+  const currentUser = useQuery(
+    api.users.get,
+    userId ? { id: userId as Id<"users"> } : "skip"
+  );
+
   useEffect(() => {
     const name = localStorage.getItem("userName");
     const role = localStorage.getItem("userRole");
@@ -25,6 +34,18 @@ export function Navigation() {
       setUserRole(role);
     }
   }, []);
+
+  // Update role from database if available
+  useEffect(() => {
+    if (currentUser) {
+      setUserRole(currentUser.role);
+      localStorage.setItem("userRole", currentUser.role);
+      if (currentUser.name) {
+        setUserName(currentUser.name);
+        localStorage.setItem("userName", currentUser.name);
+      }
+    }
+  }, [currentUser]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -60,7 +81,7 @@ export function Navigation() {
   }> = [
     { href: "/dashboard", label: "Dashboard", icon: "📊" },
     { href: "/tickets", label: "Tickets", icon: "🎫" },
-    { href: "/forms", label: "Forms", icon: "📝" },
+    { href: "/forms", label: "Forms", icon: "📝", adminOnly: true },
     { href: "/users", label: "Users", icon: "👥", adminOnly: true },
     { href: "/profile", label: "Profile", icon: "👤" },
   ];

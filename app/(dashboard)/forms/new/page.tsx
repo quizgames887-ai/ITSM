@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { useMutation } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card } from "@/components/ui/card";
 import { useToastContext } from "@/contexts/ToastContext";
 import Link from "next/link";
+import { Id } from "@/convex/_generated/dataModel";
 
 export default function NewFormPage() {
   const router = useRouter();
@@ -17,6 +18,17 @@ export default function NewFormPage() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+  
+  // Fetch current user directly to check admin status
+  const currentUser = useQuery(
+    api.users.get,
+    currentUserId ? { id: currentUserId as Id<"users"> } : "skip"
+  );
+  
+  // Check if current user is admin
+  const isAdmin = currentUser?.role === "admin";
 
   const createForm = useMutation(api.forms.create);
 
@@ -50,6 +62,55 @@ export default function NewFormPage() {
       setLoading(false);
     }
   };
+
+  // Wait for user query to load before checking admin status
+  if (currentUserId && currentUser === undefined) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse space-y-4">
+            <div className="h-24 bg-slate-200 rounded-xl"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Only show access denied if we've confirmed the user is not an admin
+  if (!isAdmin && currentUser !== undefined) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-8">
+        <div className="max-w-7xl mx-auto">
+          <Card>
+            <div className="text-center py-12">
+              <svg
+                className="w-16 h-16 mx-auto mb-4 text-red-500"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
+                />
+              </svg>
+              <h2 className="text-2xl font-bold text-slate-900 mb-2">
+                Access Denied
+              </h2>
+              <p className="text-slate-600 mb-4">
+                You need admin privileges to access this page.
+              </p>
+              <Link href="/dashboard">
+                <Button>Back to Dashboard</Button>
+              </Link>
+            </div>
+          </Card>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
