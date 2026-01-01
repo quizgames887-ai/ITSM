@@ -1,17 +1,42 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
 import { useState } from "react";
+import { useToastContext } from "@/contexts/ToastContext";
+import { Id } from "@/convex/_generated/dataModel";
+
+const TICKET_CATEGORIES = ["IT Support", "HR", "Finance", "Facilities", "Security", "Other"];
 
 export default function TicketsPage() {
   const tickets = useQuery(api.tickets.list, {});
   const users = useQuery(api.users.list, {});
+  const createTicket = useMutation(api.tickets.create);
+  
+  const { success, error: showError } = useToastContext();
+  
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [showCreateForm, setShowCreateForm] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  const [newTicket, setNewTicket] = useState({
+    title: "",
+    description: "",
+    type: "incident" as "incident" | "service_request" | "inquiry",
+    priority: "medium" as "low" | "medium" | "high" | "critical",
+    urgency: "medium" as "low" | "medium" | "high",
+    category: "IT Support",
+  });
+
+  const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
 
   if (tickets === undefined) {
     return (
@@ -83,6 +108,49 @@ export default function TicketsPage() {
     });
   };
 
+  const handleCreateTicket = async () => {
+    if (!newTicket.title.trim()) {
+      showError("Ticket title is required");
+      return;
+    }
+    if (!newTicket.description.trim()) {
+      showError("Ticket description is required");
+      return;
+    }
+    if (!currentUserId) {
+      showError("You must be logged in to create a ticket");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createTicket({
+        title: newTicket.title.trim(),
+        description: newTicket.description.trim(),
+        type: newTicket.type,
+        priority: newTicket.priority,
+        urgency: newTicket.urgency,
+        category: newTicket.category,
+        createdBy: currentUserId as Id<"users">,
+      });
+      
+      success("Ticket created successfully!");
+      setShowCreateForm(false);
+      setNewTicket({
+        title: "",
+        description: "",
+        type: "incident",
+        priority: "medium",
+        urgency: "medium",
+        category: "IT Support",
+      });
+    } catch (err: any) {
+      showError(err.message || "Failed to create ticket");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -93,7 +161,104 @@ export default function TicketsPage() {
             Manage and track all your support tickets
           </p>
         </div>
+        <Button variant="gradient" onClick={() => setShowCreateForm(true)}>
+          <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Create Ticket
+        </Button>
       </div>
+
+      {/* Create Ticket Form */}
+      {showCreateForm && (
+        <Card padding="lg" className="border-2 border-blue-200 bg-blue-50/30">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-semibold text-slate-900 text-lg">Create New Ticket</h3>
+            <button
+              onClick={() => setShowCreateForm(false)}
+              className="p-1 text-slate-400 hover:text-slate-600 rounded"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          
+          <div className="space-y-4">
+            <Input
+              label="Title"
+              value={newTicket.title}
+              onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
+              placeholder="Brief summary of the issue"
+            />
+            
+            <Textarea
+              label="Description"
+              value={newTicket.description}
+              onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
+              placeholder="Provide detailed information about your request..."
+              rows={4}
+            />
+            
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <Select
+                label="Type"
+                value={newTicket.type}
+                onChange={(e) => setNewTicket({ ...newTicket, type: e.target.value as any })}
+                options={[
+                  { value: "incident", label: "Incident" },
+                  { value: "service_request", label: "Service Request" },
+                  { value: "inquiry", label: "Inquiry" },
+                ]}
+              />
+              
+              <Select
+                label="Priority"
+                value={newTicket.priority}
+                onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value as any })}
+                options={[
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                  { value: "critical", label: "Critical" },
+                ]}
+              />
+              
+              <Select
+                label="Urgency"
+                value={newTicket.urgency}
+                onChange={(e) => setNewTicket({ ...newTicket, urgency: e.target.value as any })}
+                options={[
+                  { value: "low", label: "Low" },
+                  { value: "medium", label: "Medium" },
+                  { value: "high", label: "High" },
+                ]}
+              />
+              
+              <Select
+                label="Category"
+                value={newTicket.category}
+                onChange={(e) => setNewTicket({ ...newTicket, category: e.target.value })}
+                options={TICKET_CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
+              />
+            </div>
+            
+            <div className="flex gap-2 pt-2">
+              <Button 
+                variant="gradient" 
+                onClick={handleCreateTicket}
+                disabled={isSubmitting}
+                loading={isSubmitting}
+              >
+                {isSubmitting ? "Creating..." : "Create Ticket"}
+              </Button>
+              <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+                Cancel
+              </Button>
+            </div>
+          </div>
+        </Card>
+      )}
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
@@ -145,8 +310,15 @@ export default function TicketsPage() {
               </svg>
             }
             title="No tickets found"
-            description="No tickets match your current filters."
+            description={tickets.length === 0 ? "Create your first ticket to get started." : "No tickets match your current filters."}
           />
+          {tickets.length === 0 && (
+            <div className="text-center mt-4">
+              <Button variant="gradient" onClick={() => setShowCreateForm(true)}>
+                Create Your First Ticket
+              </Button>
+            </div>
+          )}
         </Card>
       ) : (
         <Card padding="none">
