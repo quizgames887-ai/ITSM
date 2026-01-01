@@ -186,4 +186,29 @@ export default defineSchema({
     .index("by_teamId", ["teamId"])
     .index("by_userId", ["userId"])
     .index("by_teamId_userId", ["teamId", "userId"]),
+
+  // Auto-assignment Rules
+  assignmentRules: defineTable({
+    name: v.string(),
+    description: v.union(v.string(), v.null()),
+    isActive: v.boolean(),
+    priority: v.number(), // Lower number = higher priority (evaluated first)
+    // Conditions (match any)
+    conditions: v.object({
+      categories: v.optional(v.array(v.string())), // Match ticket categories
+      priorities: v.optional(v.array(v.string())), // Match ticket priorities
+      types: v.optional(v.array(v.string())), // Match ticket types
+    }),
+    // Assignment target
+    assignTo: v.union(
+      v.object({ type: v.literal("agent"), agentId: v.id("users") }),
+      v.object({ type: v.literal("team"), teamId: v.id("teams") }),
+      v.object({ type: v.literal("round_robin"), teamId: v.id("teams") }) // Distribute among team members
+    ),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_isActive", ["isActive"])
+    .index("by_priority", ["priority"]),
 });
