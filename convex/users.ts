@@ -36,6 +36,33 @@ export const getCurrentUser = query({
   },
 });
 
+// Diagnostic query to check database status
+export const getDatabaseStatus = query({
+  args: {},
+  handler: async (ctx) => {
+    try {
+      const userCount = await ctx.db.query("users").collect();
+      return {
+        userCount: userCount.length,
+        hasUsers: userCount.length > 0,
+        sampleUsers: userCount.slice(0, 3).map(u => ({
+          id: u._id,
+          email: u.email,
+          name: u.name,
+          role: u.role
+        }))
+      };
+    } catch (error: any) {
+      console.error("[users:getDatabaseStatus] Error:", error);
+      return {
+        userCount: 0,
+        hasUsers: false,
+        error: error.message
+      };
+    }
+  },
+});
+
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -43,9 +70,18 @@ export const list = query({
       // Return all users - frontend will handle admin checks
       const users = await ctx.db.query("users").collect();
       console.log(`[users:list] Found ${users.length} users`);
+      
+      // Debug: Log first few users if any exist
+      if (users.length > 0) {
+        console.log(`[users:list] Sample users:`, users.slice(0, 3).map(u => ({ id: u._id, email: u.email, name: u.name })));
+      } else {
+        console.warn(`[users:list] No users found in database. This might indicate the database is empty or there's a connection issue.`);
+      }
+      
       return users || [];
     } catch (error: any) {
       console.error("[users:list] Error fetching users:", error);
+      console.error("[users:list] Error details:", JSON.stringify(error, null, 2));
       // Return empty array instead of throwing to prevent app crash
       return [];
     }

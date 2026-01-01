@@ -233,6 +233,15 @@ export default function UsersPage() {
     );
   }
 
+  // Debug: If current user exists but list is empty, log a warning
+  if (currentUser && users && users.length === 0) {
+    console.warn("[UsersPage] Current user exists but list is empty!", {
+      currentUserId: currentUser._id,
+      currentUserEmail: currentUser.email,
+      usersListLength: users.length
+    });
+  }
+
   // Debug: Log users data (only in development)
   if (typeof window !== "undefined") {
     if (users === undefined) {
@@ -244,6 +253,8 @@ export default function UsersPage() {
       console.log("[UsersPage] Users count:", users.length);
       if (users.length === 0) {
         console.warn("[UsersPage] No users found in database!");
+        console.warn("[UsersPage] Current user:", currentUser);
+        console.warn("[UsersPage] Current user ID from localStorage:", currentUserId);
       }
     }
   }
@@ -387,9 +398,26 @@ export default function UsersPage() {
                   {!users ? "Loading users..." : "No users found"}
                 </p>
                 {users && users.length === 0 && (
-                  <p className="text-xs text-slate-500 mt-2">
-                    The database appears to be empty. Create a user to get started.
-                  </p>
+                  <div className="space-y-2">
+                    <p className="text-xs text-slate-500 mt-2">
+                      The database appears to be empty. Create a user to get started.
+                    </p>
+                    {currentUser && (
+                      <div className="text-xs text-slate-400 mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
+                        <p className="font-medium text-amber-800 mb-1">⚠️ Diagnostic Info:</p>
+                        <p>You are logged in as: {currentUser.email}</p>
+                        <p>Your user ID: {currentUser._id}</p>
+                        <p className="mt-2 text-amber-700">
+                          Your user exists in the database, but the list query returned empty.
+                          This may indicate a database connection issue. Check the browser console for more details.
+                        </p>
+                      </div>
+                    )}
+                    <p className="text-xs text-slate-400 mt-4">
+                      If you're logged in but see this message, there may be a database connection issue.
+                      Try refreshing the page or check the browser console (F12) for error messages.
+                    </p>
+                  </div>
                 )}
               </div>
             </Card>
