@@ -446,212 +446,153 @@ export default function UsersPage() {
           </div>
         </Card>
 
-        {/* Users List */}
-        <div className="space-y-4">
+        {/* Users Table */}
+        <Card padding="none" className="overflow-hidden">
           {!users || users === null || (filteredAndSortedUsers && filteredAndSortedUsers.length === 0) ? (
-            <Card hover padding="lg">
-              <div className="text-center py-12">
-                <p className="text-slate-600 mb-2">
-                  {!users || users === null ? "Loading users..." : "No users found"}
+            <div className="text-center py-12 px-6">
+              <svg
+                className="w-12 h-12 mx-auto mb-4 text-slate-300"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={1.5}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
+                />
+              </svg>
+              <p className="text-slate-600 mb-2">
+                {!users || users === null ? "Loading users..." : "No users found"}
+              </p>
+              {searchTerm && (
+                <p className="text-sm text-slate-500">
+                  Try adjusting your search or filter criteria
                 </p>
-                {users === null && (
-                  <div className="space-y-2">
-                    <p className="text-sm text-red-600 font-medium mt-2">
-                      ⚠️ Error: Query returned null
-                    </p>
-                    <p className="text-xs text-slate-500">
-                      The users query returned null. This might indicate a connection issue with Convex.
-                      Please check the browser console (F12) for more details.
-                    </p>
-                  </div>
-                )}
-                {users && Array.isArray(users) && users.length === 0 && (
-                  <div className="space-y-2">
-                    <p className="text-xs text-slate-500 mt-2">
-                      The database appears to be empty. Create a user to get started.
-                    </p>
-                    {currentUser && (
-                      <div className="text-xs text-slate-400 mt-4 p-3 bg-amber-50 rounded-lg border border-amber-200">
-                        <p className="font-medium text-amber-800 mb-1">⚠️ Diagnostic Info:</p>
-                        <p>You are logged in as: {currentUser.email}</p>
-                        <p>Your user ID: {currentUser._id}</p>
-                        {dbStatus && (
-                          <div className="mt-2 p-2 bg-white rounded border border-amber-300">
-                            <p className="font-medium text-amber-900 mb-1">Database Status Query:</p>
-                            <p>User count: {dbStatus.userCount}</p>
-                            {"error" in dbStatus && dbStatus.error && (
-                              <p className="text-red-600">Error: {dbStatus.error}</p>
-                            )}
-                            {dbStatus.userCount > 0 && users && users.length === 0 && (
-                              <p className="text-red-600 font-semibold mt-1">
-                                ⚠️ INCONSISTENCY: Diagnostic found {dbStatus.userCount} users, but list query returned 0!
-                              </p>
-                            )}
-                          </div>
-                        )}
-                        <p className="mt-2 text-amber-700">
-                          Your user exists in the database, but the list query returned empty.
-                          This may indicate:
-                        </p>
-                        <ul className="mt-2 text-amber-700 list-disc list-inside space-y-1">
-                          <li>The database is empty (no users created yet)</li>
-                          <li>A database connection issue</li>
-                          <li>The query is failing silently</li>
-                          <li>Check Convex dashboard logs for [users:list] messages</li>
-                        </ul>
-                        <p className="mt-2 text-amber-700">
-                          Check the browser console (F12) for detailed error messages.
-                        </p>
-                      </div>
-                    )}
-                    <p className="text-xs text-slate-400 mt-4">
-                      If you're logged in but see this message, try:
-                    </p>
-                    <ul className="text-xs text-slate-400 mt-2 list-disc list-inside space-y-1">
-                      <li>Refreshing the page</li>
-                      <li>Checking the browser console (F12) for errors</li>
-                      <li>Verifying your Convex deployment is running</li>
-                      <li>Creating a new user via registration</li>
-                    </ul>
-                  </div>
-                )}
-              </div>
-            </Card>
+              )}
+            </div>
           ) : (
-            filteredAndSortedUsers?.map((user, index) => {
-              const getInitials = (name: string) => {
-                return name
-                  .split(" ")
-                  .map((n) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2);
-              };
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200">
+                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      User
+                    </th>
+                    <th className="text-left py-4 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      Role
+                    </th>
+                    <th className="text-left py-4 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      Status
+                    </th>
+                    <th className="text-left py-4 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden md:table-cell">
+                      Joined
+                    </th>
+                    <th className="text-right py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {filteredAndSortedUsers?.map((user) => {
+                    const getInitials = (name: string) => {
+                      return name
+                        .split(" ")
+                        .map((n) => n[0])
+                        .join("")
+                        .toUpperCase()
+                        .slice(0, 2);
+                    };
 
-              const isCurrentUser = user._id === currentUserId;
-              const isEditing = editingUser === user._id;
+                    const isCurrentUser = user._id === currentUserId;
+                    const isEditing = editingUser === user._id;
 
-              return (
-                <Card
-                  key={user._id}
-                  hover
-                  className="animate-fade-in"
-                  style={{ animationDelay: `${index * 50}ms` }}
-                >
-                  <div className="space-y-4">
-                    {/* User Header */}
-                    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                      <div className="flex items-center gap-3 sm:gap-4 flex-1 w-full">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-base font-semibold shadow-md hover:shadow-lg transition-all hover:scale-110 flex-shrink-0">
-                          {getInitials(user.name)}
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          {/* Impersonate Button - Only for admins viewing other users */}
-                          {isAdmin && !isCurrentUser && (
-                            <div className="mb-2">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleImpersonate(user._id, user.name, user.email)}
-                                className="text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300"
-                              >
-                                <svg
-                                  className="w-3.5 h-3.5 mr-1.5"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                                  />
-                                </svg>
-                                View as {user.name.split(" ")[0]}
-                              </Button>
+                    return (
+                      <tr
+                        key={user._id}
+                        className={`hover:bg-slate-50/50 transition-colors ${
+                          isCurrentUser ? "bg-indigo-50/30" : ""
+                        }`}
+                      >
+                        {/* User Info */}
+                        <td className="py-4 px-6">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm flex-shrink-0">
+                              {getInitials(user.name)}
                             </div>
-                          )}
-                          <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
-                            {isEditing && editingField === "name" ? (
-                              <div className="flex items-center gap-2 flex-1">
-                                <Input
-                                  value={editValues.name || ""}
-                                  onChange={(e) =>
-                                    setEditValues({ ...editValues, name: e.target.value })
-                                  }
-                                  className="flex-1"
-                                  placeholder="Name"
-                                />
-                                <Button
-                                  size="sm"
-                                  variant="gradient"
-                                  onClick={() => handleSave(user._id)}
-                                >
-                                  Save
-                                </Button>
-                                <Button size="sm" variant="outline" onClick={handleCancel}>
-                                  Cancel
-                                </Button>
-                              </div>
-                            ) : (
-                              <>
-                                <h3 className="text-base sm:text-lg font-semibold text-slate-900 break-words">
-                                  {user.name}
-                                  {isCurrentUser && (
-                                    <span className="ml-2 text-xs sm:text-sm text-indigo-600 font-normal">
-                                      (You)
-                                    </span>
-                                  )}
-                                </h3>
-                                {!isCurrentUser && (
-                                  <Button
-                                    size="sm"
-                                    variant="ghost"
-                                    onClick={() => handleEdit(user, "name")}
-                                    className="text-xs"
-                                  >
-                                    <svg
-                                      className="w-4 h-4"
-                                      fill="none"
-                                      stroke="currentColor"
-                                      viewBox="0 0 24 24"
-                                    >
-                                      <path
-                                        strokeLinecap="round"
-                                        strokeLinejoin="round"
-                                        strokeWidth={2}
-                                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                      />
-                                    </svg>
+                            <div className="min-w-0">
+                              {isEditing && editingField === "name" ? (
+                                <div className="flex items-center gap-2">
+                                  <Input
+                                    value={editValues.name || ""}
+                                    onChange={(e) =>
+                                      setEditValues({ ...editValues, name: e.target.value })
+                                    }
+                                    className="w-40"
+                                    placeholder="Name"
+                                  />
+                                  <Button size="sm" variant="gradient" onClick={() => handleSave(user._id)}>
+                                    Save
                                   </Button>
-                                )}
-                              </>
-                            )}
-                            <span
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border uppercase tracking-wide ${getRoleBadgeColor(
-                                user.role
-                              )} self-start`}
-                            >
-                              {user.role.toUpperCase()}
-                            </span>
+                                  <Button size="sm" variant="outline" onClick={handleCancel}>
+                                    Cancel
+                                  </Button>
+                                </div>
+                              ) : (
+                                <div className="flex items-center gap-2">
+                                  <p className="font-medium text-slate-900 truncate">
+                                    {user.name}
+                                    {isCurrentUser && (
+                                      <span className="ml-2 text-xs text-indigo-600 font-normal">
+                                        (You)
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                              )}
+                              {isEditing && editingField === "email" ? (
+                                <div className="flex items-center gap-2 mt-1">
+                                  <Input
+                                    value={editValues.email || ""}
+                                    onChange={(e) =>
+                                      setEditValues({ ...editValues, email: e.target.value })
+                                    }
+                                    className="w-48"
+                                    placeholder="Email"
+                                    type="email"
+                                  />
+                                  <Button size="sm" variant="gradient" onClick={() => handleSave(user._id)}>
+                                    Save
+                                  </Button>
+                                  <Button size="sm" variant="outline" onClick={handleCancel}>
+                                    Cancel
+                                  </Button>
+                                </div>
+                              ) : (
+                                <p className="text-sm text-slate-500 truncate">{user.email}</p>
+                              )}
+                            </div>
                           </div>
-                          {isEditing && editingField === "email" ? (
-                            <div className="flex items-center gap-2 mt-2">
-                              <Input
-                                value={editValues.email || ""}
+                        </td>
+
+                        {/* Role */}
+                        <td className="py-4 px-4">
+                          {isEditing && editingField === "role" ? (
+                            <div className="flex items-center gap-2">
+                              <Select
+                                value={editValues.role || user.role}
                                 onChange={(e) =>
-                                  setEditValues({ ...editValues, email: e.target.value })
+                                  setEditValues({ ...editValues, role: e.target.value })
                                 }
-                                className="flex-1"
-                                placeholder="Email"
-                                type="email"
+                                options={[
+                                  { value: "user", label: "User" },
+                                  { value: "agent", label: "Agent" },
+                                  { value: "admin", label: "Admin" },
+                                ]}
+                                className="w-24"
                               />
-                              <Button
-                                size="sm"
-                                variant="gradient"
-                                onClick={() => handleSave(user._id)}
-                              >
+                              <Button size="sm" variant="gradient" onClick={() => handleSave(user._id)}>
                                 Save
                               </Button>
                               <Button size="sm" variant="outline" onClick={handleCancel}>
@@ -659,275 +600,188 @@ export default function UsersPage() {
                               </Button>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2 mt-1">
-                              <p className="text-xs sm:text-sm text-slate-600 break-words">
-                                {user.email}
-                              </p>
-                              {!isCurrentUser && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => handleEdit(user, "email")}
-                                  className="text-xs p-1"
-                                >
-                                  <svg
-                                    className="w-3 h-3"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    viewBox="0 0 24 24"
-                                  >
-                                    <path
-                                      strokeLinecap="round"
-                                      strokeLinejoin="round"
-                                      strokeWidth={2}
-                                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                    />
-                                  </svg>
-                                </Button>
-                              )}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-
-                    {/* User Details */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4 pt-4 border-t border-slate-200">
-                      {/* Role */}
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 mb-1 block">
-                          Role
-                        </label>
-                        {isEditing && editingField === "role" ? (
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={editValues.role || user.role}
-                              onChange={(e) =>
-                                setEditValues({ ...editValues, role: e.target.value })
-                              }
-                              options={[
-                                { value: "user", label: "User" },
-                                { value: "agent", label: "Agent" },
-                                { value: "admin", label: "Admin" },
-                              ]}
-                              className="flex-1"
-                            />
-                            <Button
-                              size="sm"
-                              variant="gradient"
-                              onClick={() => handleSave(user._id)}
-                            >
-                              Save
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={handleCancel}>
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
                             <span
-                              className={`px-2 py-1 rounded text-xs font-medium ${getRoleBadgeColor(
+                              className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${getRoleBadgeColor(
                                 user.role
                               )}`}
                             >
-                              {user.role.toUpperCase()}
+                              {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
                             </span>
-                            {!isCurrentUser && (
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                onClick={() => handleEdit(user, "role")}
-                                className="text-xs p-1"
-                              >
-                                <svg
-                                  className="w-3 h-3"
-                                  fill="none"
-                                  stroke="currentColor"
-                                  viewBox="0 0 24 24"
-                                >
-                                  <path
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                    strokeWidth={2}
-                                    d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                  />
-                                </svg>
-                              </Button>
-                            )}
-                          </div>
-                        )}
-                      </div>
+                          )}
+                        </td>
 
-                      {/* Onboarding Status */}
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 mb-1 block">
-                          Onboarding
-                        </label>
-                        {isEditing && editingField === "onboarding" ? (
-                          <div className="flex items-center gap-2">
-                            <Select
-                              value={editValues.onboardingCompleted ? "true" : "false"}
-                              onChange={(e) =>
-                                setEditValues({
-                                  ...editValues,
-                                  onboardingCompleted: e.target.value === "true",
-                                })
-                              }
-                              options={[
-                                { value: "true", label: "Completed" },
-                                { value: "false", label: "Pending" },
-                              ]}
-                              className="flex-1"
-                            />
-                            <Button
-                              size="sm"
-                              variant="gradient"
-                              onClick={() => handleSave(user._id)}
-                            >
-                              Save
-                            </Button>
-                            <Button size="sm" variant="outline" onClick={handleCancel}>
-                              Cancel
-                            </Button>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span
-                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
-                                user.onboardingCompleted
-                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
-                                  : "bg-amber-50 text-amber-700 border-amber-200"
-                              }`}
-                            >
-                              {user.onboardingCompleted ? "Completed" : "Pending"}
-                            </span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEdit(user, "onboarding")}
-                              className="text-xs p-1"
-                            >
-                              <svg
-                                className="w-3 h-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
-                              >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        )}
-                      </div>
-
-                      {/* Password Reset */}
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 mb-1 block">
-                          Password
-                        </label>
-                        {isEditing && editingField === "password" ? (
-                          <div className="space-y-2">
-                            <Input
-                              type="password"
-                              value={editValues.newPassword || ""}
-                              onChange={(e) =>
-                                setEditValues({ ...editValues, newPassword: e.target.value })
-                              }
-                              placeholder="New password"
-                              className="text-xs"
-                            />
-                            <Input
-                              type="password"
-                              value={editValues.confirmPassword || ""}
-                              onChange={(e) =>
-                                setEditValues({ ...editValues, confirmPassword: e.target.value })
-                              }
-                              placeholder="Confirm password"
-                              className="text-xs"
-                            />
-                            <div className="flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="gradient"
-                                onClick={() => handlePasswordReset(user._id)}
-                                className="text-xs px-2 py-1"
-                              >
-                                Reset
+                        {/* Status */}
+                        <td className="py-4 px-4">
+                          {isEditing && editingField === "onboarding" ? (
+                            <div className="flex items-center gap-2">
+                              <Select
+                                value={editValues.onboardingCompleted ? "true" : "false"}
+                                onChange={(e) =>
+                                  setEditValues({
+                                    ...editValues,
+                                    onboardingCompleted: e.target.value === "true",
+                                  })
+                                }
+                                options={[
+                                  { value: "true", label: "Completed" },
+                                  { value: "false", label: "Pending" },
+                                ]}
+                                className="w-28"
+                              />
+                              <Button size="sm" variant="gradient" onClick={() => handleSave(user._id)}>
+                                Save
                               </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={handleCancel}
-                                className="text-xs px-2 py-1"
-                              >
+                              <Button size="sm" variant="outline" onClick={handleCancel}>
                                 Cancel
                               </Button>
                             </div>
-                          </div>
-                        ) : (
-                          <div className="flex items-center gap-2">
-                            <span className="text-xs text-slate-500">••••••••</span>
-                            <Button
-                              size="sm"
-                              variant="ghost"
-                              onClick={() => handleEdit(user, "password")}
-                              className="text-xs p-1"
+                          ) : (
+                            <span
+                              className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
+                                user.onboardingCompleted
+                                  ? "bg-emerald-50 text-emerald-700"
+                                  : "bg-amber-50 text-amber-700"
+                              }`}
                             >
-                              <svg
-                                className="w-3 h-3"
-                                fill="none"
-                                stroke="currentColor"
-                                viewBox="0 0 24 24"
+                              {user.onboardingCompleted ? "Active" : "Pending"}
+                            </span>
+                          )}
+                        </td>
+
+                        {/* Joined Date */}
+                        <td className="py-4 px-4 hidden md:table-cell">
+                          <p className="text-sm text-slate-900">
+                            {new Date(user.createdAt).toLocaleDateString()}
+                          </p>
+                          <p className="text-xs text-slate-500">
+                            {new Date(user.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </td>
+
+                        {/* Actions */}
+                        <td className="py-4 px-6">
+                          {isEditing && editingField === "password" ? (
+                            <div className="flex flex-col gap-2">
+                              <Input
+                                type="password"
+                                value={editValues.newPassword || ""}
+                                onChange={(e) =>
+                                  setEditValues({ ...editValues, newPassword: e.target.value })
+                                }
+                                placeholder="New password"
+                                className="w-36 text-xs"
+                              />
+                              <Input
+                                type="password"
+                                value={editValues.confirmPassword || ""}
+                                onChange={(e) =>
+                                  setEditValues({ ...editValues, confirmPassword: e.target.value })
+                                }
+                                placeholder="Confirm password"
+                                className="w-36 text-xs"
+                              />
+                              <div className="flex gap-1">
+                                <Button
+                                  size="sm"
+                                  variant="gradient"
+                                  onClick={() => handlePasswordReset(user._id)}
+                                  className="text-xs"
+                                >
+                                  Reset
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={handleCancel}
+                                  className="text-xs"
+                                >
+                                  Cancel
+                                </Button>
+                              </div>
+                            </div>
+                          ) : (
+                            <div className="flex items-center justify-end gap-1">
+                              {/* Edit Name */}
+                              {!isCurrentUser && (
+                                <button
+                                  onClick={() => handleEdit(user, "name")}
+                                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                                  title="Edit name"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                                  </svg>
+                                </button>
+                              )}
+
+                              {/* Edit Role */}
+                              {!isCurrentUser && (
+                                <button
+                                  onClick={() => handleEdit(user, "role")}
+                                  className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                  title="Change role"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                  </svg>
+                                </button>
+                              )}
+
+                              {/* Edit Status */}
+                              <button
+                                onClick={() => handleEdit(user, "onboarding")}
+                                className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
+                                title="Change status"
                               >
-                                <path
-                                  strokeLinecap="round"
-                                  strokeLinejoin="round"
-                                  strokeWidth={2}
-                                  d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                                />
-                              </svg>
-                            </Button>
-                          </div>
-                        )}
-                      </div>
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                              </button>
 
-                      {/* Created Date */}
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 mb-1 block">
-                          Joined
-                        </label>
-                        <p className="text-xs text-slate-900">
-                          {new Date(user.createdAt).toLocaleDateString()}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {new Date(user.createdAt).toLocaleTimeString()}
-                        </p>
-                      </div>
+                              {/* Reset Password */}
+                              <button
+                                onClick={() => handleEdit(user, "password")}
+                                className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                                title="Reset password"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                                </svg>
+                              </button>
 
-                      {/* Last Updated */}
-                      <div>
-                        <label className="text-xs font-medium text-slate-600 mb-1 block">
-                          Last Updated
-                        </label>
-                        <p className="text-xs text-slate-900">
-                          {new Date(user.updatedAt).toLocaleDateString()}
-                        </p>
-                        <p className="text-xs text-slate-500">
-                          {new Date(user.updatedAt).toLocaleTimeString()}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                </Card>
-              );
-            })
+                              {/* Impersonate */}
+                              {isAdmin && !isCurrentUser && (
+                                <button
+                                  onClick={() => handleImpersonate(user._id, user.name, user.email)}
+                                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                                  title={`View as ${user.name}`}
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                  </svg>
+                                </button>
+                              )}
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
           )}
-        </div>
+          
+          {/* Table Footer */}
+          {filteredAndSortedUsers && filteredAndSortedUsers.length > 0 && (
+            <div className="bg-slate-50 border-t border-slate-200 px-6 py-3">
+              <p className="text-sm text-slate-600">
+                Showing <span className="font-medium">{filteredAndSortedUsers.length}</span> of{" "}
+                <span className="font-medium">{users?.length || 0}</span> users
+              </p>
+            </div>
+          )}
+        </Card>
       </div>
     </div>
   );
