@@ -26,6 +26,7 @@ export default function DashboardLayout({
     if (pathname === "/forms") return "Forms Management";
     if (pathname.startsWith("/forms/")) return "Form Designer";
     if (pathname === "/users") return "User Management";
+    if (pathname === "/notifications") return "Notification Management";
     if (pathname === "/profile") return "Profile Settings";
     return "Palmware";
   };

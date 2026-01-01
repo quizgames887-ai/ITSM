@@ -24,6 +24,114 @@ export const list = query({
   },
 });
 
+// Admin: List all notifications with user info
+export const listAll = query({
+  args: {},
+  handler: async (ctx) => {
+    const notifications = await ctx.db.query("notifications").collect();
+    
+    // Get user info for each notification
+    const notificationsWithUsers = await Promise.all(
+      notifications.map(async (notification) => {
+        const user = await ctx.db.get(notification.userId);
+        return {
+          ...notification,
+          userName: user?.name || "Unknown",
+          userEmail: user?.email || "Unknown",
+        };
+      })
+    );
+    
+    return notificationsWithUsers.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+// Admin: Create broadcast notification for all users or specific users
+export const createBroadcast = mutation({
+  args: {
+    type: v.string(),
+    title: v.string(),
+    message: v.string(),
+    targetUserIds: v.optional(v.array(v.id("users"))), // If empty, send to all users
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    let targetUsers: string[] = [];
+    
+    if (args.targetUserIds && args.targetUserIds.length > 0) {
+      targetUsers = args.targetUserIds;
+    } else {
+      // Get all users
+      const allUsers = await ctx.db.query("users").collect();
+      targetUsers = allUsers.map((u) => u._id);
+    }
+    
+    const createdIds = [];
+    for (const userId of targetUsers) {
+      const notificationId = await ctx.db.insert("notifications", {
+        userId: userId as any,
+        type: args.type,
+        title: args.title,
+        message: args.message,
+        read: false,
+        ticketId: null,
+        createdAt: now,
+      });
+      createdIds.push(notificationId);
+    }
+    
+    return { count: createdIds.length, ids: createdIds };
+  },
+});
+
+// Admin: Delete notification
+export const remove = mutation({
+  args: { id: v.id("notifications") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+  },
+});
+
+// Admin: Delete all notifications for a user
+export const removeAllForUser = mutation({
+  args: { userId: v.id("users") },
+  handler: async (ctx, args) => {
+    const notifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    
+    for (const notification of notifications) {
+      await ctx.db.delete(notification._id);
+    }
+    
+    return { deleted: notifications.length };
+  },
+});
+
+// Get notification stats for admin dashboard
+export const getStats = query({
+  args: {},
+  handler: async (ctx) => {
+    const notifications = await ctx.db.query("notifications").collect();
+    const unread = notifications.filter((n) => !n.read).length;
+    const read = notifications.filter((n) => n.read).length;
+    
+    // Group by type
+    const byType: Record<string, number> = {};
+    notifications.forEach((n) => {
+      byType[n.type] = (byType[n.type] || 0) + 1;
+    });
+    
+    return {
+      total: notifications.length,
+      unread,
+      read,
+      byType,
+    };
+  },
+});
+
 export const create = mutation({
   args: {
     userId: v.id("users"),
