@@ -209,8 +209,8 @@ export default function UsersPage() {
     }
   };
 
-  const filteredAndSortedUsers = users
-    ?.filter((user) => {
+  const filteredAndSortedUsers = users && Array.isArray(users)
+    ? users.filter((user) => {
       const searchLower = searchTerm.toLowerCase();
       const matchesSearch =
         user.name.toLowerCase().includes(searchLower) ||
@@ -246,7 +246,14 @@ export default function UsersPage() {
         onboardingCompleted: users.filter((u) => u.onboardingCompleted).length,
         onboardingPending: users.filter((u) => !u.onboardingCompleted).length,
       }
-    : null;
+    : {
+        total: 0,
+        admins: 0,
+        agents: 0,
+        regularUsers: 0,
+        onboardingCompleted: 0,
+        onboardingPending: 0,
+      };
 
   // Wait for both queries to load before checking admin status
   if (users === undefined || (currentUserId && currentUser === undefined)) {
@@ -277,14 +284,19 @@ export default function UsersPage() {
     if (users === undefined) {
       console.log("[UsersPage] Users query is still loading...");
     } else if (users === null) {
-      console.log("[UsersPage] Users query returned null");
+      console.error("[UsersPage] Users query returned null - this should not happen!");
     } else {
       console.log("[UsersPage] Users data:", users);
       console.log("[UsersPage] Users count:", users.length);
+      console.log("[UsersPage] Users is array:", Array.isArray(users));
       if (users.length === 0) {
         console.warn("[UsersPage] No users found in database!");
         console.warn("[UsersPage] Current user:", currentUser);
         console.warn("[UsersPage] Current user ID from localStorage:", currentUserId);
+        console.warn("[UsersPage] This might indicate:");
+        console.warn("  1. The database is empty");
+        console.warn("  2. The query is failing silently");
+        console.warn("  3. There's a connection issue with Convex");
       }
     }
   }
@@ -341,7 +353,7 @@ export default function UsersPage() {
         </div>
 
         {/* Statistics */}
-        {stats !== null && (
+        {stats && (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
             <Card padding="sm" className="text-center">
               <div className="text-2xl font-bold text-slate-900">{stats?.total || 0}</div>
@@ -421,13 +433,24 @@ export default function UsersPage() {
 
         {/* Users List */}
         <div className="space-y-4">
-          {!users || (filteredAndSortedUsers && filteredAndSortedUsers.length === 0) ? (
+          {!users || users === null || (filteredAndSortedUsers && filteredAndSortedUsers.length === 0) ? (
             <Card hover padding="lg">
               <div className="text-center py-12">
                 <p className="text-slate-600 mb-2">
-                  {!users ? "Loading users..." : "No users found"}
+                  {!users || users === null ? "Loading users..." : "No users found"}
                 </p>
-                {users && users.length === 0 && (
+                {users === null && (
+                  <div className="space-y-2">
+                    <p className="text-sm text-red-600 font-medium mt-2">
+                      ⚠️ Error: Query returned null
+                    </p>
+                    <p className="text-xs text-slate-500">
+                      The users query returned null. This might indicate a connection issue with Convex.
+                      Please check the browser console (F12) for more details.
+                    </p>
+                  </div>
+                )}
+                {users && Array.isArray(users) && users.length === 0 && (
                   <div className="space-y-2">
                     <p className="text-xs text-slate-500 mt-2">
                       The database appears to be empty. Create a user to get started.
@@ -439,14 +462,27 @@ export default function UsersPage() {
                         <p>Your user ID: {currentUser._id}</p>
                         <p className="mt-2 text-amber-700">
                           Your user exists in the database, but the list query returned empty.
-                          This may indicate a database connection issue. Check the browser console for more details.
+                          This may indicate:
+                        </p>
+                        <ul className="mt-2 text-amber-700 list-disc list-inside space-y-1">
+                          <li>The database is empty (no users created yet)</li>
+                          <li>A database connection issue</li>
+                          <li>The query is failing silently</li>
+                        </ul>
+                        <p className="mt-2 text-amber-700">
+                          Check the browser console (F12) for detailed error messages.
                         </p>
                       </div>
                     )}
                     <p className="text-xs text-slate-400 mt-4">
-                      If you're logged in but see this message, there may be a database connection issue.
-                      Try refreshing the page or check the browser console (F12) for error messages.
+                      If you're logged in but see this message, try:
                     </p>
+                    <ul className="text-xs text-slate-400 mt-2 list-disc list-inside space-y-1">
+                      <li>Refreshing the page</li>
+                      <li>Checking the browser console (F12) for errors</li>
+                      <li>Verifying your Convex deployment is running</li>
+                      <li>Creating a new user via registration</li>
+                    </ul>
                   </div>
                 )}
               </div>

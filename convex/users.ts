@@ -69,19 +69,35 @@ export const list = query({
     try {
       // Return all users - frontend will handle admin checks
       const users = await ctx.db.query("users").collect();
-      console.log(`[users:list] Found ${users.length} users`);
+      
+      // Always log the result for debugging
+      console.log(`[users:list] Query executed successfully. Found ${users.length} users`);
       
       // Debug: Log first few users if any exist
       if (users.length > 0) {
-        console.log(`[users:list] Sample users:`, users.slice(0, 3).map(u => ({ id: u._id, email: u.email, name: u.name })));
+        console.log(`[users:list] Sample users:`, users.slice(0, 3).map(u => ({ 
+          id: u._id, 
+          email: u.email, 
+          name: u.name,
+          role: u.role 
+        })));
       } else {
-        console.warn(`[users:list] No users found in database. This might indicate the database is empty or there's a connection issue.`);
+        console.warn(`[users:list] No users found in database. This might indicate the database is empty.`);
+        // Try to verify the table exists by checking schema
+        console.warn(`[users:list] Database query completed but returned empty array.`);
       }
       
-      return users || [];
+      // Ensure we always return an array
+      if (!Array.isArray(users)) {
+        console.error("[users:list] Query did not return an array:", typeof users);
+        return [];
+      }
+      
+      return users;
     } catch (error: any) {
       console.error("[users:list] Error fetching users:", error);
-      console.error("[users:list] Error details:", JSON.stringify(error, null, 2));
+      console.error("[users:list] Error message:", error?.message);
+      console.error("[users:list] Error stack:", error?.stack);
       // Return empty array instead of throwing to prevent app crash
       return [];
     }
