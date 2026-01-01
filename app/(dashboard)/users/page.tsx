@@ -479,7 +479,7 @@ export default function UsersPage() {
                           <div className="mt-2 p-2 bg-white rounded border border-amber-300">
                             <p className="font-medium text-amber-900 mb-1">Database Status Query:</p>
                             <p>User count: {dbStatus.userCount}</p>
-                            {dbStatus.error && (
+                            {"error" in dbStatus && dbStatus.error && (
                               <p className="text-red-600">Error: {dbStatus.error}</p>
                             )}
                             {dbStatus.userCount > 0 && users && users.length === 0 && (
