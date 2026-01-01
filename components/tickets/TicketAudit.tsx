@@ -59,6 +59,16 @@ export function TicketAudit({ ticketId }: TicketAuditProps) {
         bgColor: "bg-blue-100",
         iconBg: "text-blue-600",
       },
+      auto_assigned: {
+        label: "Auto-assigned ticket",
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        bgColor: "bg-emerald-100",
+        iconBg: "text-emerald-600",
+      },
       updated_status: {
         label: "Changed status",
         icon: (
@@ -220,7 +230,25 @@ export function TicketAudit({ ticketId }: TicketAuditProps) {
                 </div>
 
                 {/* Value change details */}
-                {entry.action !== "created" && (entry.oldValue !== null || entry.newValue !== null) && (
+                {entry.action === "auto_assigned" && entry.newValue && typeof entry.newValue === "object" ? (
+                  <div className="mt-2">
+                    <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-100">
+                      <svg className="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <span className="text-sm text-emerald-900">
+                        <span className="font-medium">Auto-assigned to </span>
+                        <span className="font-semibold">{(entry as any).assignedUserName || "Unknown User"}</span>
+                        {(entry.newValue as any).ruleName && (
+                          <>
+                            <span className="mx-1">via rule</span>
+                            <span className="font-semibold">"{(entry.newValue as any).ruleName}"</span>
+                          </>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                ) : entry.action !== "created" && (entry.oldValue !== null || entry.newValue !== null) && (
                   <div className="mt-2 flex items-center gap-2 flex-wrap">
                     {entry.oldValue !== null && (
                       <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-red-50 text-red-700 text-xs font-medium border border-red-100 line-through">

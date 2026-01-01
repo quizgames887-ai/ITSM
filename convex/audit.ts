@@ -27,6 +27,21 @@ export const getTicketHistory = query({
         history.map(async (entry) => {
           try {
             const user = await ctx.db.get(entry.userId);
+            
+            // For auto_assigned actions, resolve the assigned user's name
+            let assignedUserName: string | null = null;
+            if (entry.action === "auto_assigned" && entry.newValue && typeof entry.newValue === "object") {
+              const newValue = entry.newValue as any;
+              if (newValue.assignedTo) {
+                try {
+                  const assignedUser = await ctx.db.get(newValue.assignedTo as Id<"users">);
+                  assignedUserName = assignedUser?.name ?? null;
+                } catch (error) {
+                  // Assigned user not found, keep as null
+                }
+              }
+            }
+            
             return {
               _id: entry._id,
               ticketId: entry.ticketId,
@@ -37,6 +52,7 @@ export const getTicketHistory = query({
               createdAt: entry.createdAt,
               userName: user?.name ?? "Unknown User",
               userEmail: user?.email ?? "",
+              assignedUserName: assignedUserName,
             };
           } catch (error) {
             // Handle case where userId might be invalid
@@ -50,6 +66,7 @@ export const getTicketHistory = query({
               createdAt: entry.createdAt,
               userName: "Unknown User",
               userEmail: "",
+              assignedUserName: null,
             };
           }
         })
