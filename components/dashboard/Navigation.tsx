@@ -194,8 +194,8 @@ export function Navigation() {
               href="/dashboard"
               className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-700 hover:to-purple-700 transition-all hover:scale-105 inline-block"
             >
-              <span className="hidden sm:inline">Ticketing System</span>
-              <span className="sm:hidden">TS</span>
+              <span className="hidden sm:inline">Palmware</span>
+              <span className="sm:hidden">PW</span>
             </Link>
             <div className="hidden md:flex space-x-1">
               {navItems.map((item) => {

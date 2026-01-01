@@ -15,7 +15,7 @@ const lora = Lora({
 });
 
 export const metadata: Metadata = {
-  title: "Ticketing System",
+  title: "Palmware",
   description: "Modern ticketing system with AI-powered assistance",
 };
 
