@@ -7,11 +7,14 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import Link from "next/link";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { ProfileSkeleton } from "@/components/ui/LoadingSkeleton";
 import { PasswordStrength } from "@/components/ui/PasswordStrength";
 
 export default function ProfilePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [userId, setUserId] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
@@ -19,6 +22,8 @@ export default function ProfilePage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isImpersonating, setIsImpersonating] = useState(false);
+  const [originalAdminName, setOriginalAdminName] = useState<string | null>(null);
   
   // Password reset state
   const [showPasswordReset, setShowPasswordReset] = useState(false);
@@ -31,9 +36,15 @@ export default function ProfilePage() {
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
+    const impersonating = localStorage.getItem("isImpersonating") === "true";
+    const adminName = localStorage.getItem("originalAdminName");
+    
     if (storedUserId) {
       setUserId(storedUserId);
     }
+    
+    setIsImpersonating(impersonating);
+    setOriginalAdminName(adminName);
   }, []);
 
   const user = useQuery(
@@ -88,6 +99,28 @@ export default function ProfilePage() {
     setError("");
     setSuccess("");
     setIsEditing(false);
+  };
+
+  const handleExitImpersonation = () => {
+    const originalAdminId = localStorage.getItem("originalAdminId");
+    const originalAdminName = localStorage.getItem("originalAdminName");
+    const originalAdminEmail = localStorage.getItem("originalAdminEmail");
+
+    if (originalAdminId && originalAdminName && originalAdminEmail) {
+      // Restore original admin session
+      localStorage.setItem("userId", originalAdminId);
+      localStorage.setItem("userName", originalAdminName);
+      localStorage.setItem("userEmail", originalAdminEmail);
+      
+      // Clear impersonation data
+      localStorage.removeItem("isImpersonating");
+      localStorage.removeItem("originalAdminId");
+      localStorage.removeItem("originalAdminName");
+      localStorage.removeItem("originalAdminEmail");
+
+      // Navigate back to users page
+      router.push("/users");
+    }
   };
 
   const handlePasswordReset = async () => {
@@ -196,19 +229,88 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto animate-fade-in">
+        {/* Impersonation Banner */}
+        {isImpersonating && (
+          <Card className="mb-6 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50" padding="md">
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3 flex-1">
+                <div className="p-2 bg-amber-100 rounded-lg">
+                  <svg
+                    className="w-5 h-5 text-amber-600"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                    />
+                  </svg>
+                </div>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-amber-900 mb-1">
+                    Viewing as {user?.name}
+                  </h3>
+                  <p className="text-xs text-amber-700">
+                    You are viewing this profile as an administrator. Changes are disabled in impersonation mode.
+                    {originalAdminName && ` Logged in as: ${originalAdminName}`}
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleExitImpersonation}
+                className="border-amber-300 text-amber-700 hover:bg-amber-100 hover:border-amber-400 whitespace-nowrap"
+              >
+                <svg
+                  className="w-4 h-4 mr-1.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+                Exit Impersonation
+              </Button>
+            </div>
+          </Card>
+        )}
+
         <div className="mb-6 sm:mb-8">
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
             <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              Profile
+              {isImpersonating ? `Profile - ${user?.name}` : "Profile"}
             </h1>
-            <Link href="/dashboard" className="w-full sm:w-auto">
-              <Button variant="outline" className="w-full sm:w-auto">
-                <span className="hidden sm:inline">← Back to Dashboard</span>
-                <span className="sm:hidden">← Back</span>
-              </Button>
-            </Link>
+            <div className="flex gap-2 w-full sm:w-auto">
+              {isImpersonating ? (
+                <Button
+                  variant="outline"
+                  onClick={handleExitImpersonation}
+                  className="w-full sm:w-auto"
+                >
+                  Exit Impersonation
+                </Button>
+              ) : (
+                <Link href="/dashboard" className="w-full sm:w-auto">
+                  <Button variant="outline" className="w-full sm:w-auto">
+                    <span className="hidden sm:inline">← Back to Dashboard</span>
+                    <span className="sm:hidden">← Back</span>
+                  </Button>
+                </Link>
+              )}
+            </div>
           </div>
-          <p className="text-sm sm:text-base text-slate-600">Manage your account information</p>
+          <p className="text-sm sm:text-base text-slate-600">
+            {isImpersonating ? "Viewing user profile (read-only)" : "Manage your account information"}
+          </p>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
@@ -217,7 +319,7 @@ export default function ProfilePage() {
               <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
                 Personal Information
               </h2>
-              {!isEditing && (
+              {!isEditing && !isImpersonating && (
                 <Button
                   variant="gradient"
                   onClick={() => setIsEditing(true)}
@@ -226,6 +328,11 @@ export default function ProfilePage() {
                   <span className="hidden sm:inline">✏️ Edit Profile</span>
                   <span className="sm:hidden">✏️ Edit</span>
                 </Button>
+              )}
+              {isImpersonating && (
+                <div className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-sm font-medium">
+                  Read-only mode
+                </div>
               )}
             </div>
 
@@ -279,9 +386,14 @@ export default function ProfilePage() {
                 <div className="text-center sm:text-left flex-1">
                   <h3 className="text-lg sm:text-xl font-semibold text-slate-900">
                     {user.name}
+                    {isImpersonating && (
+                      <span className="ml-2 text-xs text-amber-600 font-normal">
+                        (Viewing)
+                      </span>
+                    )}
                   </h3>
                   <p className="text-sm sm:text-base text-slate-600 break-words">{user.email}</p>
-                  <span className="inline-block mt-2 px-3 py-1 rounded-full text-xs font-medium bg-indigo-100 text-indigo-700 capitalize">
+                  <span className="inline-block mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold border bg-indigo-50 text-indigo-700 border-indigo-200 capitalize">
                     {user.role}
                   </span>
                 </div>
@@ -350,7 +462,7 @@ export default function ProfilePage() {
                 )}
               </div>
 
-              {isEditing && (
+              {isEditing && !isImpersonating && (
                 <div className="flex gap-3 pt-4 border-t border-slate-200">
                   <Button
                     variant="gradient"
@@ -386,7 +498,7 @@ export default function ProfilePage() {
                 </svg>
                 Password Reset
               </h2>
-              {!showPasswordReset && (
+              {!showPasswordReset && !isImpersonating && (
                 <Button
                   variant="outline"
                   onClick={() => setShowPasswordReset(true)}
@@ -394,6 +506,11 @@ export default function ProfilePage() {
                 >
                   Change Password
                 </Button>
+              )}
+              {isImpersonating && (
+                <div className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-sm font-medium">
+                  Not available in impersonation mode
+                </div>
               )}
             </div>
 

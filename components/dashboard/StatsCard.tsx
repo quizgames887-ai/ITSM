@@ -75,13 +75,25 @@ export function StatsCard({ title, value, color = "default", icon }: StatsCardPr
   const displayIcon = icon || defaultIcons[color];
 
   return (
-    <Card hover className={`${config.bg} ${config.border} border-2 animate-fade-in group cursor-pointer`} padding="sm">
-      <div className="flex items-center justify-between gap-3">
+    <Card 
+      hover 
+      variant="elevated"
+      className={`${config.bg} ${config.border} border animate-fade-in group cursor-pointer overflow-hidden relative`} 
+      padding="sm"
+    >
+      {/* Subtle gradient overlay on hover */}
+      <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+      
+      <div className="flex items-center justify-between gap-4 relative z-10">
         <div className="flex-1 min-w-0">
-          <p className="text-xs sm:text-sm font-medium text-slate-600 mb-1 truncate group-hover:text-slate-700 transition-colors">{title}</p>
-          <p className={`text-2xl sm:text-3xl font-bold ${config.text} transition-transform group-hover:scale-105`}>{value}</p>
+          <p className="text-xs sm:text-sm font-medium text-slate-500 mb-2 truncate group-hover:text-slate-600 transition-colors uppercase tracking-wide">
+            {title}
+          </p>
+          <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${config.text} transition-all duration-300 group-hover:scale-105`}>
+            {value.toLocaleString()}
+          </p>
         </div>
-        <div className={`${config.iconBg} p-2 sm:p-3 rounded-lg ${config.text} flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-md`}>
+        <div className={`${config.iconBg} p-3 sm:p-3.5 rounded-xl ${config.text} flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg`}>
           <div className="w-5 h-5 sm:w-6 sm:h-6">
             {displayIcon}
           </div>

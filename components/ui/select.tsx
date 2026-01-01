@@ -22,8 +22,8 @@ export function Select({
       )}
       <div className="relative">
         <select
-          className={`w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 font-serif text-slate-900 transition-all duration-200 hover:border-slate-400 appearance-none bg-white cursor-pointer focus:shadow-md ${
-            error ? "border-red-500 focus:ring-red-500 focus:border-red-500" : ""
+          className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 transition-all duration-200 hover:border-slate-300 appearance-none bg-white cursor-pointer focus:shadow-md focus:shadow-indigo-500/10 pr-10 ${
+            error ? "border-red-400 focus:ring-red-500/20 focus:border-red-500 bg-red-50/50" : ""
           } ${className}`}
           {...props}
         >
@@ -33,7 +33,7 @@ export function Select({
             </option>
           ))}
         </select>
-        <div className="absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
+        <div className="absolute right-3.5 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
           <svg
             className="w-5 h-5"
             fill="none"
@@ -43,7 +43,7 @@ export function Select({
             <path
               strokeLinecap="round"
               strokeLinejoin="round"
-              strokeWidth={2}
+              strokeWidth={2.5}
               d="M19 9l-7 7-7-7"
             />
           </svg>

@@ -118,7 +118,7 @@ export default function DashboardPage() {
                 <Link
                   key={ticket._id}
                   href={`/tickets/${ticket._id}`}
-                  className="block p-4 hover:bg-gradient-to-r hover:from-slate-50 hover:to-indigo-50 rounded-lg transition-all duration-200 border border-transparent hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5 animate-fade-in"
+                  className="block p-5 hover:bg-gradient-to-r hover:from-slate-50 hover:to-indigo-50 rounded-xl transition-all duration-200 border border-slate-100 hover:border-slate-200 hover:shadow-md hover:-translate-y-0.5 animate-fade-in group"
                   style={{ animationDelay: `${index * 50}ms` }}
                 >
                   <div className="flex flex-col sm:flex-row justify-between items-start gap-3 sm:gap-4">
@@ -126,16 +126,16 @@ export default function DashboardPage() {
                       <h3 className="font-semibold text-slate-900 mb-2 text-base sm:text-lg">
                         {ticket.title}
                       </h3>
-                      <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
+                      <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
                         <span
-                          className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border uppercase tracking-wide ${
                             statusColors[ticket.status] || statusColors.closed
                           }`}
                         >
                           {ticket.status.replace("_", " ")}
                         </span>
                         <span
-                          className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium ${
+                          className={`px-3 py-1.5 rounded-lg text-xs font-semibold border capitalize ${
                             priorityColors[ticket.priority] || priorityColors.low
                           }`}
                         >

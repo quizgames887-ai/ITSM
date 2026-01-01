@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 type User = {
   _id: Id<"users">;
@@ -24,6 +25,7 @@ type User = {
 type EditingField = "name" | "email" | "role" | "onboarding" | "password" | null;
 
 export default function UsersPage() {
+  const router = useRouter();
   const users = useQuery(api.users.list, {});
   const updateUser = useMutation(api.users.update);
   const resetUserPassword = useMutation(api.users.resetUserPassword);
@@ -168,14 +170,42 @@ export default function UsersPage() {
     setEditValues({});
   };
 
+  const handleImpersonate = (userId: Id<"users">, userName: string, userEmail: string) => {
+    if (!isAdmin) {
+      showError("Only admins can impersonate users");
+      return;
+    }
+
+    if (!currentUserId) {
+      showError("Unable to impersonate: No admin session found");
+      return;
+    }
+
+    // Store the original admin user ID
+    localStorage.setItem("originalAdminId", currentUserId);
+    localStorage.setItem("originalAdminName", localStorage.getItem("userName") || "");
+    localStorage.setItem("originalAdminEmail", localStorage.getItem("userEmail") || "");
+
+    // Set the impersonated user
+    localStorage.setItem("userId", userId);
+    localStorage.setItem("userName", userName);
+    localStorage.setItem("userEmail", userEmail);
+    localStorage.setItem("isImpersonating", "true");
+
+    success(`Now viewing as ${userName}. You can exit impersonation from the navigation bar.`);
+    
+    // Navigate to the profile page to view as this user
+    router.push(`/profile?impersonate=true`);
+  };
+
   const getRoleBadgeColor = (role: string) => {
     switch (role) {
       case "admin":
-        return "bg-purple-100 text-purple-700 border-purple-200";
+        return "bg-purple-50 text-purple-700 border-purple-200";
       case "agent":
-        return "bg-blue-100 text-blue-700 border-blue-200";
+        return "bg-blue-50 text-blue-700 border-blue-200";
       default:
-        return "bg-slate-100 text-slate-700 border-slate-200";
+        return "bg-slate-50 text-slate-700 border-slate-200";
     }
   };
 
@@ -450,6 +480,32 @@ export default function UsersPage() {
                           {getInitials(user.name)}
                         </div>
                         <div className="flex-1 min-w-0">
+                          {/* Impersonate Button - Only for admins viewing other users */}
+                          {isAdmin && !isCurrentUser && (
+                            <div className="mb-2">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleImpersonate(user._id, user.name, user.email)}
+                                className="text-xs border-indigo-200 text-indigo-700 hover:bg-indigo-50 hover:border-indigo-300"
+                              >
+                                <svg
+                                  className="w-3.5 h-3.5 mr-1.5"
+                                  fill="none"
+                                  stroke="currentColor"
+                                  viewBox="0 0 24 24"
+                                >
+                                  <path
+                                    strokeLinecap="round"
+                                    strokeLinejoin="round"
+                                    strokeWidth={2}
+                                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                                  />
+                                </svg>
+                                View as {user.name.split(" ")[0]}
+                              </Button>
+                            </div>
+                          )}
                           <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-1">
                             {isEditing && editingField === "name" ? (
                               <div className="flex items-center gap-2 flex-1">
@@ -507,7 +563,7 @@ export default function UsersPage() {
                               </>
                             )}
                             <span
-                              className={`px-2 sm:px-3 py-1 rounded-full text-xs font-medium border ${getRoleBadgeColor(
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border uppercase tracking-wide ${getRoleBadgeColor(
                                 user.role
                               )} self-start`}
                             >
@@ -671,10 +727,10 @@ export default function UsersPage() {
                         ) : (
                           <div className="flex items-center gap-2">
                             <span
-                              className={`px-2 py-1 rounded text-xs font-medium ${
+                              className={`px-3 py-1.5 rounded-lg text-xs font-semibold border ${
                                 user.onboardingCompleted
-                                  ? "bg-green-100 text-green-700 border border-green-200"
-                                  : "bg-amber-100 text-amber-700 border border-amber-200"
+                                  ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                                  : "bg-amber-50 text-amber-700 border-amber-200"
                               }`}
                             >
                               {user.onboardingCompleted ? "Completed" : "Pending"}
