@@ -300,7 +300,7 @@ export default function RolesPage() {
 
             {/* Conditions */}
             <div className="space-y-4 p-4 bg-white rounded-lg border border-slate-200">
-              <h4 className="font-medium text-slate-700 text-sm">Conditions (match any)</h4>
+              <h4 className="font-medium text-slate-700 text-sm">Conditions (ALL must match)</h4>
               
               {/* Categories */}
               <div>
@@ -592,8 +592,10 @@ export default function RolesPage() {
         <ul className="text-sm text-slate-600 space-y-1">
           <li>• Rules are evaluated in priority order (lowest number first)</li>
           <li>• The first matching rule assigns the ticket</li>
+          <li>• <strong>ALL specified conditions must match</strong> (e.g., Category AND Priority AND Type)</li>
+          <li>• Within each condition, any selected value will match (e.g., "IT Support" OR "HR")</li>
           <li>• "Round Robin" distributes tickets to team members with the fewest open tickets</li>
-          <li>• Rules with no conditions will match all tickets</li>
+          <li>• Rules with no conditions will match all tickets (catch-all)</li>
         </ul>
       </Card>
     </div>

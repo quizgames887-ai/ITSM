@@ -202,37 +202,21 @@ export const findMatchingRule = query({
     
     for (const rule of sortedRules) {
       const { conditions } = rule;
-      let matches = false;
       
-      // Check category match
-      if (conditions.categories && conditions.categories.length > 0) {
-        if (conditions.categories.includes(args.category)) {
-          matches = true;
-        }
-      }
+      // Check if ALL specified conditions match (AND logic between condition types)
+      // Within each condition type, it's OR logic (e.g., category can be "IT Support" OR "HR")
       
-      // Check priority match
-      if (conditions.priorities && conditions.priorities.length > 0) {
-        if (conditions.priorities.includes(args.priority)) {
-          matches = true;
-        }
-      }
+      const categories = conditions.categories || [];
+      const priorities = conditions.priorities || [];
+      const types = conditions.types || [];
       
-      // Check type match
-      if (conditions.types && conditions.types.length > 0) {
-        if (conditions.types.includes(args.type)) {
-          matches = true;
-        }
-      }
+      // If a condition is specified, ticket must match at least one value in that condition
+      const categoryMatches = categories.length === 0 || categories.includes(args.category);
+      const priorityMatches = priorities.length === 0 || priorities.includes(args.priority);
+      const typeMatches = types.length === 0 || types.includes(args.type);
       
-      // If no conditions specified, rule matches all
-      if (
-        (!conditions.categories || conditions.categories.length === 0) &&
-        (!conditions.priorities || conditions.priorities.length === 0) &&
-        (!conditions.types || conditions.types.length === 0)
-      ) {
-        matches = true;
-      }
+      // ALL specified conditions must match
+      const matches = categoryMatches && priorityMatches && typeMatches;
       
       if (matches) {
         // Determine assignee based on rule type
