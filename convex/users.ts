@@ -53,7 +53,13 @@ export const list = query({
 export const listAll = query({
   args: {},
   handler: async (ctx) => {
-    return await ctx.db.query("users").collect();
+    try {
+      return await ctx.db.query("users").collect();
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      // Return empty array instead of throwing to prevent app crash
+      return [];
+    }
   },
 });
 

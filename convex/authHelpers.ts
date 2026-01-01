@@ -59,34 +59,40 @@ export const signIn = mutation({
     password: v.string(),
   },
   handler: async (ctx, args) => {
-    const user = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", args.email))
-      .first();
+    try {
+      const user = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", args.email))
+        .first();
 
-    if (!user) {
-      throw new Error("Invalid email or password");
+      if (!user) {
+        throw new Error("Invalid email or password");
+      }
+
+      const passwordRecord = await ctx.db
+        .query("userPasswords")
+        .withIndex("by_userId", (q) => q.eq("userId", user._id))
+        .first();
+
+      if (!passwordRecord) {
+        throw new Error("Invalid email or password");
+      }
+
+      const hashedPassword = await hashPassword(args.password);
+      if (passwordRecord.passwordHash !== hashedPassword) {
+        throw new Error("Invalid email or password");
+      }
+
+      return { 
+        userId: user._id, 
+        email: user.email, 
+        name: user.name,
+        role: user.role 
+      };
+    } catch (error: any) {
+      console.error("Sign in error:", error);
+      // Re-throw with a user-friendly message
+      throw new Error(error.message || "Failed to sign in. Please try again.");
     }
-
-    const passwordRecord = await ctx.db
-      .query("userPasswords")
-      .withIndex("by_userId", (q) => q.eq("userId", user._id))
-      .first();
-
-    if (!passwordRecord) {
-      throw new Error("Invalid email or password");
-    }
-
-    const hashedPassword = await hashPassword(args.password);
-    if (passwordRecord.passwordHash !== hashedPassword) {
-      throw new Error("Invalid email or password");
-    }
-
-    return { 
-      userId: user._id, 
-      email: user.email, 
-      name: user.name,
-      role: user.role 
-    };
   },
 });
