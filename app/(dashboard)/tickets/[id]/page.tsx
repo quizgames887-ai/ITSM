@@ -22,6 +22,7 @@ export default function TicketDetailPage({
   const ticketId = id as Id<"tickets">;
   const ticket = useQuery(api.tickets.get, { id: ticketId });
   const comments = useQuery(api.comments.listByTicket, { ticketId });
+  const users = useQuery(api.users.list, {});
   const updateTicket = useMutation(api.tickets.update);
   const createComment = useMutation(api.comments.create);
 
@@ -32,32 +33,36 @@ export default function TicketDetailPage({
 
   if (ticket === undefined || comments === undefined) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <div className="max-w-5xl mx-auto">
-          <div className="animate-pulse space-y-6">
-            <div className="h-10 bg-slate-200 rounded w-1/4"></div>
-            <div className="h-64 bg-slate-200 rounded-xl"></div>
-            <div className="h-48 bg-slate-200 rounded-xl"></div>
-          </div>
-        </div>
+      <div className="animate-pulse space-y-6">
+        <div className="h-8 bg-slate-200 rounded w-32"></div>
+        <div className="h-80 bg-slate-200 rounded-2xl"></div>
+        <div className="h-48 bg-slate-200 rounded-2xl"></div>
       </div>
     );
   }
 
   if (!ticket) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <Card>
-          <div className="text-center py-12">
-            <p className="text-slate-600 mb-4">Ticket not found</p>
+      <div className="flex items-center justify-center min-h-[50vh]">
+        <Card padding="lg">
+          <div className="text-center py-8 px-12">
+            <span className="text-5xl mb-4 block">🎫</span>
+            <p className="text-slate-600 mb-6">Ticket not found</p>
             <Link href="/tickets">
-              <Button>Back to Tickets</Button>
+              <Button variant="gradient">Back to Tickets</Button>
             </Link>
           </div>
         </Card>
       </div>
     );
   }
+
+  // Get assignee name
+  const getAssigneeName = () => {
+    if (!ticket.assignedTo || !users) return "Unassigned";
+    const user = users.find((u) => u._id === ticket.assignedTo);
+    return user?.name || "Unknown";
+  };
 
   const handleStatusChange = async (newStatus: string) => {
     setUpdating(true);
@@ -66,8 +71,10 @@ export default function TicketDetailPage({
         id: ticketId,
         status: newStatus as any,
       });
+      success("Status updated successfully!");
     } catch (error) {
       console.error("Failed to update status:", error);
+      showError("Failed to update status");
     } finally {
       setUpdating(false);
     }
@@ -99,77 +106,73 @@ export default function TicketDetailPage({
     }
   };
 
-  const statusColors = {
-    new: "bg-blue-100 text-blue-800",
-    in_progress: "bg-yellow-100 text-yellow-800",
-    on_hold: "bg-orange-100 text-orange-800",
-    resolved: "bg-green-100 text-green-800",
-    closed: "bg-slate-100 text-slate-800",
+  const statusStyles: Record<string, { bg: string; text: string; border: string }> = {
+    new: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+    in_progress: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
+    on_hold: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+    resolved: { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
+    closed: { bg: "bg-slate-100", text: "text-slate-600", border: "border-slate-300" },
   };
 
-  const statusColor =
-    statusColors[ticket.status as keyof typeof statusColors] ||
-    "bg-slate-100 text-slate-800";
+  const priorityStyles: Record<string, { bg: string; text: string; border: string }> = {
+    low: { bg: "bg-slate-50", text: "text-slate-600", border: "border-slate-200" },
+    medium: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+    high: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
+    critical: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
+  };
+
+  const statusStyle = statusStyles[ticket.status] || statusStyles.new;
+  const priorityStyle = priorityStyles[ticket.priority] || priorityStyles.medium;
+
+  const statusLabels: Record<string, string> = {
+    new: "New",
+    in_progress: "In Progress",
+    on_hold: "On Hold",
+    resolved: "Resolved",
+    closed: "Closed",
+  };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-5xl mx-auto animate-fade-in">
-        <div className="mb-6">
-          <Link href="/tickets" className="block mb-4">
-            <Button variant="ghost" size="sm" className="w-full sm:w-auto">
-              <span className="hidden sm:inline">← Back to Tickets</span>
-              <span className="sm:hidden">← Back</span>
-            </Button>
-          </Link>
-        </div>
+    <div className="space-y-6">
+      {/* Back Button */}
+      <Link 
+        href="/tickets" 
+        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors"
+      >
+        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+        </svg>
+        Back to Tickets
+      </Link>
 
-        <div className="grid gap-4 sm:gap-6">
-          <Card hover padding="lg" className="border-l-4 border-l-indigo-500">
-            <div className="flex flex-col sm:flex-row justify-between items-start gap-4 mb-6">
-              <div className="flex-1 w-full">
-                <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-3 break-words">
-                  {ticket.title}
-                </h1>
-                <div className="flex items-center gap-2 sm:gap-3 flex-wrap">
-                  <span
-                    className={`px-2.5 sm:px-3 py-1 sm:py-1.5 rounded-full text-xs sm:text-sm font-medium border ${statusColor} border-current/20 transition-all hover:scale-105`}
-                  >
-                    {ticket.status.replace("_", " ")}
-                  </span>
-                  <span className="text-xs sm:text-sm text-slate-600 flex items-center gap-1">
-                    <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M13 10V3L4 14h7v7l9-11h-7z"
-                      />
-                    </svg>
-                    {ticket.priority}
-                  </span>
-                  <span className="text-xs sm:text-sm text-slate-600 flex items-center gap-1">
-                    <svg
-                      className="w-3 h-3 sm:w-4 sm:h-4"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"
-                      />
-                    </svg>
-                    {ticket.category}
-                  </span>
-                </div>
+      {/* Main Ticket Card */}
+      <Card padding="none" className="overflow-hidden">
+        {/* Header */}
+        <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200">
+          <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
+            <div className="flex-1">
+              <div className="flex items-center gap-3 mb-3">
+                <span className="text-xs font-medium text-slate-500 bg-white px-2 py-1 rounded border border-slate-200">
+                  #TK-{ticket._id.slice(-6).toUpperCase()}
+                </span>
               </div>
+              <h1 className="text-xl sm:text-2xl font-bold text-slate-900 mb-4">
+                {ticket.title}
+              </h1>
+              <div className="flex flex-wrap items-center gap-3">
+                <span className={`px-3 py-1.5 text-xs font-semibold rounded-full border ${statusStyle.bg} ${statusStyle.text} ${statusStyle.border}`}>
+                  {statusLabels[ticket.status]}
+                </span>
+                <span className={`px-3 py-1.5 text-xs font-semibold rounded-full border capitalize ${priorityStyle.bg} ${priorityStyle.text} ${priorityStyle.border}`}>
+                  {ticket.priority} Priority
+                </span>
+                <span className="px-3 py-1.5 text-xs font-medium rounded-full border border-slate-200 bg-white text-slate-600 capitalize">
+                  {ticket.category}
+                </span>
+              </div>
+            </div>
+            <div className="lg:ml-6">
+              <label className="block text-xs font-medium text-slate-500 mb-2">Update Status</label>
               <Select
                 value={ticket.status}
                 onChange={(e) => handleStatusChange(e.target.value)}
@@ -180,210 +183,176 @@ export default function TicketDetailPage({
                   { value: "resolved", label: "Resolved" },
                   { value: "closed", label: "Closed" },
                 ]}
-                className="w-full sm:w-48"
+                className="w-full lg:w-48"
               />
             </div>
+          </div>
+        </div>
 
-            <div className="prose max-w-none">
-              <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-3 flex items-center gap-2">
-                <svg
-                  className="w-4 h-4 sm:w-5 sm:h-5 text-indigo-600"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                  />
-                </svg>
-                Description
-              </h2>
-              <p className="text-sm sm:text-base text-slate-700 whitespace-pre-wrap leading-relaxed break-words">
-                {ticket.description}
+        {/* Content */}
+        <div className="px-6 py-6 sm:px-8 sm:py-8">
+          {/* Description */}
+          <div className="mb-8">
+            <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
+              <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+              Description
+            </h2>
+            <p className="text-slate-700 whitespace-pre-wrap leading-relaxed text-sm sm:text-base">
+              {ticket.description}
+            </p>
+          </div>
+
+          {/* Details Grid */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <div className="bg-slate-50 rounded-xl p-4">
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Type</span>
+              <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.type.replace("_", " ")}</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Urgency</span>
+              <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.urgency}</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Assignee</span>
+              <p className="text-sm font-semibold text-slate-900">{getAssigneeName()}</p>
+            </div>
+            <div className="bg-slate-50 rounded-xl p-4">
+              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Created</span>
+              <p className="text-sm font-semibold text-slate-900">
+                {new Date(ticket.createdAt).toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
               </p>
             </div>
-
-            <div className="mt-4 sm:mt-6 pt-4 sm:pt-6 border-t border-slate-200">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <span className="text-xs text-slate-500 uppercase tracking-wide">
-                    Type
-                  </span>
-                  <p className="text-slate-900 font-medium mt-1">
-                    {ticket.type.replace("_", " ")}
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <span className="text-xs text-slate-500 uppercase tracking-wide">
-                    Urgency
-                  </span>
-                  <p className="text-slate-900 font-medium mt-1">
-                    {ticket.urgency}
-                  </p>
-                </div>
-                <div className="p-3 bg-slate-50 rounded-lg">
-                  <span className="text-xs text-slate-500 uppercase tracking-wide">
-                    Created
-                  </span>
-                  <p className="text-slate-900 font-medium mt-1">
-                    {new Date(ticket.createdAt).toLocaleString()}
-                  </p>
-                </div>
-                {ticket.resolvedAt && (
-                  <div className="p-3 bg-green-50 rounded-lg">
-                    <span className="text-xs text-green-600 uppercase tracking-wide">
-                      Resolved
-                    </span>
-                    <p className="text-green-900 font-medium mt-1">
-                      {new Date(ticket.resolvedAt).toLocaleString()}
-                    </p>
-                  </div>
-                )}
+            {ticket.resolvedAt && (
+              <div className="bg-green-50 rounded-xl p-4 col-span-2 lg:col-span-1">
+                <span className="text-xs font-medium text-green-600 uppercase tracking-wide block mb-1">Resolved</span>
+                <p className="text-sm font-semibold text-green-900">
+                  {new Date(ticket.resolvedAt).toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                    year: "numeric",
+                  })}
+                </p>
               </div>
-            </div>
-          </Card>
+            )}
+          </div>
+        </div>
+      </Card>
 
-          <Card hover padding="lg">
-            <h2 className="text-2xl font-semibold text-slate-900 mb-6 flex items-center gap-2">
-              <svg
-                className="w-6 h-6 text-indigo-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                />
-              </svg>
-              Comments
-            </h2>
+      {/* Comments Card */}
+      <Card padding="none">
+        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+            Comments
+            <span className="text-sm font-normal text-slate-500">({comments.length})</span>
+          </h2>
+        </div>
 
-            <div className="space-y-4 mb-6">
-              {comments.length === 0 ? (
-                <EmptyState
-                  icon={
-                    <svg
-                      className="w-12 h-12 text-slate-300"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-                      />
-                    </svg>
-                  }
-                  title="No comments yet"
-                  description="Be the first to add a comment. Share updates, ask questions, or provide additional information."
-                />
-              ) : (
-                comments.map((comment: any, index) => {
-                  const getInitials = (name: string) => {
-                    return name
-                      .split(" ")
-                      .map((n) => n[0])
-                      .join("")
-                      .toUpperCase()
-                      .slice(0, 2);
-                  };
+        <div className="px-6 py-6 sm:px-8 sm:py-8">
+          <div className="space-y-4 mb-8">
+            {comments.length === 0 ? (
+              <div className="text-center py-8">
+                <span className="text-4xl mb-3 block">💬</span>
+                <p className="text-slate-600 text-sm">No comments yet</p>
+                <p className="text-slate-400 text-xs mt-1">Be the first to add a comment</p>
+              </div>
+            ) : (
+              comments.map((comment: any, index) => {
+                const getInitials = (name: string) => {
+                  return name
+                    .split(" ")
+                    .map((n) => n[0])
+                    .join("")
+                    .toUpperCase()
+                    .slice(0, 2);
+                };
 
-                  const currentUserId = localStorage.getItem("userId");
-                  const isCurrentUser = comment.userId === currentUserId;
+                const currentUserId = localStorage.getItem("userId");
+                const isCurrentUser = comment.userId === currentUserId;
 
-                  return (
-                    <div
-                      key={comment._id}
-                      className={`p-4 rounded-lg border transition-all animate-fade-in hover:shadow-md ${
-                        isCurrentUser
-                          ? "bg-gradient-to-r from-indigo-50 to-purple-50 border-indigo-200 border-l-4"
-                          : "bg-gradient-to-r from-slate-50 to-indigo-50/30 border-slate-200 hover:border-indigo-200 hover:border-l-4"
-                      }`}
-                      style={{ animationDelay: `${index * 50}ms` }}
-                    >
-                      <div className="flex justify-between items-start mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xs font-semibold shadow-md hover:shadow-lg transition-all hover:scale-110">
+                return (
+                  <div
+                    key={comment._id}
+                    className={`p-5 rounded-xl border transition-all ${
+                      isCurrentUser
+                        ? "bg-blue-50/50 border-blue-200"
+                        : "bg-slate-50 border-slate-200"
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
                           {getInitials(comment.userName || "Unknown")}
                         </div>
-                        <div className="flex flex-col">
-                          <span className="text-sm font-medium text-slate-900">
+                        <div>
+                          <span className="text-sm font-semibold text-slate-900">
                             {comment.userName || "Unknown User"}
                             {isCurrentUser && (
-                              <span className="ml-2 text-xs text-indigo-600 font-normal">
-                                (You)
-                              </span>
+                              <span className="ml-2 text-xs text-blue-600 font-normal">(You)</span>
                             )}
                           </span>
                           {comment.userEmail && (
-                            <span className="text-xs text-slate-500 break-all">
-                              {comment.userEmail}
-                            </span>
+                            <span className="block text-xs text-slate-500">{comment.userEmail}</span>
                           )}
                         </div>
                       </div>
-                        <span className="text-xs text-slate-500 flex items-center gap-1">
-                          <svg
-                            className="w-3 h-3"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                            />
-                          </svg>
-                          {new Date(comment.createdAt).toLocaleString()}
-                        </span>
-                      </div>
-                      <p className="text-slate-700 whitespace-pre-wrap leading-relaxed">
-                        {comment.content}
-                      </p>
+                      <span className="text-xs text-slate-400">
+                        {new Date(comment.createdAt).toLocaleString()}
+                      </span>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                    <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed pl-12">
+                      {comment.content}
+                    </p>
+                  </div>
+                );
+              })
+            )}
+          </div>
 
-            <form onSubmit={handleCommentSubmit} className="space-y-4 border-t border-slate-200 pt-4 sm:pt-6">
-              <Textarea
-                value={commentText}
-                onChange={(e) => setCommentText(e.target.value)}
-                placeholder="Add a comment..."
-                rows={3}
-              />
+          {/* Add Comment Form */}
+          <form onSubmit={handleCommentSubmit} className="space-y-4 border-t border-slate-200 pt-6">
+            <Textarea
+              value={commentText}
+              onChange={(e) => setCommentText(e.target.value)}
+              placeholder="Write a comment..."
+              rows={3}
+            />
+            <div className="flex justify-end">
               <Button
                 type="submit"
                 variant="gradient"
                 disabled={loading || !commentText.trim()}
                 loading={loading}
-                className="w-full sm:w-auto"
               >
                 {loading ? "Posting..." : "Post Comment"}
               </Button>
-            </form>
-          </Card>
-
-          {/* Audit History */}
-          <Card>
-            <h2 className="text-2xl font-semibold text-slate-900 mb-6">
-              Audit History
-            </h2>
-            <TicketAudit ticketId={ticketId} />
-          </Card>
+            </div>
+          </form>
         </div>
-      </div>
+      </Card>
+
+      {/* Audit History Card */}
+      <Card padding="none">
+        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200">
+          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
+            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            Activity History
+          </h2>
+        </div>
+        <div className="px-6 py-6 sm:px-8 sm:py-8">
+          <TicketAudit ticketId={ticketId} />
+        </div>
+      </Card>
     </div>
   );
 }
