@@ -24,14 +24,32 @@ type User = {
 
 type EditingField = "name" | "email" | "role" | "onboarding" | "password" | null;
 
+const TEAM_COLORS = [
+  { name: "Blue", value: "bg-blue-500" },
+  { name: "Green", value: "bg-green-500" },
+  { name: "Purple", value: "bg-purple-500" },
+  { name: "Orange", value: "bg-orange-500" },
+  { name: "Pink", value: "bg-pink-500" },
+  { name: "Teal", value: "bg-teal-500" },
+  { name: "Indigo", value: "bg-indigo-500" },
+  { name: "Red", value: "bg-red-500" },
+];
+
 export default function UsersPage() {
   const router = useRouter();
   const users = useQuery(api.users.list, {});
-  // Diagnostic query to check database status
+  const teams = useQuery(api.teams.list, {});
   const dbStatus = useQuery(api.users.getDatabaseStatus, {});
   const updateUser = useMutation(api.users.update);
   const resetUserPassword = useMutation(api.users.resetUserPassword);
+  const createTeam = useMutation(api.teams.create);
+  const updateTeam = useMutation(api.teams.update);
+  const removeTeam = useMutation(api.teams.remove);
+  const addTeamMember = useMutation(api.teams.addMember);
+  const removeTeamMember = useMutation(api.teams.removeMember);
+  
   const { success, error: showError } = useToastContext();
+  const [activeTab, setActiveTab] = useState<"users" | "teams">("users");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
   const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "createdAt">("name");
@@ -46,19 +64,27 @@ export default function UsersPage() {
     confirmPassword?: string;
   }>({});
 
+  // Team management state
+  const [showCreateTeam, setShowCreateTeam] = useState(false);
+  const [newTeam, setNewTeam] = useState({ name: "", description: "", color: "bg-blue-500" });
+  const [expandedTeam, setExpandedTeam] = useState<Id<"teams"> | null>(null);
+  const [showAddMember, setShowAddMember] = useState<Id<"teams"> | null>(null);
+
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   
-  // Fetch current user directly to check admin status
   const currentUser = useQuery(
     api.users.get,
     currentUserId ? { id: currentUserId as Id<"users"> } : "skip"
   );
   
-  // Also try to find in list as fallback
   const currentUserFromList = users?.find((u) => u._id === currentUserId);
-  
-  // Check if current user is admin - prefer direct query result
   const isAdmin = currentUser?.role === "admin" || currentUserFromList?.role === "admin";
+
+  // Get available agents for a team
+  const availableAgents = useQuery(
+    api.teams.getAvailableAgents,
+    showAddMember ? { teamId: showAddMember } : "skip"
+  );
 
   const handleEdit = (user: User, field: EditingField) => {
     if (!isAdmin) {
@@ -146,7 +172,6 @@ export default function UsersPage() {
         updates.onboardingCompleted = editValues.onboardingCompleted;
       }
 
-      // Don't handle password reset here - use handlePasswordReset instead
       if (editingField === "password") {
         showError("Use the password reset button to change passwords");
         return;
@@ -183,21 +208,70 @@ export default function UsersPage() {
       return;
     }
 
-    // Store the original admin user ID
     localStorage.setItem("originalAdminId", currentUserId);
     localStorage.setItem("originalAdminName", localStorage.getItem("userName") || "");
     localStorage.setItem("originalAdminEmail", localStorage.getItem("userEmail") || "");
-
-    // Set the impersonated user
     localStorage.setItem("userId", userId);
     localStorage.setItem("userName", userName);
     localStorage.setItem("userEmail", userEmail);
     localStorage.setItem("isImpersonating", "true");
 
     success(`Now viewing as ${userName}. You can exit impersonation from the navigation bar.`);
-    
-    // Navigate to the profile page to view as this user
     router.push(`/profile?impersonate=true`);
+  };
+
+  // Team management handlers
+  const handleCreateTeam = async () => {
+    if (!newTeam.name.trim()) {
+      showError("Team name is required");
+      return;
+    }
+
+    try {
+      await createTeam({
+        name: newTeam.name.trim(),
+        description: newTeam.description.trim() || undefined,
+        color: newTeam.color,
+        createdBy: currentUserId as Id<"users">,
+      });
+      success("Team created successfully!");
+      setShowCreateTeam(false);
+      setNewTeam({ name: "", description: "", color: "bg-blue-500" });
+    } catch (err: any) {
+      showError(err.message || "Failed to create team");
+    }
+  };
+
+  const handleDeleteTeam = async (teamId: Id<"teams">) => {
+    if (!confirm("Are you sure you want to delete this team? All members will be removed.")) {
+      return;
+    }
+
+    try {
+      await removeTeam({ id: teamId });
+      success("Team deleted successfully!");
+    } catch (err: any) {
+      showError(err.message || "Failed to delete team");
+    }
+  };
+
+  const handleAddMember = async (teamId: Id<"teams">, userId: Id<"users">) => {
+    try {
+      await addTeamMember({ teamId, userId });
+      success("Member added to team!");
+      setShowAddMember(null);
+    } catch (err: any) {
+      showError(err.message || "Failed to add member");
+    }
+  };
+
+  const handleRemoveMember = async (teamId: Id<"teams">, userId: Id<"users">) => {
+    try {
+      await removeTeamMember({ teamId, userId });
+      success("Member removed from team!");
+    } catch (err: any) {
+      showError(err.message || "Failed to remove member");
+    }
   };
 
   const getRoleBadgeColor = (role: string) => {
@@ -225,544 +299,217 @@ export default function UsersPage() {
       })
       .sort((a, b) => {
         switch (sortBy) {
-          case "name":
-            return a.name.localeCompare(b.name);
-          case "email":
-            return a.email.localeCompare(b.email);
-          case "role":
-            return a.role.localeCompare(b.role);
-          case "createdAt":
-            return b.createdAt - a.createdAt;
-          default:
-            return 0;
+          case "name": return a.name.localeCompare(b.name);
+          case "email": return a.email.localeCompare(b.email);
+          case "role": return a.role.localeCompare(b.role);
+          case "createdAt": return b.createdAt - a.createdAt;
+          default: return 0;
         }
       })
     : [];
 
-  // Calculate statistics
   const stats = users
     ? {
         total: users.length,
         admins: users.filter((u) => u.role === "admin").length,
         agents: users.filter((u) => u.role === "agent").length,
         regularUsers: users.filter((u) => u.role === "user").length,
-        onboardingCompleted: users.filter((u) => u.onboardingCompleted).length,
-        onboardingPending: users.filter((u) => !u.onboardingCompleted).length,
+        teams: teams?.length || 0,
       }
-    : {
-        total: 0,
-        admins: 0,
-        agents: 0,
-        regularUsers: 0,
-        onboardingCompleted: 0,
-        onboardingPending: 0,
-      };
+    : { total: 0, admins: 0, agents: 0, regularUsers: 0, teams: 0 };
 
-  // Wait for both queries to load before checking admin status
   if (users === undefined || (currentUserId && currentUser === undefined)) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <div className="animate-pulse space-y-4">
-            {[...Array(5)].map((_, i) => (
-              <div key={i} className="h-20 bg-slate-200 rounded-xl"></div>
-            ))}
-          </div>
-        </div>
+      <div className="animate-pulse space-y-4">
+        {[...Array(5)].map((_, i) => (
+          <div key={i} className="h-20 bg-slate-200 rounded-xl"></div>
+        ))}
       </div>
     );
   }
 
-  // Debug: If current user exists but list is empty, log a warning
-  if (currentUser && users && users.length === 0) {
-    console.warn("[UsersPage] Current user exists but list is empty!", {
-      currentUserId: currentUser._id,
-      currentUserEmail: currentUser.email,
-      usersListLength: users.length
-    });
-  }
-
-  // Debug: Log users data (only in development)
-  if (typeof window !== "undefined") {
-    if (users === undefined) {
-      console.log("[UsersPage] Users query is still loading...");
-    } else if (users === null) {
-      console.error("[UsersPage] Users query returned null - this should not happen!");
-    } else {
-      console.log("[UsersPage] Users data:", users);
-      console.log("[UsersPage] Users count:", users.length);
-      console.log("[UsersPage] Users is array:", Array.isArray(users));
-      if (users.length === 0) {
-        console.warn("[UsersPage] No users found in database!");
-        console.warn("[UsersPage] Current user:", currentUser);
-        console.warn("[UsersPage] Current user ID from localStorage:", currentUserId);
-        console.warn("[UsersPage] Database status:", dbStatus);
-        console.warn("[UsersPage] This might indicate:");
-        console.warn("  1. The database is empty");
-        console.warn("  2. The query is failing silently");
-        console.warn("  3. There's a connection issue with Convex");
-        console.warn("  4. Check Convex dashboard logs for [users:list] messages");
-      }
-    }
-    
-    if (dbStatus) {
-      console.log("[UsersPage] Database status from diagnostic query:", dbStatus);
-      if (dbStatus.userCount > 0 && users && users.length === 0) {
-        console.error("[UsersPage] INCONSISTENCY DETECTED:");
-        console.error("[UsersPage] Diagnostic query found", dbStatus.userCount, "users");
-        console.error("[UsersPage] But list query returned", users.length, "users");
-        console.error("[UsersPage] This suggests a query issue, not a data issue");
-      }
-    }
-  }
-
-  // Only show access denied if we've confirmed the user is not an admin
   if (!isAdmin && currentUser !== undefined) {
     return (
-      <div className="min-h-screen bg-slate-50 p-8">
-        <div className="max-w-7xl mx-auto">
-          <Card>
-            <div className="text-center py-12">
-              <svg
-                className="w-16 h-16 mx-auto mb-4 text-red-500"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"
-                />
-              </svg>
-              <h2 className="text-2xl font-bold text-slate-900 mb-2">
-                Access Denied
-              </h2>
-              <p className="text-slate-600 mb-4">
-                You need admin privileges to access this page.
-              </p>
-              <Link href="/dashboard">
-                <Button>Back to Dashboard</Button>
-              </Link>
-            </div>
-          </Card>
+      <Card padding="lg">
+        <div className="text-center py-12">
+          <span className="text-5xl mb-4 block">🔒</span>
+          <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Denied</h2>
+          <p className="text-slate-600 mb-4">You need admin privileges to access this page.</p>
+          <Link href="/dashboard">
+            <Button variant="gradient">Back to Dashboard</Button>
+          </Link>
         </div>
-      </div>
+      </Card>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-7xl mx-auto animate-fade-in">
-        {/* Header */}
-        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 sm:mb-8">
-          <div>
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
-              User Management
-            </h1>
-            <p className="text-sm sm:text-base text-slate-600">
-              Manage all user details, roles, and permissions
-            </p>
-          </div>
-        </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div>
+        <h1 className="text-2xl font-bold text-slate-900">User Management</h1>
+        <p className="text-sm text-slate-600">Manage users, roles, and support teams</p>
+      </div>
 
-        {/* Statistics */}
-        {stats && (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 mb-6">
-            <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-slate-900">{stats?.total || 0}</div>
-              <div className="text-xs text-slate-600 mt-1">Total Users</div>
-            </Card>
-            <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-purple-700">{stats?.admins || 0}</div>
-              <div className="text-xs text-slate-600 mt-1">Admins</div>
-            </Card>
-            <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-blue-700">{stats?.agents || 0}</div>
-              <div className="text-xs text-slate-600 mt-1">Agents</div>
-            </Card>
-            <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-slate-700">{stats?.regularUsers || 0}</div>
-              <div className="text-xs text-slate-600 mt-1">Users</div>
-            </Card>
-            <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-green-700">{stats?.onboardingCompleted || 0}</div>
-              <div className="text-xs text-slate-600 mt-1">Onboarded</div>
-            </Card>
-            <Card padding="sm" className="text-center">
-              <div className="text-2xl font-bold text-amber-700">{stats?.onboardingPending || 0}</div>
-              <div className="text-xs text-slate-600 mt-1">Pending</div>
-            </Card>
-          </div>
-        )}
-
-        {/* Filters and Search */}
-        <Card hover padding="lg" className="mb-6">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <Input
-              label="Search Users"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by name, email, or role..."
-              icon={
-                <svg
-                  className="w-5 h-5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
-                  />
-                </svg>
-              }
-            />
-            <Select
-              label="Filter by Role"
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              options={[
-                { value: "all", label: "All Roles" },
-                { value: "admin", label: "Admin" },
-                { value: "agent", label: "Agent" },
-                { value: "user", label: "User" },
-              ]}
-            />
-            <Select
-              label="Sort By"
-              value={sortBy}
-              onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
-              options={[
-                { value: "name", label: "Name" },
-                { value: "email", label: "Email" },
-                { value: "role", label: "Role" },
-                { value: "createdAt", label: "Date Joined" },
-              ]}
-            />
-          </div>
+      {/* Statistics */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+        <Card padding="sm" className="text-center">
+          <div className="text-2xl font-bold text-slate-900">{stats.total}</div>
+          <div className="text-xs text-slate-600">Total Users</div>
         </Card>
+        <Card padding="sm" className="text-center">
+          <div className="text-2xl font-bold text-purple-700">{stats.admins}</div>
+          <div className="text-xs text-slate-600">Admins</div>
+        </Card>
+        <Card padding="sm" className="text-center">
+          <div className="text-2xl font-bold text-blue-700">{stats.agents}</div>
+          <div className="text-xs text-slate-600">Agents</div>
+        </Card>
+        <Card padding="sm" className="text-center">
+          <div className="text-2xl font-bold text-slate-700">{stats.regularUsers}</div>
+          <div className="text-xs text-slate-600">Users</div>
+        </Card>
+        <Card padding="sm" className="text-center">
+          <div className="text-2xl font-bold text-teal-700">{stats.teams}</div>
+          <div className="text-xs text-slate-600">Teams</div>
+        </Card>
+      </div>
 
-        {/* Users Table */}
-        <Card padding="none" className="overflow-hidden">
-          {!users || users === null || (filteredAndSortedUsers && filteredAndSortedUsers.length === 0) ? (
-            <div className="text-center py-12 px-6">
-              <svg
-                className="w-12 h-12 mx-auto mb-4 text-slate-300"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={1.5}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"
-                />
-              </svg>
-              <p className="text-slate-600 mb-2">
-                {!users || users === null ? "Loading users..." : "No users found"}
-              </p>
-              {searchTerm && (
-                <p className="text-sm text-slate-500">
-                  Try adjusting your search or filter criteria
-                </p>
-              )}
+      {/* Tabs */}
+      <div className="flex gap-2 border-b border-slate-200">
+        <button
+          onClick={() => setActiveTab("users")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "users"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          Users
+        </button>
+        <button
+          onClick={() => setActiveTab("teams")}
+          className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
+            activeTab === "teams"
+              ? "border-blue-600 text-blue-600"
+              : "border-transparent text-slate-600 hover:text-slate-900"
+          }`}
+        >
+          Support Teams
+        </button>
+      </div>
+
+      {/* Users Tab */}
+      {activeTab === "users" && (
+        <>
+          {/* Filters */}
+          <Card padding="md">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+              <Input
+                label="Search Users"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by name, email..."
+              />
+              <Select
+                label="Filter by Role"
+                value={roleFilter}
+                onChange={(e) => setRoleFilter(e.target.value)}
+                options={[
+                  { value: "all", label: "All Roles" },
+                  { value: "admin", label: "Admin" },
+                  { value: "agent", label: "Agent" },
+                  { value: "user", label: "User" },
+                ]}
+              />
+              <Select
+                label="Sort By"
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                options={[
+                  { value: "name", label: "Name" },
+                  { value: "email", label: "Email" },
+                  { value: "role", label: "Role" },
+                  { value: "createdAt", label: "Date Joined" },
+                ]}
+              />
             </div>
-          ) : (
+          </Card>
+
+          {/* Users Table */}
+          <Card padding="none">
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
                   <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      User
-                    </th>
-                    <th className="text-left py-4 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Role
-                    </th>
-                    <th className="text-left py-4 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="text-left py-4 px-4 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden md:table-cell">
-                      Joined
-                    </th>
-                    <th className="text-right py-4 px-6 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                      Actions
-                    </th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 uppercase">User</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 uppercase">Role</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 uppercase hidden md:table-cell">Status</th>
+                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 uppercase hidden lg:table-cell">Joined</th>
+                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-600 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
-                  {filteredAndSortedUsers?.map((user) => {
-                    const getInitials = (name: string) => {
-                      return name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2);
-                    };
-
+                  {filteredAndSortedUsers.map((user) => {
+                    const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
                     const isCurrentUser = user._id === currentUserId;
-                    const isEditing = editingUser === user._id;
 
                     return (
-                      <tr
-                        key={user._id}
-                        className={`hover:bg-slate-50/50 transition-colors ${
-                          isCurrentUser ? "bg-indigo-50/30" : ""
-                        }`}
-                      >
-                        {/* User Info */}
-                        <td className="py-4 px-6">
+                      <tr key={user._id} className={`hover:bg-slate-50 ${isCurrentUser ? "bg-blue-50/30" : ""}`}>
+                        <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold shadow-sm flex-shrink-0">
+                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
                               {getInitials(user.name)}
                             </div>
-                            <div className="min-w-0">
-                              {isEditing && editingField === "name" ? (
-                                <div className="flex items-center gap-2">
-                                  <Input
-                                    value={editValues.name || ""}
-                                    onChange={(e) =>
-                                      setEditValues({ ...editValues, name: e.target.value })
-                                    }
-                                    className="w-40"
-                                    placeholder="Name"
-                                  />
-                                  <Button size="sm" variant="gradient" onClick={() => handleSave(user._id)}>
-                                    Save
-                                  </Button>
-                                  <Button size="sm" variant="outline" onClick={handleCancel}>
-                                    Cancel
-                                  </Button>
-                                </div>
-                              ) : (
-                                <div className="flex items-center gap-2">
-                                  <p className="font-medium text-slate-900 truncate">
-                                    {user.name}
-                                    {isCurrentUser && (
-                                      <span className="ml-2 text-xs text-indigo-600 font-normal">
-                                        (You)
-                                      </span>
-                                    )}
-                                  </p>
-                                </div>
-                              )}
-                              {isEditing && editingField === "email" ? (
-                                <div className="flex items-center gap-2 mt-1">
-                                  <Input
-                                    value={editValues.email || ""}
-                                    onChange={(e) =>
-                                      setEditValues({ ...editValues, email: e.target.value })
-                                    }
-                                    className="w-48"
-                                    placeholder="Email"
-                                    type="email"
-                                  />
-                                  <Button size="sm" variant="gradient" onClick={() => handleSave(user._id)}>
-                                    Save
-                                  </Button>
-                                  <Button size="sm" variant="outline" onClick={handleCancel}>
-                                    Cancel
-                                  </Button>
-                                </div>
-                              ) : (
-                                <p className="text-sm text-slate-500 truncate">{user.email}</p>
-                              )}
+                            <div>
+                              <p className="font-medium text-slate-900 text-sm">
+                                {user.name}
+                                {isCurrentUser && <span className="ml-1 text-xs text-blue-600">(You)</span>}
+                              </p>
+                              <p className="text-xs text-slate-500">{user.email}</p>
                             </div>
                           </div>
                         </td>
-
-                        {/* Role */}
-                        <td className="py-4 px-4">
-                          {isEditing && editingField === "role" ? (
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={editValues.role || user.role}
-                                onChange={(e) =>
-                                  setEditValues({ ...editValues, role: e.target.value })
-                                }
-                                options={[
-                                  { value: "user", label: "User" },
-                                  { value: "agent", label: "Agent" },
-                                  { value: "admin", label: "Admin" },
-                                ]}
-                                className="w-24"
-                              />
-                              <Button size="sm" variant="gradient" onClick={() => handleSave(user._id)}>
-                                Save
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={handleCancel}>
-                                Cancel
-                              </Button>
-                            </div>
-                          ) : (
-                            <span
-                              className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${getRoleBadgeColor(
-                                user.role
-                              )}`}
-                            >
-                              {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
-                            </span>
-                          )}
+                        <td className="py-3 px-4">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${getRoleBadgeColor(user.role)}`}>
+                            {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                          </span>
                         </td>
-
-                        {/* Status */}
-                        <td className="py-4 px-4">
-                          {isEditing && editingField === "onboarding" ? (
-                            <div className="flex items-center gap-2">
-                              <Select
-                                value={editValues.onboardingCompleted ? "true" : "false"}
-                                onChange={(e) =>
-                                  setEditValues({
-                                    ...editValues,
-                                    onboardingCompleted: e.target.value === "true",
-                                  })
-                                }
-                                options={[
-                                  { value: "true", label: "Completed" },
-                                  { value: "false", label: "Pending" },
-                                ]}
-                                className="w-28"
-                              />
-                              <Button size="sm" variant="gradient" onClick={() => handleSave(user._id)}>
-                                Save
-                              </Button>
-                              <Button size="sm" variant="outline" onClick={handleCancel}>
-                                Cancel
-                              </Button>
-                            </div>
-                          ) : (
-                            <span
-                              className={`inline-flex px-2.5 py-1 rounded-full text-xs font-semibold ${
-                                user.onboardingCompleted
-                                  ? "bg-emerald-50 text-emerald-700"
-                                  : "bg-amber-50 text-amber-700"
-                              }`}
-                            >
-                              {user.onboardingCompleted ? "Active" : "Pending"}
-                            </span>
-                          )}
+                        <td className="py-3 px-4 hidden md:table-cell">
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            user.onboardingCompleted ? "bg-green-50 text-green-700" : "bg-amber-50 text-amber-700"
+                          }`}>
+                            {user.onboardingCompleted ? "Active" : "Pending"}
+                          </span>
                         </td>
-
-                        {/* Joined Date */}
-                        <td className="py-4 px-4 hidden md:table-cell">
-                          <p className="text-sm text-slate-900">
-                            {new Date(user.createdAt).toLocaleDateString()}
-                          </p>
-                          <p className="text-xs text-slate-500">
-                            {new Date(user.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                          </p>
+                        <td className="py-3 px-4 hidden lg:table-cell text-sm text-slate-600">
+                          {new Date(user.createdAt).toLocaleDateString()}
                         </td>
-
-                        {/* Actions */}
-                        <td className="py-4 px-6">
-                          {isEditing && editingField === "password" ? (
-                            <div className="flex flex-col gap-2">
-                              <Input
-                                type="password"
-                                value={editValues.newPassword || ""}
-                                onChange={(e) =>
-                                  setEditValues({ ...editValues, newPassword: e.target.value })
-                                }
-                                placeholder="New password"
-                                className="w-36 text-xs"
-                              />
-                              <Input
-                                type="password"
-                                value={editValues.confirmPassword || ""}
-                                onChange={(e) =>
-                                  setEditValues({ ...editValues, confirmPassword: e.target.value })
-                                }
-                                placeholder="Confirm password"
-                                className="w-36 text-xs"
-                              />
-                              <div className="flex gap-1">
-                                <Button
-                                  size="sm"
-                                  variant="gradient"
-                                  onClick={() => handlePasswordReset(user._id)}
-                                  className="text-xs"
-                                >
-                                  Reset
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  onClick={handleCancel}
-                                  className="text-xs"
-                                >
-                                  Cancel
-                                </Button>
-                              </div>
-                            </div>
-                          ) : (
-                            <div className="flex items-center justify-end gap-1">
-                              {/* Edit Name */}
-                              {!isCurrentUser && (
-                                <button
-                                  onClick={() => handleEdit(user, "name")}
-                                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
-                                  title="Edit name"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                                  </svg>
-                                </button>
-                              )}
-
-                              {/* Edit Role */}
-                              {!isCurrentUser && (
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-end gap-1">
+                            {!isCurrentUser && (
+                              <>
                                 <button
                                   onClick={() => handleEdit(user, "role")}
-                                  className="p-2 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg transition-colors"
+                                  className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
                                   title="Change role"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
                                   </svg>
                                 </button>
-                              )}
-
-                              {/* Edit Status */}
-                              <button
-                                onClick={() => handleEdit(user, "onboarding")}
-                                className="p-2 text-slate-400 hover:text-emerald-600 hover:bg-emerald-50 rounded-lg transition-colors"
-                                title="Change status"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
-                              </button>
-
-                              {/* Reset Password */}
-                              <button
-                                onClick={() => handleEdit(user, "password")}
-                                className="p-2 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
-                                title="Reset password"
-                              >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
-                                </svg>
-                              </button>
-
-                              {/* Impersonate */}
-                              {isAdmin && !isCurrentUser && (
                                 <button
-                                  onClick={() => handleImpersonate(user._id, user.name, user.email)}
-                                  className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                                  title={`View as ${user.name}`}
+                                  onClick={() => handleEdit(user, "password")}
+                                  className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg"
+                                  title="Reset password"
                                 >
                                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                   </svg>
                                 </button>
-                              )}
-                            </div>
-                          )}
+                              </>
+                            )}
+                          </div>
                         </td>
                       </tr>
                     );
@@ -770,19 +517,229 @@ export default function UsersPage() {
                 </tbody>
               </table>
             </div>
-          )}
-          
-          {/* Table Footer */}
-          {filteredAndSortedUsers && filteredAndSortedUsers.length > 0 && (
-            <div className="bg-slate-50 border-t border-slate-200 px-6 py-3">
-              <p className="text-sm text-slate-600">
-                Showing <span className="font-medium">{filteredAndSortedUsers.length}</span> of{" "}
-                <span className="font-medium">{users?.length || 0}</span> users
-              </p>
+            <div className="bg-slate-50 border-t border-slate-200 px-4 py-2 text-sm text-slate-600">
+              Showing {filteredAndSortedUsers.length} of {users?.length || 0} users
             </div>
+          </Card>
+        </>
+      )}
+
+      {/* Teams Tab */}
+      {activeTab === "teams" && (
+        <>
+          {/* Create Team Button */}
+          <div className="flex justify-end">
+            <Button variant="gradient" onClick={() => setShowCreateTeam(true)}>
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+              Create Team
+            </Button>
+          </div>
+
+          {/* Create Team Modal */}
+          {showCreateTeam && (
+            <Card padding="lg" className="border-2 border-blue-200 bg-blue-50/30">
+              <h3 className="font-semibold text-slate-900 mb-4">Create New Support Team</h3>
+              <div className="space-y-4">
+                <Input
+                  label="Team Name"
+                  value={newTeam.name}
+                  onChange={(e) => setNewTeam({ ...newTeam, name: e.target.value })}
+                  placeholder="e.g., Technical Support"
+                />
+                <Input
+                  label="Description (optional)"
+                  value={newTeam.description}
+                  onChange={(e) => setNewTeam({ ...newTeam, description: e.target.value })}
+                  placeholder="Team description..."
+                />
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-2">Team Color</label>
+                  <div className="flex flex-wrap gap-2">
+                    {TEAM_COLORS.map((color) => (
+                      <button
+                        key={color.value}
+                        onClick={() => setNewTeam({ ...newTeam, color: color.value })}
+                        className={`w-8 h-8 rounded-full ${color.value} ${
+                          newTeam.color === color.value ? "ring-2 ring-offset-2 ring-slate-900" : ""
+                        }`}
+                        title={color.name}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <div className="flex gap-2 pt-2">
+                  <Button variant="gradient" onClick={handleCreateTeam}>Create Team</Button>
+                  <Button variant="outline" onClick={() => setShowCreateTeam(false)}>Cancel</Button>
+                </div>
+              </div>
+            </Card>
           )}
-        </Card>
-      </div>
+
+          {/* Teams List */}
+          {teams && teams.length > 0 ? (
+            <div className="space-y-4">
+              {teams.map((team) => (
+                <Card key={team._id} padding="none" className="overflow-hidden">
+                  {/* Team Header */}
+                  <div
+                    className="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50"
+                    onClick={() => setExpandedTeam(expandedTeam === team._id ? null : team._id)}
+                  >
+                    <div className="flex items-center gap-3">
+                      <div className={`w-10 h-10 rounded-xl ${team.color} flex items-center justify-center text-white font-semibold`}>
+                        {team.name.charAt(0)}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900">{team.name}</h3>
+                        <p className="text-xs text-slate-500">
+                          {team.memberCount} member{team.memberCount !== 1 ? "s" : ""}
+                          {team.leaderName && ` · Leader: ${team.leaderName}`}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteTeam(team._id);
+                        }}
+                        className="p-2 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                        title="Delete team"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                        </svg>
+                      </button>
+                      <svg
+                        className={`w-5 h-5 text-slate-400 transition-transform ${expandedTeam === team._id ? "rotate-180" : ""}`}
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </div>
+                  </div>
+
+                  {/* Expanded Team Details */}
+                  {expandedTeam === team._id && (
+                    <div className="border-t border-slate-200 p-4 bg-slate-50/50">
+                      {team.description && (
+                        <p className="text-sm text-slate-600 mb-4">{team.description}</p>
+                      )}
+
+                      {/* Team Members */}
+                      <div className="mb-4">
+                        <div className="flex items-center justify-between mb-2">
+                          <h4 className="text-sm font-medium text-slate-700">Team Members</h4>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => setShowAddMember(team._id)}
+                          >
+                            <svg className="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                            </svg>
+                            Add Agent
+                          </Button>
+                        </div>
+
+                        {team.members.length > 0 ? (
+                          <div className="space-y-2">
+                            {team.members.map((member: any) => (
+                              <div
+                                key={member._id}
+                                className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200"
+                              >
+                                <div className="flex items-center gap-3">
+                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
+                                    {member.userName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
+                                  </div>
+                                  <div>
+                                    <p className="text-sm font-medium text-slate-900">
+                                      {member.userName}
+                                      {member.role === "leader" && (
+                                        <span className="ml-2 px-1.5 py-0.5 text-xs bg-amber-100 text-amber-700 rounded">Leader</span>
+                                      )}
+                                    </p>
+                                    <p className="text-xs text-slate-500">{member.userEmail}</p>
+                                  </div>
+                                </div>
+                                <button
+                                  onClick={() => handleRemoveMember(team._id, member.userId)}
+                                  className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded"
+                                  title="Remove from team"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                  </svg>
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <p className="text-sm text-slate-500 text-center py-4">No members in this team yet</p>
+                        )}
+                      </div>
+
+                      {/* Add Member Modal */}
+                      {showAddMember === team._id && availableAgents && (
+                        <div className="mt-4 p-4 bg-white rounded-lg border-2 border-blue-200">
+                          <h4 className="text-sm font-medium text-slate-700 mb-3">Add Agent to Team</h4>
+                          {availableAgents.length > 0 ? (
+                            <div className="space-y-2 max-h-48 overflow-y-auto">
+                              {availableAgents.map((agent) => (
+                                <div
+                                  key={agent._id}
+                                  className="flex items-center justify-between p-2 hover:bg-slate-50 rounded-lg"
+                                >
+                                  <div className="flex items-center gap-2">
+                                    <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-xs font-semibold">
+                                      {agent.name.split(" ").map((n) => n[0]).join("").slice(0, 2)}
+                                    </div>
+                                    <div>
+                                      <p className="text-sm font-medium text-slate-900">{agent.name}</p>
+                                      <p className="text-xs text-slate-500">{agent.email}</p>
+                                    </div>
+                                  </div>
+                                  <Button
+                                    size="sm"
+                                    variant="gradient"
+                                    onClick={() => handleAddMember(team._id, agent._id)}
+                                  >
+                                    Add
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-slate-500 text-center py-2">No available agents to add</p>
+                          )}
+                          <div className="mt-3 pt-3 border-t border-slate-200">
+                            <Button size="sm" variant="outline" onClick={() => setShowAddMember(null)}>
+                              Close
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </Card>
+              ))}
+            </div>
+          ) : (
+            <Card padding="lg">
+              <div className="text-center py-8">
+                <span className="text-4xl mb-3 block">👥</span>
+                <p className="text-slate-600">No support teams yet</p>
+                <p className="text-sm text-slate-400 mt-1">Create your first team to organize your agents</p>
+              </div>
+            </Card>
+          )}
+        </>
+      )}
     </div>
   );
 }

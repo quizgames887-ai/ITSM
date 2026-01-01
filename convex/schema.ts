@@ -164,4 +164,26 @@ export default defineSchema({
   })
     .index("by_formId", ["formId"])
     .index("by_formId_order", ["formId", "order"]),
+
+  // Support Teams
+  teams: defineTable({
+    name: v.string(),
+    description: v.union(v.string(), v.null()),
+    color: v.string(), // For visual identification
+    leaderId: v.union(v.id("users"), v.null()), // Team leader
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_name", ["name"]),
+
+  // Team Members (agents assigned to teams)
+  teamMembers: defineTable({
+    teamId: v.id("teams"),
+    userId: v.id("users"),
+    role: v.union(v.literal("member"), v.literal("leader")),
+    joinedAt: v.number(),
+  })
+    .index("by_teamId", ["teamId"])
+    .index("by_userId", ["userId"])
+    .index("by_teamId_userId", ["teamId", "userId"]),
 });
