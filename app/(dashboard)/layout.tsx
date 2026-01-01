@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useCallback } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Header } from "@/components/dashboard/Header";
 import { usePathname } from "next/navigation";
@@ -10,7 +11,12 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   
+  const handleCloseSidebar = useCallback(() => {
+    setSidebarOpen(false);
+  }, []);
+
   // Determine page title based on pathname
   const getPageTitle = () => {
     if (pathname === "/dashboard") return "My Workspace";
@@ -27,29 +33,32 @@ export default function DashboardLayout({
   return (
     <div className="min-h-screen bg-slate-50">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar isOpen={sidebarOpen} onClose={handleCloseSidebar} />
       
       {/* Main Content */}
-      <div className="ml-64">
-        <Header title={getPageTitle()} />
-        <main className="p-6">
+      <div className="lg:ml-64 min-h-screen flex flex-col">
+        <Header 
+          title={getPageTitle()} 
+          onMenuClick={() => setSidebarOpen(true)} 
+        />
+        <main className="flex-1 p-4 lg:p-6">
           {children}
         </main>
         
         {/* Footer */}
-        <footer className="px-6 py-4 border-t border-slate-200 bg-white">
+        <footer className="px-4 lg:px-6 py-3 lg:py-4 border-t border-slate-200 bg-white">
           <div className="flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-slate-500">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
               <span>Docs</span>
-              <span>|</span>
+              <span className="hidden sm:inline">|</span>
               <span>FAQ</span>
-              <span>|</span>
-              <span>Support@palmware.com.sa</span>
-              <span>|</span>
-              <span>00966-0198765432</span>
+              <span className="hidden sm:inline">|</span>
+              <span className="hidden md:inline">Support@palmware.com.sa</span>
+              <span className="hidden md:inline">|</span>
+              <span className="hidden md:inline">00966-0198765432</span>
             </div>
-            <div>
-              © All Rights reserved to <span className="text-blue-600 font-medium">Palmware Solutions</span>
+            <div className="text-center sm:text-right">
+              © <span className="text-blue-600 font-medium">Palmware Solutions</span>
             </div>
           </div>
         </footer>

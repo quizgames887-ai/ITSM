@@ -9,22 +9,22 @@ import { useState } from "react";
 
 // Service icons for the grid
 const services = [
-  { name: "Service Name", icon: "📊", rating: 4.4, color: "bg-blue-100" },
-  { name: "Service Name", icon: "✖️", rating: 4.7, color: "bg-red-100" },
-  { name: "Service Name", icon: "📋", rating: 4.3, color: "bg-amber-100" },
-  { name: "Service Name", icon: "📁", rating: 3.8, color: "bg-green-100" },
-  { name: "Service Name", icon: "📊", rating: 4.2, color: "bg-purple-100" },
-  { name: "Service Name", icon: "🛠️", rating: 4.3, color: "bg-orange-100" },
-  { name: "Service Name", icon: "💡", rating: 4.5, color: "bg-yellow-100" },
-  { name: "Service Name", icon: "📈", rating: 4.3, color: "bg-cyan-100" },
+  { name: "IT Support", icon: "💻", rating: 4.4, color: "bg-blue-100" },
+  { name: "HR Services", icon: "👥", rating: 4.7, color: "bg-red-100" },
+  { name: "Finance", icon: "📊", rating: 4.3, color: "bg-amber-100" },
+  { name: "Facilities", icon: "🏢", rating: 3.8, color: "bg-green-100" },
+  { name: "Security", icon: "🔐", rating: 4.2, color: "bg-purple-100" },
+  { name: "Maintenance", icon: "🛠️", rating: 4.3, color: "bg-orange-100" },
+  { name: "Training", icon: "📚", rating: 4.5, color: "bg-yellow-100" },
+  { name: "Analytics", icon: "📈", rating: 4.3, color: "bg-cyan-100" },
 ];
 
 const favoriteLinks = [
-  { name: "Get Help & Support", icon: "❓" },
-  { name: "My Requests / All Requests", icon: "💜" },
-  { name: "Profile Settings", icon: "💚" },
-  { name: "Get Help & Support", icon: "💙" },
-  { name: "Services User Guide", icon: "💛" },
+  { name: "Get Help & Support", icon: "❓", color: "text-purple-500" },
+  { name: "My Requests / All Requests", icon: "💜", color: "text-purple-500" },
+  { name: "Profile Settings", icon: "⚙️", color: "text-green-500" },
+  { name: "Knowledge Base", icon: "📖", color: "text-blue-500" },
+  { name: "Services User Guide", icon: "📋", color: "text-amber-500" },
 ];
 
 const todoItems = [
@@ -37,13 +37,16 @@ const todoItems = [
 
 function LoadingSkeleton() {
   return (
-    <div className="animate-pulse space-y-6">
-      <div className="grid grid-cols-4 gap-4">
-        {[...Array(8)].map((_, i) => (
-          <div key={i} className="h-24 bg-slate-200 rounded-xl"></div>
+    <div className="animate-pulse space-y-4 lg:space-y-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 lg:gap-6">
+        <div className="lg:col-span-2 h-64 bg-slate-200 rounded-xl"></div>
+        <div className="h-64 bg-slate-200 rounded-xl"></div>
+      </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 lg:gap-6">
+        {[...Array(3)].map((_, i) => (
+          <div key={i} className="h-48 bg-slate-200 rounded-xl"></div>
         ))}
       </div>
-      <div className="h-48 bg-slate-200 rounded-xl"></div>
     </div>
   );
 }
@@ -62,8 +65,8 @@ export default function DashboardPage() {
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 4)
     .map((t) => ({
-      title: "Suggest a Change",
-      id: `#RM-${t._id.slice(-8)}`,
+      title: t.title || "Suggest a Change",
+      id: `#RM-${t._id.slice(-6)}`,
       assignee: "Mohamed Ali",
       dueIn: "1 day",
     }));
@@ -71,7 +74,6 @@ export default function DashboardPage() {
   // Calendar days
   const today = new Date();
   const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-  const currentDay = today.getDay();
   const calendarDays = [];
   for (let i = -3; i <= 3; i++) {
     const d = new Date(today);
@@ -91,36 +93,35 @@ export default function DashboardPage() {
   ];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 lg:space-y-6">
       {/* Top Row - Services Grid & Announcement */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
         {/* Most Services Request */}
-        <div className="lg:col-span-2">
+        <div className="xl:col-span-2">
           <Card padding="md">
             <div className="flex items-center justify-between mb-4">
               <div>
-                <h2 className="text-lg font-semibold text-slate-900">Most Services Request</h2>
+                <h2 className="text-base lg:text-lg font-semibold text-slate-900">Most Services Request</h2>
                 <p className="text-xs text-slate-500">Top 8 services</p>
               </div>
-              <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+              <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
                 Show More
               </button>
             </div>
-            <div className="grid grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-4">
               {services.map((service, index) => (
                 <div
                   key={index}
-                  className="flex flex-col items-center p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
+                  className="flex flex-col items-center p-3 lg:p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
                 >
-                  <div className={`w-12 h-12 ${service.color} rounded-xl flex items-center justify-center text-xl mb-2 group-hover:scale-110 transition-transform`}>
+                  <div className={`w-10 h-10 lg:w-12 lg:h-12 ${service.color} rounded-xl flex items-center justify-center text-lg lg:text-xl mb-2 group-hover:scale-110 transition-transform`}>
                     {service.icon}
                   </div>
-                  <p className="text-sm font-medium text-slate-700 text-center">{service.name}</p>
+                  <p className="text-xs lg:text-sm font-medium text-slate-700 text-center truncate w-full">{service.name}</p>
                   <div className="flex items-center gap-1 mt-1">
-                    <span className="text-yellow-500">⭐</span>
+                    <span className="text-yellow-500 text-xs">⭐</span>
                     <span className="text-xs text-slate-500">{service.rating}</span>
                   </div>
-                  <p className="text-xs text-slate-400 mt-0.5">0 day</p>
                 </div>
               ))}
             </div>
@@ -128,23 +129,23 @@ export default function DashboardPage() {
         </div>
 
         {/* Announcement */}
-        <div className="lg:col-span-1">
-          <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-6 h-full relative overflow-hidden">
+        <div className="xl:col-span-1">
+          <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-hidden min-h-[200px]">
             <div className="relative z-10">
               <span className="text-xs text-teal-200 font-medium">Announcement</span>
-              <h3 className="text-xl font-bold text-white mt-2 mb-2">Create CRM Reports</h3>
-              <p className="text-sm text-teal-100 mb-4 leading-relaxed">
+              <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-2">Create CRM Reports</h3>
+              <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3">
                 Outlines keep you and honest indulging in the poorly driving keep structure you honest great opportunity.
               </p>
-              <button className="px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-sm font-medium rounded-lg transition-colors">
+              <button className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors">
                 Create Report
               </button>
             </div>
             {/* Decorative illustration */}
-            <div className="absolute right-0 bottom-0 w-32 h-32 opacity-20">
+            <div className="absolute right-0 bottom-0 w-24 lg:w-32 h-24 lg:h-32 opacity-20">
               <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full transform translate-x-8 translate-y-8"></div>
             </div>
-            <div className="absolute right-8 top-8 w-16 h-16 opacity-30">
+            <div className="absolute right-6 lg:right-8 top-6 lg:top-8 w-12 lg:w-16 h-12 lg:h-16 opacity-30">
               <div className="w-full h-full bg-gradient-to-br from-pink-300 to-purple-400 rounded-full"></div>
             </div>
           </div>
@@ -152,45 +153,48 @@ export default function DashboardPage() {
       </div>
 
       {/* Middle Row - Last Update, Calendar, My Favorite */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
         {/* Last Update */}
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Last update</h2>
+              <h2 className="text-base lg:text-lg font-semibold text-slate-900">Last update</h2>
               <p className="text-xs text-slate-500">Top 4 records</p>
             </div>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <Link href="/tickets" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
               Show More
-            </button>
+            </Link>
           </div>
-          <div className="space-y-3">
+          <div className="space-y-2 lg:space-y-3">
             {recentUpdates.length > 0 ? (
               recentUpdates.map((update, index) => (
                 <div
                   key={index}
-                  className="flex items-center justify-between p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
+                  className="flex items-center justify-between p-2.5 lg:p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-                      <span className="text-blue-600 text-sm">📋</span>
+                  <div className="flex items-center gap-2 lg:gap-3 min-w-0">
+                    <div className="w-7 h-7 lg:w-8 lg:h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                      <span className="text-blue-600 text-xs lg:text-sm">📋</span>
                     </div>
-                    <div>
-                      <p className="text-sm font-medium text-slate-900">{update.title}</p>
+                    <div className="min-w-0">
+                      <p className="text-xs lg:text-sm font-medium text-slate-900 truncate">{update.title}</p>
                       <p className="text-xs text-slate-500">{update.id}</p>
-                      <p className="text-xs text-slate-400">
+                      <p className="text-xs text-slate-400 truncate">
                         Due in {update.dueIn} · <span className="text-blue-600">{update.assignee}</span>
                       </p>
                     </div>
                   </div>
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
                   </svg>
                 </div>
               ))
             ) : (
-              <div className="text-center py-8 text-slate-500">
-                <p className="text-sm">No recent updates</p>
+              <div className="text-center py-6 lg:py-8 text-slate-500">
+                <p className="text-xs lg:text-sm">No recent updates</p>
+                <Link href="/tickets/new" className="text-xs text-blue-600 hover:underline mt-1 inline-block">
+                  Create your first ticket
+                </Link>
               </div>
             )}
           </div>
@@ -200,27 +204,29 @@ export default function DashboardPage() {
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Calendar <span className="text-slate-400 font-normal">Events</span></h2>
+              <h2 className="text-base lg:text-lg font-semibold text-slate-900">
+                Calendar <span className="text-slate-400 font-normal">Events</span>
+              </h2>
               <p className="text-xs text-slate-500">Top 4 records</p>
             </div>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
               Show More
             </button>
           </div>
           
           {/* Calendar Week */}
-          <div className="flex justify-between mb-4">
+          <div className="flex justify-between mb-4 gap-1">
             {calendarDays.map((day, index) => (
               <div
                 key={index}
-                className={`flex flex-col items-center p-2 rounded-xl ${
+                className={`flex flex-col items-center p-1.5 lg:p-2 rounded-lg lg:rounded-xl flex-1 ${
                   day.isToday
                     ? "bg-blue-600 text-white"
                     : "text-slate-600 hover:bg-slate-50"
                 } transition-colors cursor-pointer`}
               >
-                <span className="text-xs font-medium">{day.day}</span>
-                <span className={`text-lg font-semibold ${day.isToday ? "text-white" : "text-slate-900"}`}>
+                <span className="text-[10px] lg:text-xs font-medium">{day.day}</span>
+                <span className={`text-sm lg:text-lg font-semibold ${day.isToday ? "text-white" : "text-slate-900"}`}>
                   {day.date}
                 </span>
               </div>
@@ -228,39 +234,39 @@ export default function DashboardPage() {
           </div>
 
           {/* Events List */}
-          <div className="space-y-2 max-h-40 overflow-y-auto">
+          <div className="space-y-2 max-h-32 lg:max-h-40 overflow-y-auto">
             {events.map((event, index) => (
               <div key={index} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                <div>
-                  <p className="text-xs text-slate-500">{event.time}</p>
-                  <p className="text-sm text-slate-700">{event.title}</p>
+                <div className="min-w-0">
+                  <p className="text-[10px] lg:text-xs text-slate-500">{event.time}</p>
+                  <p className="text-xs lg:text-sm text-slate-700 truncate">{event.title}</p>
                 </div>
-                <button className="text-xs text-blue-600 hover:text-blue-700">View</button>
+                <button className="text-xs text-blue-600 hover:text-blue-700 flex-shrink-0 ml-2">View</button>
               </div>
             ))}
           </div>
         </Card>
 
         {/* My Favorite */}
-        <Card padding="md">
+        <Card padding="md" className="md:col-span-2 xl:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">My Favorite</h2>
+              <h2 className="text-base lg:text-lg font-semibold text-slate-900">My Favorite</h2>
               <p className="text-xs text-slate-500">Top 5 records</p>
             </div>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
               Show More
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-1 lg:gap-2">
             {favoriteLinks.map((link, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
+                className="flex items-center justify-between p-2.5 lg:p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
               >
-                <div className="flex items-center gap-3">
-                  <span className="text-lg">{link.icon}</span>
-                  <span className="text-sm text-slate-700">{link.name}</span>
+                <div className="flex items-center gap-2 lg:gap-3">
+                  <span className={`text-base lg:text-lg ${link.color}`}>{link.icon}</span>
+                  <span className="text-xs lg:text-sm text-slate-700">{link.name}</span>
                 </div>
                 <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
@@ -272,22 +278,22 @@ export default function DashboardPage() {
       </div>
 
       {/* Bottom Row - Voting, Suggesting, Todo */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 lg:gap-6">
         {/* Voting */}
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Voting</h2>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <h2 className="text-base lg:text-lg font-semibold text-slate-900">Voting</h2>
+            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
               Show History
             </button>
           </div>
-          <p className="text-sm text-slate-600 mb-4">What do you think of the new portals system.?</p>
+          <p className="text-xs lg:text-sm text-slate-600 mb-4">What do you think of the new portals system?</p>
           <div className="space-y-2">
             {["Great", "Good", "Acceptable"].map((option) => (
               <button
                 key={option}
                 onClick={() => setVotingSelection(option)}
-                className={`w-full py-3 px-4 rounded-xl border-2 text-sm font-medium transition-all ${
+                className={`w-full py-2.5 lg:py-3 px-4 rounded-xl border-2 text-xs lg:text-sm font-medium transition-all ${
                   votingSelection === option
                     ? "border-blue-600 bg-blue-50 text-blue-700"
                     : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
@@ -302,17 +308,17 @@ export default function DashboardPage() {
         {/* Suggesting */}
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-slate-900">Suggesting</h2>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <h2 className="text-base lg:text-lg font-semibold text-slate-900">Suggesting</h2>
+            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
               Show History
             </button>
           </div>
-          <p className="text-sm text-slate-600 mb-4">how we can improve your experience</p>
+          <p className="text-xs lg:text-sm text-slate-600 mb-4">How we can improve your experience</p>
           <div className="space-y-3">
             <select
               value={suggestionCategory}
               onChange={(e) => setSuggestionCategory(e.target.value)}
-              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+              className="w-full py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl border border-slate-200 text-xs lg:text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             >
               <option value="">Select category</option>
               <option value="ui">UI/UX</option>
@@ -325,40 +331,40 @@ export default function DashboardPage() {
               onChange={(e) => setSuggestionText(e.target.value)}
               placeholder="Type your suggestion here..."
               rows={3}
-              className="w-full py-2.5 px-4 rounded-xl border border-slate-200 text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
+              className="w-full py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl border border-slate-200 text-xs lg:text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
             />
-            <Button variant="gradient" className="w-full">
+            <Button variant="gradient" className="w-full text-sm">
               Submit
             </Button>
           </div>
         </Card>
 
         {/* Todo */}
-        <Card padding="md">
+        <Card padding="md" className="md:col-span-2 xl:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-slate-900">Todo</h2>
+              <h2 className="text-base lg:text-lg font-semibold text-slate-900">Todo</h2>
               <p className="text-xs text-slate-500">Top 5 records</p>
             </div>
-            <button className="text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
               Show More
             </button>
           </div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-1 lg:gap-2">
             {todoItems.map((todo, index) => (
               <div
                 key={index}
-                className="flex items-center gap-3 p-3 hover:bg-slate-50 rounded-xl transition-colors"
+                className="flex items-center gap-2 lg:gap-3 p-2.5 lg:p-3 hover:bg-slate-50 rounded-xl transition-colors"
               >
                 <input
                   type="checkbox"
                   checked={todo.completed}
                   onChange={() => {}}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
                 />
-                <div className="flex-1">
-                  <p className="text-sm font-medium text-slate-900">{todo.title}</p>
-                  <p className="text-xs text-slate-500">{todo.due}</p>
+                <div className="min-w-0">
+                  <p className="text-xs lg:text-sm font-medium text-slate-900 truncate">{todo.title}</p>
+                  <p className="text-[10px] lg:text-xs text-slate-500">{todo.due}</p>
                 </div>
               </div>
             ))}
