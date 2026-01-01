@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Id } from "@/convex/_generated/dataModel";
+import { useRouter } from "next/navigation";
 
 // Service icons for the grid
 const services = [
@@ -80,6 +81,11 @@ export default function DashboardPage() {
 
   // Fetch all users to get assignee names
   const users = useQuery(api.users.list, {});
+  
+  // Fetch latest announcement
+  const announcement = useQuery(api.announcements.getLatest, {});
+  
+  const router = useRouter();
 
   if (tickets === undefined) {
     return <LoadingSkeleton />;
@@ -191,13 +197,46 @@ export default function DashboardPage() {
           <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-hidden min-h-[200px]">
             <div className="relative z-10">
               <span className="text-xs text-teal-200 font-medium">Announcement</span>
-              <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-2">Create CRM Reports</h3>
-              <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3">
-                Outlines keep you and honest indulging in the poorly driving keep structure you honest great opportunity.
-              </p>
-              <button className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors">
-                Create Report
-              </button>
+              {announcement ? (
+                <>
+                  <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-2">
+                    {announcement.title}
+                  </h3>
+                  <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3">
+                    {announcement.content}
+                  </p>
+                  {announcement.buttonText && (
+                    <button 
+                      onClick={() => {
+                        if (announcement.buttonLink) {
+                          if (announcement.buttonLink.startsWith("http")) {
+                            window.open(announcement.buttonLink, "_blank");
+                          } else {
+                            router.push(announcement.buttonLink);
+                          }
+                        }
+                      }}
+                      className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+                    >
+                      {announcement.buttonText}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <>
+                  <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-2">
+                    Welcome to Palmware
+                  </h3>
+                  <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3">
+                    Your centralized IT Service Management platform for efficient ticket handling and support.
+                  </p>
+                  <Link href="/tickets">
+                    <button className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors">
+                      View Tickets
+                    </button>
+                  </Link>
+                </>
+              )}
             </div>
             {/* Decorative illustration */}
             <div className="absolute right-0 bottom-0 w-24 lg:w-32 h-24 lg:h-32 opacity-20">

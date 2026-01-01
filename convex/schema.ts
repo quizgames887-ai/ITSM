@@ -187,6 +187,22 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_teamId_userId", ["teamId", "userId"]),
 
+  // Announcements
+  announcements: defineTable({
+    title: v.string(),
+    content: v.string(),
+    buttonText: v.optional(v.string()),
+    buttonLink: v.optional(v.string()),
+    isActive: v.boolean(),
+    priority: v.number(), // Higher = shown first
+    expiresAt: v.optional(v.number()), // Optional expiration date
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_isActive", ["isActive"])
+    .index("by_priority", ["priority"]),
+
   // Auto-assignment Rules
   assignmentRules: defineTable({
     name: v.string(),
