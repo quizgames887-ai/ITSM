@@ -36,7 +36,13 @@ export const getStorageUrl = query({
   },
   handler: async (ctx, args) => {
     if (!args.storageId) return null;
-    return await ctx.storage.getUrl(args.storageId);
+    try {
+      return await ctx.storage.getUrl(args.storageId);
+    } catch (error) {
+      // If storage file doesn't exist or is invalid, return null
+      console.error("Error getting storage URL:", error);
+      return null;
+    }
   },
 });
 
