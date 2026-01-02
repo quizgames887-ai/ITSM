@@ -9,14 +9,32 @@ import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/EmptyState";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 
 const TICKET_CATEGORIES = ["IT Support", "HR", "Finance", "Facilities", "Security", "Other"];
 
 export default function TicketsPage() {
-  const tickets = useQuery(api.tickets.list, {});
+  const [userId, setUserId] = useState<string | null>(null);
+  const [userRole, setUserRole] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const id = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+    const role = typeof window !== "undefined" ? localStorage.getItem("userRole") : null;
+    if (id) setUserId(id);
+    if (role) setUserRole(role);
+  }, []);
+
+  const tickets = useQuery(
+    api.tickets.list,
+    userId && userRole
+      ? {
+          userId: userId as Id<"users">,
+          userRole: userRole as "user" | "agent" | "admin",
+        }
+      : "skip"
+  );
   const users = useQuery(api.users.list, {});
   const createTicket = useMutation(api.tickets.create);
   
@@ -36,7 +54,7 @@ export default function TicketsPage() {
     category: "IT Support",
   });
 
-  const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
+  const currentUserId = userId;
 
   if (tickets === undefined) {
     return (

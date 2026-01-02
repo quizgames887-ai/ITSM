@@ -68,16 +68,18 @@ export default function DashboardPage() {
     if (role) setUserRole(role);
   }, []);
 
-  // Admins and agents see all tickets, regular users see only their own
-  const isAdminOrAgent = userRole === "admin" || userRole === "agent";
-  
+  // Role-based ticket visibility:
+  // - Admin: sees all tickets
+  // - Agent: sees tickets they created OR tickets assigned to them
+  // - User: sees only tickets they created
   const tickets = useQuery(
-    api.tickets.list, 
-    isAdminOrAgent 
-      ? {} 
-      : userId 
-        ? { createdBy: userId as Id<"users"> } 
-        : "skip"
+    api.tickets.list,
+    userId && userRole
+      ? {
+          userId: userId as Id<"users">,
+          userRole: userRole as "user" | "agent" | "admin",
+        }
+      : "skip"
   );
 
   // Fetch all users to get assignee names
@@ -207,7 +209,7 @@ export default function DashboardPage() {
             <div>
               <h2 className="text-base lg:text-lg font-semibold text-slate-900">Last update</h2>
               <p className="text-xs text-slate-500">
-                {isAdminOrAgent ? "All tickets" : "Your tickets"} · Top 5
+                {userRole === "admin" ? "All tickets" : userRole === "agent" ? "Your tickets & assignments" : "Your tickets"} · Top 5
               </p>
             </div>
             <Link href="/tickets" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">

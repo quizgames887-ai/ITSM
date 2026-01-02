@@ -146,12 +146,31 @@ export const list = query({
     category: v.optional(v.string()),
     assignedTo: v.optional(v.id("users")),
     createdBy: v.optional(v.id("users")),
+    // Role-based filtering parameters
+    userId: v.optional(v.id("users")),
+    userRole: v.optional(v.union(v.literal("user"), v.literal("agent"), v.literal("admin"))),
   },
   handler: async (ctx, args) => {
     // Get all tickets and filter in memory for flexibility
-    const allTickets = await ctx.db.query("tickets").collect();
+    let allTickets = await ctx.db.query("tickets").collect();
 
-    // Apply filters
+    // Apply role-based filtering first
+    if (args.userId && args.userRole) {
+      if (args.userRole === "admin") {
+        // Admin sees all tickets - no filtering needed
+        // allTickets remains unchanged
+      } else if (args.userRole === "agent") {
+        // Agent sees tickets they created OR tickets assigned to them
+        allTickets = allTickets.filter(
+          (t) => t.createdBy === args.userId || t.assignedTo === args.userId
+        );
+      } else if (args.userRole === "user") {
+        // User sees only tickets they created
+        allTickets = allTickets.filter((t) => t.createdBy === args.userId);
+      }
+    }
+
+    // Apply additional filters
     let filtered = allTickets;
     if (args.status) {
       filtered = filtered.filter((t) => t.status === args.status);
