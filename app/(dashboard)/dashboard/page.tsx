@@ -127,6 +127,12 @@ export default function DashboardPage() {
   // Fetch all active announcements for slider
   const announcements = useQuery(api.announcements.getActive, {});
   
+  // Fetch storage URL for selected service logo
+  const selectedServiceLogoUrl = useQuery(
+    api.serviceCatalog.getStorageUrl,
+    selectedService?.logoId ? { storageId: selectedService.logoId } : "skip"
+  );
+  
   const router = useRouter();
   const createTicket = useMutation(api.tickets.create);
   const { success, error: showError } = useToastContext();
@@ -494,9 +500,9 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
                     <div className={`w-12 h-12 ${selectedService.color} rounded-xl flex items-center justify-center text-2xl overflow-hidden`}>
-                      {selectedService.logoId && storageUrl ? (
+                      {selectedServiceLogoUrl ? (
                         <img 
-                          src={storageUrl(selectedService.logoId)} 
+                          src={selectedServiceLogoUrl} 
                           alt={selectedService.name}
                           className="w-full h-full object-cover"
                         />
