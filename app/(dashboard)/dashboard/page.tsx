@@ -16,11 +16,31 @@ import { useToastContext } from "@/contexts/ToastContext";
 
 // Services will be fetched from the database
 
+// Helper to normalize logoId (handle cases where it might be a string)
+function normalizeLogoId(logoId: any): Id<"_storage"> | null {
+  if (!logoId) return null;
+  if (typeof logoId === "string") {
+    try {
+      // Try to parse if it's a JSON string
+      const parsed = JSON.parse(logoId);
+      if (typeof parsed === "object" && parsed.storageId) {
+        return parsed.storageId as Id<"_storage">;
+      }
+      return parsed as Id<"_storage">;
+    } catch {
+      // If not JSON, treat as direct storage ID
+      return logoId as Id<"_storage">;
+    }
+  }
+  return logoId as Id<"_storage">;
+}
+
 // Component to handle service logo display with storage URL
 function ServiceLogoDisplay({ service, size = "small" }: { service: any; size?: "small" | "medium" | "large" }) {
+  const normalizedLogoId = normalizeLogoId(service?.logoId);
   const logoUrl = useQuery(
     api.serviceCatalog.getStorageUrl,
-    service?.logoId ? { storageId: service.logoId } : "skip"
+    normalizedLogoId ? { storageId: normalizedLogoId } : "skip"
   );
 
   const sizeClasses = {
@@ -128,9 +148,10 @@ export default function DashboardPage() {
   const announcements = useQuery(api.announcements.getActive, {});
   
   // Fetch storage URL for selected service logo
+  const normalizedSelectedLogoId = normalizeLogoId(selectedService?.logoId);
   const selectedServiceLogoUrl = useQuery(
     api.serviceCatalog.getStorageUrl,
-    selectedService?.logoId ? { storageId: selectedService.logoId } : "skip"
+    normalizedSelectedLogoId ? { storageId: normalizedSelectedLogoId } : "skip"
   );
   
   const router = useRouter();

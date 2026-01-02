@@ -26,11 +26,31 @@ const COLOR_OPTIONS = [
   { value: "bg-slate-100", label: "Slate/Gray" },
 ];
 
+// Helper to normalize logoId (handle cases where it might be a string)
+function normalizeLogoId(logoId: any): Id<"_storage"> | null {
+  if (!logoId) return null;
+  if (typeof logoId === "string") {
+    try {
+      // Try to parse if it's a JSON string
+      const parsed = JSON.parse(logoId);
+      if (typeof parsed === "object" && parsed.storageId) {
+        return parsed.storageId as Id<"_storage">;
+      }
+      return parsed as Id<"_storage">;
+    } catch {
+      // If not JSON, treat as direct storage ID
+      return logoId as Id<"_storage">;
+    }
+  }
+  return logoId as Id<"_storage">;
+}
+
 // Component to handle service logo display with storage URL
 function ServiceLogo({ service }: { service: any }) {
+  const normalizedLogoId = normalizeLogoId(service.logoId);
   const logoUrl = useQuery(
     api.serviceCatalog.getStorageUrl,
-    service.logoId ? { storageId: service.logoId } : "skip"
+    normalizedLogoId ? { storageId: normalizedLogoId } : "skip"
   );
 
   return (
@@ -50,9 +70,10 @@ function ServiceLogo({ service }: { service: any }) {
 
 // Component to load logo preview for form
 function LogoPreviewLoader({ logoId, onLoad }: { logoId: Id<"_storage"> | null; onLoad: (url: string | null) => void }) {
+  const normalizedLogoId = normalizeLogoId(logoId);
   const logoUrl = useQuery(
     api.serviceCatalog.getStorageUrl,
-    logoId ? { storageId: logoId } : "skip"
+    normalizedLogoId ? { storageId: normalizedLogoId } : "skip"
   );
 
   useEffect(() => {

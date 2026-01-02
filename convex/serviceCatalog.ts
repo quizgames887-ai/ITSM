@@ -32,12 +32,36 @@ export const get = query({
 
 export const getStorageUrl = query({
   args: {
-    storageId: v.union(v.id("_storage"), v.null()),
+    storageId: v.union(v.id("_storage"), v.null(), v.string()),
   },
   handler: async (ctx, args) => {
     if (!args.storageId) return null;
+    
+    // Handle case where storageId might be a JSON string
+    let actualStorageId: Id<"_storage"> | null = null;
+    if (typeof args.storageId === "string") {
+      try {
+        // Try to parse if it's a JSON string
+        const parsed = JSON.parse(args.storageId);
+        if (typeof parsed === "object" && parsed.storageId) {
+          actualStorageId = parsed.storageId as Id<"_storage">;
+        } else if (typeof parsed === "string") {
+          actualStorageId = parsed as Id<"_storage">;
+        } else {
+          actualStorageId = args.storageId as Id<"_storage">;
+        }
+      } catch {
+        // If not JSON, treat as direct storage ID string
+        actualStorageId = args.storageId as Id<"_storage">;
+      }
+    } else {
+      actualStorageId = args.storageId;
+    }
+    
+    if (!actualStorageId) return null;
+    
     try {
-      return await ctx.storage.getUrl(args.storageId);
+      return await ctx.storage.getUrl(actualStorageId);
     } catch (error) {
       // If storage file doesn't exist or is invalid, return null
       console.error("Error getting storage URL:", error);
