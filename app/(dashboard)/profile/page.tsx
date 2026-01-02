@@ -11,7 +11,6 @@ import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { ProfileSkeleton } from "@/components/ui/LoadingSkeleton";
 import { PasswordStrength } from "@/components/ui/PasswordStrength";
-import { useQuery } from "convex/react";
 
 function ProfilePageContent() {
   const router = useRouter();
