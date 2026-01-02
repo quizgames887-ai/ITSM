@@ -75,6 +75,38 @@ export default function SLAPage() {
   const isAdmin = currentUser?.role === "admin";
   const agents = users?.filter((u) => u.role === "agent") || [];
 
+  // Helper function to find escalation rules that use SLA deadlines
+  const getEscalationsUsingSLA = (policyPriority: string) => {
+    if (!escalationRules) return [];
+    return escalationRules.filter(rule => {
+      if (!rule.isActive) return false;
+      // Check if rule matches this priority and uses overdueBy condition
+      const matchesPriority = !rule.conditions.priorities || 
+        rule.conditions.priorities.length === 0 ||
+        rule.conditions.priorities.includes(policyPriority);
+      const usesSLA = rule.conditions.overdueBy !== undefined && rule.conditions.overdueBy !== null;
+      return matchesPriority && usesSLA;
+    });
+  };
+
+  // Helper function to find SLA policies that match escalation rule priorities
+  const getSLAPoliciesForEscalation = (rule: any) => {
+    if (!slaPolicies) return [];
+    if (!rule.conditions.priorities || rule.conditions.priorities.length === 0) {
+      return slaPolicies.filter(p => p.enabled);
+    }
+    return slaPolicies.filter(p => 
+      p.enabled && rule.conditions.priorities.includes(p.priority)
+    );
+  };
+
+  // Format time in minutes to human readable
+  const formatTime = (minutes: number) => {
+    if (minutes < 60) return `${minutes}m`;
+    if (minutes < 1440) return `${Math.floor(minutes / 60)}h`;
+    return `${Math.floor(minutes / 1440)}d`;
+  };
+
   const resetPolicyForm = () => {
     setPolicyFormData({
       name: "",
@@ -338,13 +370,6 @@ export default function SLAPage() {
     }
   };
 
-  // Format time in minutes to human readable
-  const formatTime = (minutes: number) => {
-    if (minutes < 60) return `${minutes}m`;
-    if (minutes < 1440) return `${Math.floor(minutes / 60)}h`;
-    return `${Math.floor(minutes / 1440)}d`;
-  };
-
   if (slaPolicies === undefined || escalationRules === undefined || currentUser === undefined) {
     return (
       <div className="animate-pulse space-y-4">
@@ -380,6 +405,30 @@ export default function SLAPage() {
           </p>
         </div>
       </div>
+
+      {/* Connection Summary */}
+      <Card padding="sm" className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-blue-100 rounded-lg">
+            <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-sm font-semibold text-slate-900">SLA & Escalation Connection</h3>
+            <p className="text-xs text-slate-600 mt-0.5">
+              {slaPolicies && escalationRules ? (
+                <>
+                  {slaPolicies.filter(p => p.enabled).length} active SLA policies • {" "}
+                  {escalationRules.filter(r => r.isActive && r.conditions.overdueBy).length} escalation rules using SLA deadlines
+                </>
+              ) : (
+                "Loading connections..."
+              )}
+            </p>
+          </div>
+        </div>
+      </Card>
 
       {/* Tabs */}
       <div className="border-b border-slate-200">
@@ -507,7 +556,7 @@ export default function SLAPage() {
           {slaPolicies && slaPolicies.length > 0 ? (
             <div className="space-y-3">
               {slaPolicies.map((policy) => (
-                <Card key={policy._id} padding="none" className={`overflow-hidden ${!policy.enabled ? "opacity-60" : ""}`}>
+                <Card key={policy._id} id={`policy-${policy._id}`} padding="none" className={`overflow-hidden ${!policy.enabled ? "opacity-60" : ""}`}>
                   <div className="flex items-start gap-4 p-4">
                     <div className={`w-2 h-full min-h-[80px] rounded-full ${
                       policy.enabled ? "bg-green-500" : "bg-slate-300"
@@ -543,7 +592,61 @@ export default function SLAPage() {
                             {new Date(policy.createdAt).toLocaleDateString()}
                           </p>
                         </div>
+                        <div>
+                          <p className="text-xs text-slate-500">Linked Escalations</p>
+                          {(() => {
+                            const linkedEscalations = getEscalationsUsingSLA(policy.priority);
+                            return linkedEscalations.length > 0 ? (
+                              <div className="flex items-center gap-1 mt-1">
+                                <span className="text-sm font-medium text-orange-600">{linkedEscalations.length}</span>
+                                <svg className="w-4 h-4 text-orange-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                </svg>
+                              </div>
+                            ) : (
+                              <p className="text-xs text-slate-400 mt-1">None</p>
+                            );
+                          })()}
+                        </div>
                       </div>
+                      
+                      {/* Show linked escalation rules */}
+                      {(() => {
+                        const linkedEscalations = getEscalationsUsingSLA(policy.priority);
+                        if (linkedEscalations.length > 0) {
+                          return (
+                            <div className="mt-3 pt-3 border-t border-slate-200">
+                              <p className="text-xs font-medium text-slate-600 mb-2">Connected Escalation Rules:</p>
+                              <div className="flex flex-wrap gap-2">
+                                {linkedEscalations.map((rule) => (
+                                  <button
+                                    key={rule._id}
+                                    onClick={() => {
+                                      setActiveTab("escalations");
+                                      setTimeout(() => {
+                                        const element = document.getElementById(`escalation-${rule._id}`);
+                                        element?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                      }, 100);
+                                    }}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100 transition-colors"
+                                  >
+                                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+                                    </svg>
+                                    {rule.name}
+                                    {rule.conditions.overdueBy && (
+                                      <span className="text-orange-600 font-medium">
+                                        (+{formatTime(rule.conditions.overdueBy)})
+                                      </span>
+                                    )}
+                                  </button>
+                                ))}
+                              </div>
+                            </div>
+                          );
+                        }
+                        return null;
+                      })()}
                     </div>
 
                     <div className="flex items-center gap-1">
@@ -899,8 +1002,12 @@ export default function SLAPage() {
             <div className="space-y-3">
               {escalationRules
                 .sort((a, b) => a.priority - b.priority)
-                .map((rule) => (
-                <Card key={rule._id} padding="none" className={`overflow-hidden ${!rule.isActive ? "opacity-60" : ""}`}>
+                .map((rule) => {
+                  const linkedSLAs = getSLAPoliciesForEscalation(rule);
+                  const usesSLA = rule.conditions.overdueBy !== undefined && rule.conditions.overdueBy !== null;
+                  
+                  return (
+                <Card key={rule._id} id={`escalation-${rule._id}`} padding="none" className={`overflow-hidden ${!rule.isActive ? "opacity-60" : ""}`}>
                   <div className="flex items-start gap-4 p-4">
                     <div className={`w-2 h-full min-h-[80px] rounded-full ${
                       rule.isActive ? "bg-orange-500" : "bg-slate-300"
@@ -919,10 +1026,53 @@ export default function SLAPage() {
                         <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
                           Priority: {rule.priority}
                         </span>
+                        {usesSLA && (
+                          <span className="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full flex items-center gap-1">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            Uses SLA
+                          </span>
+                        )}
                       </div>
                       
                       {rule.description && (
                         <p className="text-sm text-slate-600 mt-1">{rule.description}</p>
+                      )}
+                      
+                      {/* Show linked SLA policies */}
+                      {usesSLA && linkedSLAs.length > 0 && (
+                        <div className="mt-2 pt-2 border-t border-slate-100">
+                          <p className="text-xs font-medium text-slate-600 mb-1.5">Linked SLA Policies:</p>
+                          <div className="flex flex-wrap gap-2">
+                            {linkedSLAs.map((sla) => (
+                              <button
+                                key={sla._id}
+                                onClick={() => {
+                                  setActiveTab("policies");
+                                  setTimeout(() => {
+                                    const element = document.getElementById(`policy-${sla._id}`);
+                                    element?.scrollIntoView({ behavior: "smooth", block: "center" });
+                                  }, 100);
+                                }}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs rounded-lg bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 transition-colors"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                </svg>
+                                {sla.name} ({sla.priority})
+                                <span className="text-blue-600 font-medium">
+                                  {formatTime(sla.resolutionTime)}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                          {rule.conditions.overdueBy && (
+                            <p className="text-xs text-slate-500 mt-1.5">
+                              Escalates {formatTime(rule.conditions.overdueBy)} after SLA deadline
+                            </p>
+                          )}
+                        </div>
                       )}
                       
                       <div className="mt-3 space-y-2">
@@ -1020,7 +1170,8 @@ export default function SLAPage() {
                     </div>
                   </div>
                 </Card>
-              ))}
+              );
+                })}
             </div>
           ) : (
             <Card padding="lg">
