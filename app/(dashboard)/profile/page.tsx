@@ -226,8 +226,8 @@ function ProfilePageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto animate-fade-in">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 py-6 px-4 sm:py-8 sm:px-6 lg:py-12 lg:px-8">
+      <div className="max-w-6xl mx-auto animate-fade-in">
         {/* Impersonation Banner */}
         {isImpersonating && (
           <Card className="mb-6 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50" padding="md">
@@ -283,12 +283,17 @@ function ProfilePageContent() {
           </Card>
         )}
 
-        <div className="mb-6 sm:mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-2">
-            <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent">
-              {isImpersonating ? `Profile - ${user?.name}` : "Profile"}
-            </h1>
-            <div className="flex gap-2 w-full sm:w-auto">
+        <div className="mb-8 sm:mb-10 lg:mb-12">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 sm:gap-6 mb-3">
+            <div>
+              <h1 className="text-3xl sm:text-4xl lg:text-5xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2">
+                {isImpersonating ? `Profile - ${user?.name}` : "Profile"}
+              </h1>
+              <p className="text-base sm:text-lg text-slate-600">
+                {isImpersonating ? "Viewing user profile (read-only)" : "Manage your account information"}
+              </p>
+            </div>
+            <div className="flex gap-3 w-full sm:w-auto">
               {isImpersonating ? (
                 <Button
                   variant="outline"
@@ -307,20 +312,17 @@ function ProfilePageContent() {
               )}
             </div>
           </div>
-          <p className="text-sm sm:text-base text-slate-600">
-            {isImpersonating ? "Viewing user profile (read-only)" : "Manage your account information"}
-          </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
           {/* Personal Information - Main Section */}
           <Card className="lg:col-span-2" hover padding="lg">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-8 pb-6 border-b border-slate-200">
               <div>
-                <h2 className="text-xl sm:text-2xl font-semibold text-slate-900">
+                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
                   Personal Information
                 </h2>
-                <p className="text-sm text-slate-500 mt-1">Update your profile details</p>
+                <p className="text-sm sm:text-base text-slate-500">Update your profile details</p>
               </div>
               {!isEditing && !isImpersonating && (
                 <Button
@@ -342,10 +344,10 @@ function ProfilePageContent() {
             </div>
 
             {error && (
-              <div className="mb-4 p-4 bg-red-50 border-l-4 border-red-400 rounded-lg animate-slide-in">
+              <div className="mb-6 p-4 sm:p-5 bg-red-50 border-l-4 border-red-400 rounded-xl animate-slide-in">
                 <div className="flex items-center">
                   <svg
-                    className="w-5 h-5 text-red-400 mr-2"
+                    className="w-5 h-5 text-red-400 mr-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -357,16 +359,16 @@ function ProfilePageContent() {
                       d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <p className="text-sm text-red-600 font-medium">{error}</p>
+                  <p className="text-sm sm:text-base text-red-600 font-medium">{error}</p>
                 </div>
               </div>
             )}
 
             {success && (
-              <div className="mb-4 p-4 bg-green-50 border-l-4 border-green-400 rounded-lg animate-slide-in">
+              <div className="mb-6 p-4 sm:p-5 bg-green-50 border-l-4 border-green-400 rounded-xl animate-slide-in">
                 <div className="flex items-center">
                   <svg
-                    className="w-5 h-5 text-green-400 mr-2"
+                    className="w-5 h-5 text-green-400 mr-3"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -378,89 +380,130 @@ function ProfilePageContent() {
                       d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                     />
                   </svg>
-                  <p className="text-sm text-green-600 font-medium">{success}</p>
+                  <p className="text-sm sm:text-base text-green-600 font-medium">{success}</p>
                 </div>
               </div>
             )}
 
-            <div className="space-y-6">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-4 sm:gap-6 mb-6 pb-6 border-b border-slate-200">
-                <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-xl sm:text-2xl font-bold shadow-lg hover:shadow-xl transition-all hover:scale-105 flex-shrink-0">
-                  {getInitials(user.name)}
+            <div className="space-y-8">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 pb-8 border-b border-slate-200">
+                <div className="relative group flex-shrink-0">
+                  <div className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105 ring-4 ring-white">
+                    {getInitials(user.name)}
+                  </div>
+                  {!isImpersonating && (
+                    <button
+                      onClick={() => {
+                        // TODO: Implement profile picture upload
+                        alert("Profile picture upload coming soon!");
+                      }}
+                      className="absolute bottom-0 right-0 p-2.5 sm:p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors border-3 border-white"
+                      title="Change profile picture"
+                    >
+                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
                 <div className="text-center sm:text-left flex-1">
-                  <h3 className="text-lg sm:text-xl font-semibold text-slate-900">
+                  <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
                     {user.name}
                     {isImpersonating && (
-                      <span className="ml-2 text-xs text-amber-600 font-normal">
+                      <span className="ml-2 text-sm text-amber-600 font-normal">
                         (Viewing)
                       </span>
                     )}
                   </h3>
-                  <p className="text-sm sm:text-base text-slate-600 break-words">{user.email}</p>
-                  <span className="inline-block mt-2 px-3 py-1.5 rounded-lg text-xs font-semibold border bg-indigo-50 text-indigo-700 border-indigo-200 capitalize">
-                    {user.role}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <Input
-                  label="Name"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="Your name"
-                />
-              </div>
-
-              <div>
-                <Input
-                  label="Email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  disabled={!isEditing}
-                  placeholder="your.email@example.com"
-                />
-              </div>
-
-              {/* Role Information - Only show if not admin or if admin wants to see it */}
-              <div className="p-4 bg-slate-50 rounded-xl border border-slate-200">
-                <label className="block text-sm font-medium text-slate-700 mb-2">
-                  Account Role
-                </label>
-                <div className="flex items-center gap-2 mb-2">
-                  <span
-                    className={`px-3 py-1.5 rounded-lg border font-medium capitalize text-sm ${
+                  <p className="text-base sm:text-lg text-slate-600 break-words mb-4">{user.email}</p>
+                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                    <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border capitalize ${
                       user.role === "admin"
-                        ? "bg-purple-100 text-purple-700 border-purple-200"
+                        ? "bg-purple-50 text-purple-700 border-purple-200"
                         : user.role === "agent"
-                        ? "bg-blue-100 text-blue-700 border-blue-200"
-                        : "bg-slate-100 text-slate-700 border-slate-200"
-                    }`}
-                  >
-                    {user.role}
-                  </span>
+                        ? "bg-blue-50 text-blue-700 border-blue-200"
+                        : "bg-slate-50 text-slate-700 border-slate-200"
+                    }`}>
+                      {user.role === "admin" && (
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                      )}
+                      {user.role}
+                    </span>
+                    {user.role === "admin" && (
+                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg">
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                        </svg>
+                        Full Access
+                      </span>
+                    )}
+                  </div>
                 </div>
-                {user.role !== "admin" && (
-                  <p className="text-xs text-slate-500">
-                    Contact an administrator to change your role
-                  </p>
-                )}
+              </div>
+
+              <div className="space-y-6 pt-2">
+                <div>
+                  <Input
+                    label="Name"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="Your name"
+                  />
+                </div>
+
+                <div>
+                  <Input
+                    label="Email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    disabled={!isEditing}
+                    placeholder="your.email@example.com"
+                  />
+                </div>
+
+                {/* Role Information */}
+                <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                  <label className="block text-sm font-semibold text-slate-700 mb-3">
+                    Account Role
+                  </label>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span
+                      className={`px-4 py-2 rounded-lg border font-medium capitalize text-sm ${
+                        user.role === "admin"
+                          ? "bg-purple-100 text-purple-700 border-purple-200"
+                          : user.role === "agent"
+                          ? "bg-blue-100 text-blue-700 border-blue-200"
+                          : "bg-slate-100 text-slate-700 border-slate-200"
+                      }`}
+                    >
+                      {user.role}
+                    </span>
+                  </div>
+                  {user.role !== "admin" && (
+                    <p className="text-xs sm:text-sm text-slate-500 mt-2">
+                      Contact an administrator to change your role
+                    </p>
+                  )}
+                </div>
               </div>
 
               {isEditing && !isImpersonating && (
-                <div className="flex gap-3 pt-4 border-t border-slate-200">
+                <div className="flex gap-3 pt-6 border-t border-slate-200">
                   <Button
                     variant="gradient"
                     onClick={handleSave}
                     disabled={loading}
                     loading={loading}
+                    className="px-6"
                   >
                     {loading ? "Saving..." : "💾 Save Changes"}
                   </Button>
-                  <Button variant="outline" onClick={handleCancel}>
+                  <Button variant="outline" onClick={handleCancel} className="px-6">
                     Cancel
                   </Button>
                 </div>
@@ -469,12 +512,12 @@ function ProfilePageContent() {
           </Card>
 
           {/* Password Reset Section */}
-          <Card hover padding="lg" className="mb-4 sm:mb-6 border-2 border-slate-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-4">
+          <Card hover padding="lg" className="border-2 border-slate-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-6 pb-6 border-b border-slate-200">
               <div>
-                <h2 className="text-lg sm:text-xl font-semibold text-slate-900 flex items-center gap-2 mb-1">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2 mb-2">
                   <svg
-                    className="w-5 h-5 text-indigo-600"
+                    className="w-6 h-6 text-indigo-600"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -489,7 +532,7 @@ function ProfilePageContent() {
                   Password Reset
                 </h2>
                 {!showPasswordReset && (
-                  <p className="text-sm text-slate-500">
+                  <p className="text-sm sm:text-base text-slate-500">
                     Keep your account secure
                   </p>
                 )}
@@ -514,7 +557,7 @@ function ProfilePageContent() {
             </div>
 
             {showPasswordReset && (
-              <div className="space-y-4">
+              <div className="space-y-5 sm:space-y-6">
                 {passwordError && (
                   <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded-lg animate-slide-in">
                     <div className="flex items-center">
@@ -617,9 +660,9 @@ function ProfilePageContent() {
 
           {/* Account Details Section */}
           <Card hover padding="lg">
-            <h2 className="text-lg sm:text-xl font-semibold text-slate-900 mb-4 sm:mb-6 flex items-center gap-2">
+            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-6 pb-6 border-b border-slate-200 flex items-center gap-2">
               <svg
-                className="w-5 h-5 text-indigo-600"
+                className="w-6 h-6 text-indigo-600"
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -633,17 +676,17 @@ function ProfilePageContent() {
               </svg>
               Account Details
             </h2>
-            <div className="space-y-4">
-              <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <div className="space-y-5">
+              <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
                     Account Created
                   </p>
                 </div>
-                <p className="text-slate-900 font-semibold text-sm">
+                <p className="text-slate-900 font-bold text-base">
                   {new Date(user.createdAt).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
@@ -652,16 +695,16 @@ function ProfilePageContent() {
                 </p>
               </div>
 
-              <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
                     Last Updated
                   </p>
                 </div>
-                <p className="text-slate-900 font-semibold text-sm">
+                <p className="text-slate-900 font-bold text-base">
                   {new Date(user.updatedAt).toLocaleDateString("en-US", {
                     year: "numeric",
                     month: "long",
@@ -670,20 +713,20 @@ function ProfilePageContent() {
                 </p>
               </div>
 
-              <div className="p-4 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">
+                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
                     Onboarding Status
                   </p>
                 </div>
-                <p className="text-slate-900 font-semibold text-sm">
+                <p className="text-slate-900 font-bold text-base">
                   {user.onboardingCompleted ? (
-                    <span className="inline-flex items-center gap-1.5 text-green-600">
+                    <span className="inline-flex items-center gap-2 text-green-600">
                       <svg
-                        className="w-4 h-4"
+                        className="w-5 h-5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -698,9 +741,9 @@ function ProfilePageContent() {
                       Completed
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-1.5 text-yellow-600">
+                    <span className="inline-flex items-center gap-2 text-yellow-600">
                       <svg
-                        className="w-4 h-4"
+                        className="w-5 h-5"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
