@@ -18,7 +18,7 @@ const TICKET_STATUSES = ["new", "in_progress", "on_hold", "resolved", "closed"];
 export default function SLAPage() {
   const [activeTab, setActiveTab] = useState<"policies" | "escalations">("policies");
   
-  const slaPolicies = useQuery(api.sla.getAll, {});
+  const slaPolicies = useQuery(api.sla.list, {});
   const escalationRules = useQuery(api.sla.listEscalations, {});
   const teams = useQuery(api.teams.list, {});
   const users = useQuery(api.users.list, {});

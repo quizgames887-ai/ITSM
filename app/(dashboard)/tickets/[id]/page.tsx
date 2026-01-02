@@ -23,6 +23,7 @@ export default function TicketDetailPage({
   const ticket = useQuery(api.tickets.get, { id: ticketId });
   const comments = useQuery(api.comments.listByTicket, { ticketId });
   const users = useQuery(api.users.list, {});
+  const slaPolicies = useQuery(api.sla.list, {});
   const updateTicket = useMutation(api.tickets.update);
   const createComment = useMutation(api.comments.create);
 
@@ -241,6 +242,135 @@ export default function TicketDetailPage({
               </div>
             )}
           </div>
+
+          {/* SLA Details Section */}
+          {ticket.slaDeadline && (() => {
+            const now = Date.now();
+            const deadline = ticket.slaDeadline;
+            const diff = deadline - now;
+            const diffMinutes = Math.floor(diff / (1000 * 60));
+            const diffHours = Math.floor(diffMinutes / 60);
+            const diffDays = Math.floor(diffHours / 24);
+            const isOverdue = diff < 0;
+            const isUrgent = diff >= 0 && diff < 60 * 60 * 1000; // Less than 1 hour
+            
+            const policy = slaPolicies?.find(p => p.priority === ticket.priority && p.enabled);
+            
+            let statusText = "";
+            let statusBg = "";
+            let statusTextColor = "";
+            
+            if (isOverdue) {
+              const overdueHours = Math.floor(Math.abs(diffMinutes) / 60);
+              const overdueDays = Math.floor(overdueHours / 24);
+              if (overdueDays > 0) {
+                statusText = `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue`;
+              } else if (overdueHours > 0) {
+                statusText = `${overdueHours} hour${overdueHours > 1 ? 's' : ''} overdue`;
+              } else {
+                statusText = `${Math.abs(diffMinutes)} minute${Math.abs(diffMinutes) > 1 ? 's' : ''} overdue`;
+              }
+              statusBg = "bg-red-50 border-red-200";
+              statusTextColor = "text-red-700";
+            } else if (isUrgent) {
+              if (diffMinutes < 60) {
+                statusText = `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} remaining`;
+              } else {
+                statusText = `${diffHours} hour${diffHours > 1 ? 's' : ''} remaining`;
+              }
+              statusBg = "bg-orange-50 border-orange-200";
+              statusTextColor = "text-orange-700";
+            } else {
+              if (diffDays > 0) {
+                statusText = `${diffDays} day${diffDays > 1 ? 's' : ''} remaining`;
+              } else if (diffHours > 0) {
+                statusText = `${diffHours} hour${diffHours > 1 ? 's' : ''} remaining`;
+              } else {
+                statusText = `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} remaining`;
+              }
+              statusBg = "bg-green-50 border-green-200";
+              statusTextColor = "text-green-700";
+            }
+            
+            return (
+              <div className={`mt-4 rounded-xl p-5 border-2 ${statusBg}`}>
+                <div className="flex items-start justify-between">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <h3 className="text-sm font-semibold text-slate-900">Service Level Agreement (SLA)</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {policy && (
+                        <div>
+                          <span className="text-xs text-slate-600">Policy: </span>
+                          <span className="text-sm font-medium text-slate-900">{policy.name}</span>
+                        </div>
+                      )}
+                      <div>
+                        <span className="text-xs text-slate-600">Deadline: </span>
+                        <span className="text-sm font-medium text-slate-900">
+                          {new Date(deadline).toLocaleString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold ${statusTextColor} ${statusBg.replace('bg-', 'bg-').replace('-50', '-100')} border`}>
+                          {isOverdue ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          ) : isUrgent ? (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                          )}
+                          {statusText}
+                        </span>
+                      </div>
+                      {policy && (
+                        <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-200">
+                          <div>
+                            <span className="text-xs text-slate-500">Response Time: </span>
+                            <span className="text-sm font-medium text-slate-900">
+                              {policy.responseTime < 60 
+                                ? `${policy.responseTime}m`
+                                : policy.responseTime < 1440
+                                ? `${Math.floor(policy.responseTime / 60)}h`
+                                : `${Math.floor(policy.responseTime / 1440)}d`
+                              }
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-xs text-slate-500">Resolution Time: </span>
+                            <span className="text-sm font-medium text-slate-900">
+                              {policy.resolutionTime < 60 
+                                ? `${policy.resolutionTime}m`
+                                : policy.resolutionTime < 1440
+                                ? `${Math.floor(policy.resolutionTime / 60)}h`
+                                : `${Math.floor(policy.resolutionTime / 1440)}d`
+                              }
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
         </div>
       </Card>
 

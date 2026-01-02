@@ -64,6 +64,7 @@ export default function TicketsPage() {
       ) // Remove duplicates
     : tickets;
   const users = useQuery(api.users.list, {});
+  const slaPolicies = useQuery(api.sla.list, {});
   const createTicket = useMutation(api.tickets.create);
   
   const { success, error: showError } = useToastContext();
@@ -227,6 +228,65 @@ export default function TicketsPage() {
       day: "numeric",
       year: "numeric",
     });
+  };
+
+  // Helper function to get SLA status
+  const getSLAStatus = (ticket: any) => {
+    if (!ticket.slaDeadline) return null;
+    
+    const now = Date.now();
+    const deadline = ticket.slaDeadline;
+    const diff = deadline - now;
+    const diffMinutes = Math.floor(diff / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    const isOverdue = diff < 0;
+    const isUrgent = diff >= 0 && diff < 60 * 60 * 1000; // Less than 1 hour remaining
+    
+    // Get SLA policy name
+    const policy = slaPolicies?.find(p => p.priority === ticket.priority && p.enabled);
+    
+    let statusText = "";
+    let statusColor = "";
+    
+    if (isOverdue) {
+      const overdueHours = Math.floor(Math.abs(diffMinutes) / 60);
+      const overdueDays = Math.floor(overdueHours / 24);
+      if (overdueDays > 0) {
+        statusText = `${overdueDays}d overdue`;
+      } else if (overdueHours > 0) {
+        statusText = `${overdueHours}h overdue`;
+      } else {
+        statusText = `${Math.abs(diffMinutes)}m overdue`;
+      }
+      statusColor = "text-red-600 bg-red-50 border-red-200";
+    } else if (isUrgent) {
+      if (diffMinutes < 60) {
+        statusText = `${diffMinutes}m left`;
+      } else {
+        statusText = `${diffHours}h left`;
+      }
+      statusColor = "text-orange-600 bg-orange-50 border-orange-200";
+    } else {
+      if (diffDays > 0) {
+        statusText = `${diffDays}d left`;
+      } else if (diffHours > 0) {
+        statusText = `${diffHours}h left`;
+      } else {
+        statusText = `${diffMinutes}m left`;
+      }
+      statusColor = "text-green-600 bg-green-50 border-green-200";
+    }
+    
+    return {
+      text: statusText,
+      color: statusColor,
+      isOverdue,
+      isUrgent,
+      policyName: policy?.name || null,
+      deadline: deadline,
+    };
   };
 
   const handleCreateTicket = async () => {
@@ -604,6 +664,9 @@ export default function TicketsPage() {
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden sm:table-cell">
                     Created
                   </th>
+                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden lg:table-cell">
+                    SLA
+                  </th>
                   <th className="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Action
                   </th>
@@ -653,6 +716,29 @@ export default function TicketsPage() {
                       <span className="text-sm text-slate-500">
                         {formatDate(ticket.createdAt)}
                       </span>
+                    </td>
+                    <td className="px-4 py-4 hidden lg:table-cell">
+                      {(() => {
+                        const slaStatus = getSLAStatus(ticket);
+                        if (!slaStatus) {
+                          return <span className="text-xs text-slate-400">No SLA</span>;
+                        }
+                        return (
+                          <div className="flex flex-col gap-1">
+                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border ${slaStatus.color}`}>
+                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              {slaStatus.text}
+                            </span>
+                            {slaStatus.policyName && (
+                              <span className="text-xs text-slate-500 truncate max-w-[120px]" title={slaStatus.policyName}>
+                                {slaStatus.policyName}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })()}
                     </td>
                     <td className="px-4 py-4 text-right">
                       <Link
