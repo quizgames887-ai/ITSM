@@ -526,11 +526,11 @@ export default function DashboardPage() {
       };
     });
 
-  // Calendar days with full date info
+  // Calendar days with full date info - show 10 days
   const today = new Date();
   const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   const calendarDays = [];
-  for (let i = -3; i <= 3; i++) {
+  for (let i = -2; i <= 7; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
     const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
@@ -1247,21 +1247,30 @@ export default function DashboardPage() {
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base lg:text-lg font-semibold text-slate-900">
-                Calendar <span className="text-slate-400 font-normal">Events</span>
-              </h2>
+              <div className="flex items-center gap-3 mb-1">
+                <span className="text-base lg:text-lg font-semibold text-slate-400 cursor-pointer hover:text-slate-600 transition-colors">
+                  Calendar
+                </span>
+                <span className="text-base lg:text-lg font-semibold text-slate-900">
+                  Events
+                </span>
+              </div>
               <p className="text-xs text-slate-500">
-                {events ? `${events.length} ${events.length === 1 ? 'event' : 'events'}` : "Loading..."}
+                Top 8 records
               </p>
             </div>
-            {userRole === "admin" && (
+            <div className="flex items-center gap-2">
               <button 
-                onClick={() => handleAddEvent()}
                 className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
               >
-                + Add Event
+                Show More
               </button>
-            )}
+              <button className="p-1 text-slate-400 hover:text-slate-600">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+            </div>
           </div>
           
           {/* Calendar Week */}
@@ -1274,14 +1283,12 @@ export default function DashboardPage() {
                   onClick={() => handleDateSelect(day.dateStr)}
                   className={`flex flex-col items-center p-1.5 lg:p-2 rounded-lg lg:rounded-xl flex-1 ${
                     isSelected
-                      ? "bg-blue-600 text-white"
-                      : day.isToday
-                      ? "bg-blue-100 text-blue-700"
+                      ? "bg-blue-50 border-2 border-blue-500"
                       : "text-slate-600 hover:bg-slate-50"
                   } transition-colors cursor-pointer`}
                 >
                   <span className="text-[10px] lg:text-xs font-medium">{day.day}</span>
-                  <span className={`text-sm lg:text-lg font-semibold ${isSelected || day.isToday ? "text-white" : "text-slate-900"}`}>
+                  <span className={`text-sm lg:text-lg font-semibold ${isSelected ? "text-blue-600" : "text-slate-900"}`}>
                     {day.date}
                   </span>
                 </div>
@@ -1290,43 +1297,23 @@ export default function DashboardPage() {
           </div>
 
           {/* Events List */}
-          <div className="space-y-2 max-h-32 lg:max-h-40 overflow-y-auto">
+          <div className="space-y-0 max-h-64 lg:max-h-80 overflow-y-auto">
             {events && events.length > 0 ? (
-              events.slice(0, 4).map((event) => (
-                <div key={event._id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 group">
+              events.slice(0, 8).map((event) => (
+                <div key={event._id} className="flex items-center justify-between py-3 border-b border-slate-200 last:border-0">
                   <div className="min-w-0 flex-1">
-                    <p className="text-[10px] lg:text-xs text-slate-500">
+                    <p className="text-xs lg:text-sm text-slate-600 mb-1">
                       {formatEventTime(event.startTime, event.endTime)}
                     </p>
-                    <p className="text-xs lg:text-sm text-slate-700 truncate">{event.title}</p>
+                    <p className="text-sm lg:text-base text-slate-900">{event.title}</p>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleViewEvent(event)}
-                      className="text-xs text-blue-600 hover:text-blue-700"
-                      title="View event"
-                    >
-                      View
-                    </button>
-                    {userRole === "admin" && (
-                      <>
-                        <button
-                          onClick={() => handleEditEvent(event)}
-                          className="text-xs text-blue-600 hover:text-blue-700"
-                          title="Edit event"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => handleDeleteEvent(event._id)}
-                          className="text-xs text-red-600 hover:text-red-700"
-                          title="Delete event"
-                        >
-                          Delete
-                        </button>
-                      </>
-                    )}
-                  </div>
+                  <button
+                    onClick={() => handleViewEvent(event)}
+                    className="ml-4 px-3 py-1.5 text-xs lg:text-sm font-medium text-white bg-slate-400 hover:bg-slate-500 rounded-lg transition-colors flex-shrink-0"
+                    title="View event"
+                  >
+                    View
+                  </button>
                 </div>
               ))
             ) : (
