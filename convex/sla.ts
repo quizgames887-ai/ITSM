@@ -332,7 +332,7 @@ async function executeEscalationActions(
       // Get team members
       const teamMembers = await ctx.db
         .query("teamMembers")
-        .withIndex("by_teamId", (q) => q.eq("teamId", teamId))
+        .withIndex("by_teamId", (q: any) => q.eq("teamId", teamId))
         .collect();
       
       for (const member of teamMembers) {
@@ -406,8 +406,8 @@ async function executeEscalationActions(
     // Recalculate SLA deadline for new priority
     const policy = await ctx.db
       .query("slaPolicies")
-      .withIndex("by_priority", (q) => q.eq("priority", actions.changePriority))
-      .filter((q) => q.eq(q.field("enabled"), true))
+      .withIndex("by_priority", (q: any) => q.eq("priority", actions.changePriority))
+      .filter((q: any) => q.eq(q.field("enabled"), true))
       .first();
     
     if (policy) {
