@@ -44,7 +44,7 @@ function ServiceLogoDisplay({ service, size = "small" }: { service: any; size?: 
   );
 
   const sizeClasses = {
-    small: "w-10 h-10 lg:w-12 lg:h-12 text-lg lg:text-xl",
+    small: "w-10 h-10 text-lg",
     medium: "w-12 h-12 text-2xl",
     large: "w-16 h-16 text-2xl",
   };
@@ -359,12 +359,7 @@ export default function DashboardPage() {
         <div className="xl:col-span-2">
           <Card padding="md">
             <div className="flex items-center justify-between mb-4">
-              <div>
-                <h2 className="text-base lg:text-lg font-semibold text-slate-900">Most Services Request</h2>
-                <p className="text-xs text-slate-500">
-                  {services && services.length > 0 ? `Top ${Math.min(services.length, 8)} services` : "No services available"}
-                </p>
-              </div>
+              <h2 className="text-base lg:text-lg font-semibold text-slate-900">Most Services Request</h2>
               <div className="flex items-center gap-3">
                 {userRole === "admin" && (
                   <Link href="/service-catalog" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
@@ -374,29 +369,68 @@ export default function DashboardPage() {
                 {services && services.length > 8 && (
                   <button 
                     onClick={() => setShowAllServices(true)}
-                    className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    className="px-3 py-1.5 text-xs lg:text-sm text-slate-600 hover:text-slate-700 bg-slate-100 hover:bg-slate-200 rounded-lg font-medium transition-colors"
                   >
-                    View All
+                    Show More
                   </button>
                 )}
               </div>
             </div>
             {services && services.length > 0 ? (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-4">
-                {services.slice(0, 8).map((service) => (
-                  <div
-                    key={service._id}
-                    onClick={() => handleServiceClick(service)}
-                    className="flex flex-col items-center p-3 lg:p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
-                  >
-                    <ServiceLogoDisplay service={service} />
-                    <p className="text-xs lg:text-sm font-medium text-slate-700 text-center truncate w-full">{service.name}</p>
-                    <div className="flex items-center gap-1 mt-1">
-                      <span className="text-yellow-500 text-xs">⭐</span>
-                      <span className="text-xs text-slate-500">{service.rating}</span>
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                {services.slice(0, 8).map((service) => {
+                  // Calculate duration (days since creation or use a default)
+                  const daysSinceCreation = Math.floor((Date.now() - service.createdAt) / (1000 * 60 * 60 * 24));
+                  const duration = daysSinceCreation > 0 ? `${daysSinceCreation} day${daysSinceCreation !== 1 ? 's' : ''}` : '1 day';
+                  
+                  return (
+                    <div
+                      key={service._id}
+                      onClick={() => handleServiceClick(service)}
+                      className="relative bg-white border border-slate-200 rounded-xl p-3 hover:shadow-md transition-all cursor-pointer group"
+                    >
+                      {/* Heart/Favorite icon in top-right */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          // TODO: Implement favorite functionality
+                        }}
+                        className="absolute top-2 right-2 p-1 text-blue-600 hover:text-blue-700 transition-colors z-10"
+                      >
+                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                          <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
+                        </svg>
+                      </button>
+                      
+                      {/* Service Icon */}
+                      <div className="mb-2">
+                        <ServiceLogoDisplay service={service} size="small" />
+                      </div>
+                      
+                      {/* Service Name */}
+                      <p className="text-xs font-medium text-slate-700 text-center mb-3 line-clamp-1">{service.name}</p>
+                      
+                      {/* Bottom row: Duration and Rating */}
+                      <div className="flex items-center justify-between text-xs">
+                        {/* Duration in bottom-left */}
+                        <div className="flex items-center gap-1 text-slate-500">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                          </svg>
+                          <span>{duration}</span>
+                        </div>
+                        
+                        {/* Rating in bottom-right */}
+                        <div className="flex items-center gap-1 text-slate-500">
+                          <svg className="w-3 h-3 text-yellow-500 fill-current" viewBox="0 0 20 20">
+                            <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                          </svg>
+                          <span>{service.rating.toFixed(1)}</span>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             ) : (
               <div className="text-center py-8 text-slate-500">
