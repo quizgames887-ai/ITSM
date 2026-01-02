@@ -10,6 +10,7 @@ import { useState } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
+import { useStorage } from "convex/react";
 
 const COLOR_OPTIONS = [
   { value: "bg-blue-100", label: "Blue" },
@@ -33,11 +34,16 @@ export default function ServiceCatalogPage() {
   const updateService = useMutation(api.serviceCatalog.update);
   const removeService = useMutation(api.serviceCatalog.remove);
   const toggleActive = useMutation(api.serviceCatalog.toggleActive);
+  const generateUploadUrl = useMutation(api.serviceCatalog.generateUploadUrl);
+  const storageUrl = useStorage();
   
   const { success, error: showError } = useToastContext();
   
   const [showForm, setShowForm] = useState(false);
   const [editingId, setEditingId] = useState<Id<"serviceCatalog"> | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
+  const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
   const [formData, setFormData] = useState({
     name: "",
     icon: "💻",
@@ -46,6 +52,7 @@ export default function ServiceCatalogPage() {
     description: "",
     isActive: true,
     order: 1,
+    logoId: null as Id<"_storage"> | null,
   });
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
@@ -65,9 +72,54 @@ export default function ServiceCatalogPage() {
       description: "",
       isActive: true,
       order: (services?.length || 0) + 1,
+      logoId: null,
     });
     setEditingId(null);
     setShowForm(false);
+    setLogoPreview(null);
+    setLogoFile(null);
+  };
+
+  const handleLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) {
+      showError("Please upload an image file");
+      return;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      showError("Image size must be less than 5MB");
+      return;
+    }
+
+    setUploadingLogo(true);
+    try {
+      // Create preview
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setLogoPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+      
+      setLogoFile(file);
+      
+      // Generate upload URL and upload
+      const uploadUrl = await generateUploadUrl();
+      const result = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+      const storageId = await result.text();
+      
+      setFormData({ ...formData, logoId: storageId as Id<"_storage"> });
+      success("Logo uploaded successfully!");
+    } catch (err: any) {
+      showError(err.message || "Failed to upload logo");
+      setLogoPreview(null);
+      setLogoFile(null);
+    } finally {
+      setUploadingLogo(false);
+    }
   };
 
   const handleCreate = async () => {
@@ -84,6 +136,7 @@ export default function ServiceCatalogPage() {
       await createService({
         name: formData.name.trim(),
         icon: formData.icon,
+        logoId: formData.logoId,
         color: formData.color,
         rating: formData.rating,
         description: formData.description.trim() || undefined,
@@ -112,6 +165,7 @@ export default function ServiceCatalogPage() {
         id: editingId,
         name: formData.name.trim(),
         icon: formData.icon,
+        logoId: formData.logoId,
         color: formData.color,
         rating: formData.rating,
         description: formData.description.trim() || undefined,
@@ -147,7 +201,15 @@ export default function ServiceCatalogPage() {
       description: service.description || "",
       isActive: service.isActive,
       order: service.order,
+      logoId: service.logoId || null,
     });
+    // Set logo preview if logo exists
+    if (service.logoId && storageUrl) {
+      setLogoPreview(storageUrl(service.logoId));
+    } else {
+      setLogoPreview(null);
+    }
+    setLogoFile(null);
     setShowForm(true);
   };
 
@@ -335,8 +397,16 @@ export default function ServiceCatalogPage() {
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <div className={`w-12 h-12 ${service.color} rounded-xl flex items-center justify-center text-xl flex-shrink-0`}>
-                      {service.icon}
+                    <div className={`w-12 h-12 ${service.color} rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden`}>
+                      {service.logoId && storageUrl ? (
+                        <img 
+                          src={storageUrl(service.logoId)} 
+                          alt={service.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{service.icon}</span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-slate-900">{service.name}</h4>

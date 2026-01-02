@@ -30,10 +30,18 @@ export const get = query({
   },
 });
 
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 export const create = mutation({
   args: {
     name: v.string(),
     icon: v.string(),
+    logoId: v.optional(v.union(v.id("_storage"), v.null())),
     color: v.string(),
     rating: v.number(),
     description: v.optional(v.string()),
@@ -46,6 +54,7 @@ export const create = mutation({
     return await ctx.db.insert("serviceCatalog", {
       name: args.name,
       icon: args.icon,
+      logoId: args.logoId ?? null,
       color: args.color,
       rating: args.rating,
       description: args.description,
@@ -64,6 +73,7 @@ export const update = mutation({
     id: v.id("serviceCatalog"),
     name: v.optional(v.string()),
     icon: v.optional(v.string()),
+    logoId: v.optional(v.union(v.id("_storage"), v.null())),
     color: v.optional(v.string()),
     rating: v.optional(v.number()),
     description: v.optional(v.string()),
@@ -72,10 +82,18 @@ export const update = mutation({
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
-    await ctx.db.patch(id, {
-      ...updates,
+    const patch: any = {
       updatedAt: Date.now(),
-    });
+    };
+    if (updates.name !== undefined) patch.name = updates.name;
+    if (updates.icon !== undefined) patch.icon = updates.icon;
+    if (updates.logoId !== undefined) patch.logoId = updates.logoId;
+    if (updates.color !== undefined) patch.color = updates.color;
+    if (updates.rating !== undefined) patch.rating = updates.rating;
+    if (updates.description !== undefined) patch.description = updates.description;
+    if (updates.isActive !== undefined) patch.isActive = updates.isActive;
+    if (updates.order !== undefined) patch.order = updates.order;
+    await ctx.db.patch(id, patch);
   },
 });
 

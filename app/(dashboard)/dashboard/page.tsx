@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation } from "convex/react";
+import { useQuery, useMutation, useStorage } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -101,6 +101,7 @@ export default function DashboardPage() {
   
   const router = useRouter();
   const createTicket = useMutation(api.tickets.create);
+  const storageUrl = useStorage();
   const { success, error: showError } = useToastContext();
   
   // Get ticket IDs for escalation check
@@ -334,8 +335,16 @@ export default function DashboardPage() {
                     onClick={() => handleServiceClick(service)}
                     className="flex flex-col items-center p-3 lg:p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
                   >
-                    <div className={`w-10 h-10 lg:w-12 lg:h-12 ${service.color} rounded-xl flex items-center justify-center text-lg lg:text-xl mb-2 group-hover:scale-110 transition-transform`}>
-                      {service.icon}
+                    <div className={`w-10 h-10 lg:w-12 lg:h-12 ${service.color} rounded-xl flex items-center justify-center text-lg lg:text-xl mb-2 group-hover:scale-110 transition-transform overflow-hidden`}>
+                      {service.logoId && storageUrl ? (
+                        <img 
+                          src={storageUrl(service.logoId)} 
+                          alt={service.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{service.icon}</span>
+                      )}
                     </div>
                     <p className="text-xs lg:text-sm font-medium text-slate-700 text-center truncate w-full">{service.name}</p>
                     <div className="flex items-center gap-1 mt-1">
@@ -467,8 +476,16 @@ export default function DashboardPage() {
               <div className="flex-1 overflow-y-auto p-6">
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
-                    <div className={`w-12 h-12 ${selectedService.color} rounded-xl flex items-center justify-center text-2xl`}>
-                      {selectedService.icon}
+                    <div className={`w-12 h-12 ${selectedService.color} rounded-xl flex items-center justify-center text-2xl overflow-hidden`}>
+                      {selectedService.logoId && storageUrl ? (
+                        <img 
+                          src={storageUrl(selectedService.logoId)} 
+                          alt={selectedService.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span>{selectedService.icon}</span>
+                      )}
                     </div>
                     <div>
                       <p className="font-semibold text-slate-900">{selectedService.name}</p>
