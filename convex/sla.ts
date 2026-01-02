@@ -359,7 +359,7 @@ async function executeEscalationActions(
       // Get team members and assign to first one (or implement round-robin)
       const teamMembers = await ctx.db
         .query("teamMembers")
-        .withIndex("by_teamId", (q) => q.eq("teamId", actions.reassignTo.teamId))
+        .withIndex("by_teamId", (q: any) => q.eq("teamId", actions.reassignTo.teamId))
         .collect();
       
       if (teamMembers.length > 0) {
