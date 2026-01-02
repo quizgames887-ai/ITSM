@@ -20,16 +20,39 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
+  const [showSearchResults, setShowSearchResults] = useState(false);
+  const [userRole, setUserRole] = useState<string | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const searchRef = useRef<HTMLDivElement>(null);
 
   // Get user ID from localStorage
   useEffect(() => {
     const name = localStorage.getItem("userName");
     const id = localStorage.getItem("userId");
+    const role = localStorage.getItem("userRole");
     if (name) setUserName(name);
     if (id) setUserId(id);
+    if (role) setUserRole(role);
   }, []);
+
+  // Fetch data for search
+  const tickets = useQuery(
+    api.tickets.list,
+    userId && userRole
+      ? {
+          userId: userId as Id<"users">,
+          userRole: userRole as "user" | "agent" | "admin",
+        }
+      : "skip"
+  );
+
+  const services = useQuery(api.serviceCatalog.list, { activeOnly: true });
+  const knowledgeBase = useQuery(api.knowledgeBase.list, {});
+  const events = useQuery(
+    (api as any).events?.getAll,
+    {}
+  ) as any[] | undefined;
 
   // Fetch notifications for the current user
   const notifications = useQuery(
@@ -50,13 +73,110 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setShowNotifications(false);
       }
+      if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
+        setShowSearchResults(false);
+      }
     };
 
-    if (showUserMenu || showNotifications) {
+    if (showUserMenu || showNotifications || showSearchResults) {
       document.addEventListener("mousedown", handleClickOutside);
     }
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [showUserMenu, showNotifications]);
+  }, [showUserMenu, showNotifications, showSearchResults]);
+
+  // Filter search results
+  const searchResults = (() => {
+    if (!searchQuery.trim() || searchQuery.length < 2) return null;
+
+    const query = searchQuery.toLowerCase().trim();
+    const results: {
+      type: "ticket" | "service" | "knowledge" | "event";
+      id: string;
+      title: string;
+      subtitle?: string;
+      href: string;
+    }[] = [];
+
+    // Search tickets
+    if (tickets) {
+      tickets
+        .filter((ticket) =>
+          ticket.title?.toLowerCase().includes(query) ||
+          ticket.description?.toLowerCase().includes(query) ||
+          ticket.category?.toLowerCase().includes(query)
+        )
+        .slice(0, 3)
+        .forEach((ticket) => {
+          results.push({
+            type: "ticket",
+            id: ticket._id,
+            title: ticket.title || "Untitled Ticket",
+            subtitle: `Ticket #${ticket._id.slice(-6).toUpperCase()}`,
+            href: `/tickets/${ticket._id}`,
+          });
+        });
+    }
+
+    // Search services
+    if (services) {
+      services
+        .filter((service) =>
+          service.name?.toLowerCase().includes(query) ||
+          service.description?.toLowerCase().includes(query)
+        )
+        .slice(0, 3)
+        .forEach((service) => {
+          results.push({
+            type: "service",
+            id: service._id,
+            title: service.name,
+            subtitle: service.description,
+            href: "#",
+          });
+        });
+    }
+
+    // Search knowledge base
+    if (knowledgeBase) {
+      knowledgeBase
+        .filter((article) =>
+          article.title?.toLowerCase().includes(query) ||
+          article.content?.toLowerCase().includes(query) ||
+          article.category?.toLowerCase().includes(query)
+        )
+        .slice(0, 3)
+        .forEach((article) => {
+          results.push({
+            type: "knowledge",
+            id: article._id,
+            title: article.title,
+            subtitle: article.category,
+            href: "#",
+          });
+        });
+    }
+
+    // Search events
+    if (events) {
+      events
+        .filter((event) =>
+          event.title?.toLowerCase().includes(query) ||
+          event.description?.toLowerCase().includes(query)
+        )
+        .slice(0, 3)
+        .forEach((event) => {
+          results.push({
+            type: "event",
+            id: event._id,
+            title: event.title,
+            subtitle: `${event.date} • ${event.startTime} - ${event.endTime}`,
+            href: "#",
+          });
+        });
+    }
+
+    return results.slice(0, 8); // Limit to 8 results
+  })();
 
   const handleLogout = () => {
     localStorage.removeItem("userId");
@@ -329,12 +449,20 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
 
       {/* Mobile Search Bar */}
       {showMobileSearch && (
-        <div className="absolute left-0 right-0 top-full bg-white border-b border-slate-200 p-3 md:hidden animate-fade-in">
-          <div className="relative">
+        <div className="absolute left-0 right-0 top-full bg-white border-b border-slate-200 p-3 md:hidden animate-fade-in z-50">
+          <div className="relative" ref={searchRef}>
             <input
               type="text"
               value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
+              onChange={(e) => {
+                setSearchQuery(e.target.value);
+                setShowSearchResults(e.target.value.length >= 2);
+              }}
+              onFocus={() => {
+                if (searchQuery.length >= 2) {
+                  setShowSearchResults(true);
+                }
+              }}
               placeholder="Search..."
               autoFocus
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
@@ -352,6 +480,64 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
                 d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
               />
             </svg>
+
+            {/* Mobile Search Results */}
+            {showSearchResults && searchResults && (
+              <div className="absolute left-0 right-0 mt-2 bg-white rounded-xl shadow-xl border border-slate-200 py-2 max-h-[60vh] overflow-y-auto">
+                <div className="px-4 py-2 border-b border-slate-100">
+                  <h3 className="font-semibold text-slate-900 text-sm">
+                    Results ({searchResults.length})
+                  </h3>
+                </div>
+                {searchResults.length > 0 ? (
+                  searchResults.map((result) => {
+                    const getIcon = () => {
+                      switch (result.type) {
+                        case "ticket":
+                          return "🎫";
+                        case "service":
+                          return "📋";
+                        case "knowledge":
+                          return "📖";
+                        case "event":
+                          return "📅";
+                        default:
+                          return "🔍";
+                      }
+                    };
+
+                    return (
+                      <Link
+                        key={`${result.type}-${result.id}`}
+                        href={result.href}
+                        onClick={() => {
+                          setShowSearchResults(false);
+                          setSearchQuery("");
+                          setShowMobileSearch(false);
+                        }}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                      >
+                        <span className="text-lg flex-shrink-0">{getIcon()}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">
+                            {result.title}
+                          </p>
+                          {result.subtitle && (
+                            <p className="text-xs text-slate-500 truncate mt-0.5">
+                              {result.subtitle}
+                            </p>
+                          )}
+                        </div>
+                      </Link>
+                    );
+                  })
+                ) : (
+                  <div className="px-4 py-8 text-center">
+                    <p className="text-sm text-slate-600">No results found</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </div>
       )}
