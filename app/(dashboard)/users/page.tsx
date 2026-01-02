@@ -11,6 +11,7 @@ import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 type User = {
   _id: Id<"users">;
@@ -458,13 +459,19 @@ export default function UsersPage() {
 
               {/* User Info */}
               <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 mb-4">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-sm font-semibold">
-                  {users?.find(u => u._id === editingUser)?.name.split(" ").map(n => n[0]).join("").slice(0, 2)}
-                </div>
-                <div>
-                  <p className="font-medium text-slate-900">{users?.find(u => u._id === editingUser)?.name}</p>
-                  <p className="text-sm text-slate-500">{users?.find(u => u._id === editingUser)?.email}</p>
-                </div>
+                {editingUser && users?.find(u => u._id === editingUser) && (
+                  <>
+                    <UserAvatar
+                      userId={editingUser}
+                      name={users.find(u => u._id === editingUser)?.name || "User"}
+                      size="md"
+                    />
+                    <div>
+                      <p className="font-medium text-slate-900">{users.find(u => u._id === editingUser)?.name}</p>
+                      <p className="text-sm text-slate-500">{users.find(u => u._id === editingUser)?.email}</p>
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* Role Change */}
@@ -587,16 +594,17 @@ export default function UsersPage() {
                 </thead>
                 <tbody className="divide-y divide-slate-100">
                   {filteredAndSortedUsers.map((user) => {
-                    const getInitials = (name: string) => name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
                     const isCurrentUser = user._id === currentUserId;
 
                     return (
                       <tr key={user._id} className={`hover:bg-slate-50 ${isCurrentUser ? "bg-blue-50/30" : ""}`}>
                         <td className="py-3 px-4">
                           <div className="flex items-center gap-3">
-                            <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
-                              {getInitials(user.name)}
-                            </div>
+                            <UserAvatar
+                              userId={user._id}
+                              name={user.name}
+                              size="sm"
+                            />
                             <div>
                               <p className="font-medium text-slate-900 text-sm">
                                 {user.name}
@@ -790,9 +798,11 @@ export default function UsersPage() {
                                 className="flex items-center justify-between p-3 bg-white rounded-lg border border-slate-200"
                               >
                                 <div className="flex items-center gap-3">
-                                  <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold">
-                                    {member.userName.split(" ").map((n: string) => n[0]).join("").slice(0, 2)}
-                                  </div>
+                                  <UserAvatar
+                                    userId={member.userId as Id<"users"> | null}
+                                    name={member.userName}
+                                    size="xs"
+                                  />
                                   <div>
                                     <p className="text-sm font-medium text-slate-900">
                                       {member.userName}

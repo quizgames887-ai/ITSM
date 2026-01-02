@@ -479,9 +479,12 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             onClick={() => setShowUserMenu(!showUserMenu)}
             className="flex items-center gap-2 p-1 rounded-xl hover:bg-slate-50 transition-colors"
           >
-            <div className="w-8 h-8 lg:w-9 lg:h-9 rounded-xl bg-gradient-to-br from-amber-400 to-orange-500 flex items-center justify-center text-white text-xs lg:text-sm font-semibold shadow-md">
-              {userName ? getInitials(userName) : "U"}
-            </div>
+            <UserAvatar
+              userId={userId as Id<"users"> | null}
+              name={userName || "User"}
+              size="sm"
+              className="rounded-xl"
+            />
           </button>
 
           {showUserMenu && (

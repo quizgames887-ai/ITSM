@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 // Password hashing function (same as in authHelpers)
 async function hashPassword(password: string): Promise<string> {
@@ -354,6 +355,106 @@ export const resetUserPassword = mutation({
     return {
       success: true,
       message: `Password reset successfully for ${user.email}`,
+    };
+  },
+});
+
+// Generate upload URL for profile picture
+export const generateProfilePictureUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    try {
+      return await ctx.storage.generateUploadUrl();
+    } catch (error: any) {
+      console.error("Error generating upload URL:", error);
+      throw new Error(`Failed to generate upload URL: ${error.message || "Unknown error"}`);
+    }
+  },
+});
+
+// Get profile picture URL
+export const getProfilePictureUrl = query({
+  args: {
+    storageId: v.union(v.id("_storage"), v.null()),
+  },
+  handler: async (ctx, args) => {
+    if (!args.storageId) return null;
+    
+    try {
+      return await ctx.storage.getUrl(args.storageId);
+    } catch (error) {
+      console.error("Error getting profile picture URL:", error);
+      return null;
+    }
+  },
+});
+
+// Update user profile picture
+export const updateProfilePicture = mutation({
+  args: {
+    userId: v.id("users"),
+    storageId: v.id("_storage"),
+  },
+  handler: async (ctx, args) => {
+    // Verify the user exists
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Delete old profile picture if it exists
+    if (user.profilePictureId) {
+      try {
+        await ctx.storage.delete(user.profilePictureId);
+      } catch (error) {
+        // Ignore errors if file doesn't exist
+        console.warn("Could not delete old profile picture:", error);
+      }
+    }
+
+    // Update user with new profile picture
+    await ctx.db.patch(args.userId, {
+      profilePictureId: args.storageId,
+      updatedAt: Date.now(),
+    });
+
+    return {
+      success: true,
+      message: "Profile picture updated successfully",
+    };
+  },
+});
+
+// Remove profile picture
+export const removeProfilePicture = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Verify the user exists
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Delete profile picture if it exists
+    if (user.profilePictureId) {
+      try {
+        await ctx.storage.delete(user.profilePictureId);
+      } catch (error) {
+        console.warn("Could not delete profile picture:", error);
+      }
+    }
+
+    // Update user to remove profile picture reference
+    await ctx.db.patch(args.userId, {
+      profilePictureId: null,
+      updatedAt: Date.now(),
+    });
+
+    return {
+      success: true,
+      message: "Profile picture removed successfully",
     };
   },
 });

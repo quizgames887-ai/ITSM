@@ -3,6 +3,7 @@
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 interface TicketAuditProps {
   ticketId: Id<"tickets">;
@@ -178,14 +179,6 @@ export function TicketAudit({ ticketId }: TicketAuditProps) {
     return new Date(timestamp).toLocaleDateString();
   };
 
-  const getInitials = (name: string) => {
-    return name
-      .split(" ")
-      .map((n) => n[0])
-      .join("")
-      .toUpperCase()
-      .slice(0, 2);
-  };
 
   return (
     <div className="relative">
@@ -204,9 +197,12 @@ export function TicketAudit({ ticketId }: TicketAuditProps) {
             >
               {/* Avatar with action indicator */}
               <div className="relative flex-shrink-0">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-slate-600 to-slate-700 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
-                  {getInitials(entry.userName || "?")}
-                </div>
+                <UserAvatar
+                  userId={entry.userId as Id<"users"> | null}
+                  name={entry.userName || "Unknown"}
+                  size="sm"
+                  className="bg-gradient-to-br from-slate-600 to-slate-700"
+                />
                 {/* Action icon badge */}
                 <div className={`absolute -bottom-1 -right-1 w-5 h-5 rounded-full ${actionInfo.bgColor} ${actionInfo.iconBg} flex items-center justify-center shadow-sm border-2 border-white`}>
                   <span className="scale-75">{actionInfo.icon}</span>

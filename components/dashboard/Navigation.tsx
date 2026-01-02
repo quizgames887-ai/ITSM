@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export function Navigation() {
   const pathname = usePathname();
@@ -258,9 +259,11 @@ export function Navigation() {
                   onClick={() => setShowUserMenu(!showUserMenu)}
                   className="flex items-center space-x-2 sm:space-x-3 px-2 sm:px-3 py-2 rounded-lg hover:bg-slate-50 transition-colors"
                 >
-                  <div className="w-8 h-8 rounded-full bg-gradient-to-r from-indigo-500 to-purple-500 flex items-center justify-center text-white text-sm font-semibold shadow-md">
-                    {getInitials(userName)}
-                  </div>
+                  <UserAvatar
+                    userId={userId as Id<"users"> | null}
+                    name={userName || "User"}
+                    size="sm"
+                  />
                   <span className="hidden lg:block text-sm font-medium text-slate-700">
                     {userName}
                   </span>

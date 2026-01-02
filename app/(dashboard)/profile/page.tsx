@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, Suspense, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { ProfileSkeleton } from "@/components/ui/LoadingSkeleton";
 import { PasswordStrength } from "@/components/ui/PasswordStrength";
+import { useQuery } from "convex/react";
 
 function ProfilePageContent() {
   const router = useRouter();
@@ -53,6 +54,17 @@ function ProfilePageContent() {
 
   const updateUser = useMutation(api.users.update);
   const resetOwnPassword = useMutation(api.users.resetOwnPassword);
+  const generateUploadUrl = useMutation(api.users.generateProfilePictureUploadUrl);
+  const updateProfilePicture = useMutation(api.users.updateProfilePicture);
+  const removeProfilePicture = useMutation(api.users.removeProfilePicture);
+  
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  
+  // Get profile picture URL
+  const profilePictureUrl = useQuery(
+    api.users.getProfilePictureUrl,
+    user?.profilePictureId ? { storageId: user.profilePictureId } : "skip"
+  );
 
   useEffect(() => {
     if (user) {
@@ -182,6 +194,116 @@ function ProfilePageContent() {
     setPasswordError("");
     setPasswordSuccess("");
     setShowPasswordReset(false);
+  };
+
+  const handleProfilePictureUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!userId || !event.target.files || event.target.files.length === 0) return;
+
+    const file = event.target.files[0];
+    
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      setError("Please select an image file");
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5MB");
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      // Generate upload URL
+      const uploadUrl = await generateUploadUrl();
+
+      // Upload file to Convex storage
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResult.ok) {
+        throw new Error("Failed to upload image");
+      }
+
+      // Get storage ID from the response
+      let storageIdText = await uploadResult.text();
+      
+      // Handle case where response might be a JSON string
+      let storageId: Id<"_storage">;
+      try {
+        const parsed = JSON.parse(storageIdText);
+        if (typeof parsed === "object" && parsed.storageId) {
+          storageId = parsed.storageId as Id<"_storage">;
+        } else if (typeof parsed === "string") {
+          storageId = parsed as Id<"_storage">;
+        } else {
+          storageId = storageIdText as Id<"_storage">;
+        }
+      } catch {
+        // If not JSON, treat as direct storage ID
+        storageId = storageIdText as Id<"_storage">;
+      }
+      
+      if (!storageId) {
+        throw new Error("Failed to get storage ID from upload");
+      }
+
+      // Update user profile with new picture
+      await updateProfilePicture({
+        userId: userId as Id<"users">,
+        storageId: storageId,
+      });
+
+      setSuccess("Profile picture updated successfully!");
+      
+      // Clear the file input
+      event.target.value = "";
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess("");
+      }, 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to upload profile picture");
+    } finally {
+      setUploadingPhoto(false);
+    }
+  };
+
+  const handleRemoveProfilePicture = async () => {
+    if (!userId) return;
+
+    if (!confirm("Are you sure you want to remove your profile picture?")) {
+      return;
+    }
+
+    setUploadingPhoto(true);
+    setError("");
+    setSuccess("");
+
+    try {
+      await removeProfilePicture({
+        userId: userId as Id<"users">,
+      });
+
+      setSuccess("Profile picture removed successfully!");
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess("");
+      }, 3000);
+    } catch (err: any) {
+      setError(err.message || "Failed to remove profile picture");
+    } finally {
+      setUploadingPhoto(false);
+    }
   };
 
   if (!userId) {
@@ -388,23 +510,67 @@ function ProfilePageContent() {
             <div className="space-y-8">
               <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 pb-8 border-b border-slate-200">
                 <div className="relative group flex-shrink-0">
-                  <div className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105 ring-4 ring-white">
-                    {getInitials(user.name)}
-                  </div>
-                  {!isImpersonating && (
-                    <button
-                      onClick={() => {
-                        // TODO: Implement profile picture upload
-                        alert("Profile picture upload coming soon!");
+                  {profilePictureUrl ? (
+                    <img
+                      src={profilePictureUrl}
+                      alt={user.name}
+                      className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full object-cover shadow-xl hover:shadow-2xl transition-all hover:scale-105 ring-4 ring-white"
+                      onError={(e) => {
+                        // Fallback to initials if image fails to load
+                        const target = e.target as HTMLImageElement;
+                        target.style.display = "none";
+                        const parent = target.parentElement;
+                        if (parent) {
+                          const fallback = document.createElement("div");
+                          fallback.className = "w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl font-bold shadow-xl ring-4 ring-white";
+                          fallback.textContent = getInitials(user.name);
+                          parent.appendChild(fallback);
+                        }
                       }}
-                      className="absolute bottom-0 right-0 p-2.5 sm:p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors border-3 border-white"
-                      title="Change profile picture"
-                    >
-                      <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                      </svg>
-                    </button>
+                    />
+                  ) : (
+                    <div className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105 ring-4 ring-white">
+                      {getInitials(user.name)}
+                    </div>
+                  )}
+                  {!isImpersonating && (
+                    <div className="absolute bottom-0 right-0 flex gap-2">
+                      <label
+                        className="p-2.5 sm:p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors border-3 border-white cursor-pointer"
+                        title="Change profile picture"
+                      >
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleProfilePictureUpload}
+                          disabled={uploadingPhoto}
+                          className="hidden"
+                        />
+                        {uploadingPhoto ? (
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                        ) : (
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        )}
+                      </label>
+                      {user.profilePictureId && (
+                        <button
+                          onClick={handleRemoveProfilePicture}
+                          disabled={uploadingPhoto}
+                          className="p-2.5 sm:p-3 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-colors border-3 border-white"
+                          title="Remove profile picture"
+                        >
+                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      )}
+                    </div>
                   )}
                 </div>
                 <div className="text-center sm:text-left flex-1">

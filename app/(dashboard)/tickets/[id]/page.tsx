@@ -12,6 +12,7 @@ import { useState, use } from "react";
 import Link from "next/link";
 import { useToastContext } from "@/contexts/ToastContext";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { UserAvatar } from "@/components/ui/UserAvatar";
 
 export default function TicketDetailPage({
   params,
@@ -396,15 +397,6 @@ export default function TicketDetailPage({
               </div>
             ) : (
               comments.map((comment: any, index) => {
-                const getInitials = (name: string) => {
-                  return name
-                    .split(" ")
-                    .map((n) => n[0])
-                    .join("")
-                    .toUpperCase()
-                    .slice(0, 2);
-                };
-
                 const currentUserId = localStorage.getItem("userId");
                 const isCurrentUser = comment.userId === currentUserId;
 
@@ -419,9 +411,11 @@ export default function TicketDetailPage({
                   >
                     <div className="flex justify-between items-start mb-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center text-white text-xs font-semibold shadow-sm">
-                          {getInitials(comment.userName || "Unknown")}
-                        </div>
+                        <UserAvatar
+                          userId={comment.userId as Id<"users"> | null}
+                          name={comment.userName || "Unknown"}
+                          size="sm"
+                        />
                         <div>
                           <span className="text-sm font-semibold text-slate-900">
                             {comment.userName || "Unknown User"}
