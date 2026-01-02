@@ -8,8 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { StatsCard } from "@/components/dashboard/StatsCard";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -84,6 +85,65 @@ export default function TicketsPage() {
   });
 
   const currentUserId = userId;
+
+  // Calculate KPI metrics for agents and admins
+  // Use all tickets (not filtered by tab) for KPIs
+  // IMPORTANT: This hook must be called before any early returns to maintain hooks order
+  const kpiMetrics = useMemo(() => {
+    if ((userRole !== "agent" && userRole !== "admin") || !tickets) {
+      return null;
+    }
+
+    // For KPIs, use all tickets (not filtered by tab)
+    const allTickets = (allAgentTickets || tickets) || [];
+    
+    // Basic counts
+    const total = allTickets.length;
+    const newTickets = allTickets.filter((t) => t.status === "new").length;
+    const inProgress = allTickets.filter((t) => t.status === "in_progress").length;
+    const openTickets = newTickets + inProgress;
+    const resolved = allTickets.filter((t) => t.status === "resolved").length;
+    const closed = allTickets.filter((t) => t.status === "closed").length;
+    const onHold = allTickets.filter((t) => t.status === "on_hold").length;
+    
+    // Priority counts
+    const critical = allTickets.filter((t) => t.priority === "critical").length;
+    const high = allTickets.filter((t) => t.priority === "high").length;
+    const medium = allTickets.filter((t) => t.priority === "medium").length;
+    const low = allTickets.filter((t) => t.priority === "low").length;
+    
+    // Resolution metrics
+    const resolvedTickets = allTickets.filter((t) => t.resolvedAt !== null);
+    const avgResolutionTime = resolvedTickets.length > 0
+      ? Math.round(
+          resolvedTickets.reduce((sum, t) => {
+            if (t.resolvedAt && t.createdAt) {
+              return sum + (t.resolvedAt - t.createdAt);
+            }
+            return sum;
+          }, 0) / resolvedTickets.length / (1000 * 60 * 60 * 24) // Convert to days
+        )
+      : 0;
+    
+    // Unassigned tickets
+    const unassigned = allTickets.filter((t) => t.assignedTo === null).length;
+    
+    return {
+      total,
+      newTickets,
+      inProgress,
+      openTickets,
+      resolved,
+      closed,
+      onHold,
+      critical,
+      high,
+      medium,
+      low,
+      avgResolutionTime,
+      unassigned,
+    };
+  }, [allAgentTickets, tickets, assignedTickets, userRole]);
 
   if (tickets === undefined || (userRole === "agent" && assignedTickets === undefined)) {
     return (
@@ -229,6 +289,109 @@ export default function TicketsPage() {
           Create Ticket
         </Button>
       </div>
+
+      {/* KPI Dashboard for Agents and Admins */}
+      {(userRole === "agent" || userRole === "admin") && kpiMetrics && (
+        <div className="space-y-4">
+          <div>
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">Ticket Overview</h2>
+          </div>
+          
+          {/* Main KPI Cards */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <StatsCard
+              title="Total Tickets"
+              value={kpiMetrics.total}
+              color="default"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+              }
+            />
+            <StatsCard
+              title="Open"
+              value={kpiMetrics.openTickets}
+              color="blue"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+            <StatsCard
+              title="In Progress"
+              value={kpiMetrics.inProgress}
+              color="yellow"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                </svg>
+              }
+            />
+            <StatsCard
+              title="Resolved"
+              value={kpiMetrics.resolved}
+              color="green"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              }
+            />
+            <StatsCard
+              title="Critical"
+              value={kpiMetrics.critical}
+              color="red"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                </svg>
+              }
+            />
+            <StatsCard
+              title="Unassigned"
+              value={kpiMetrics.unassigned}
+              color="yellow"
+              icon={
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
+                </svg>
+              }
+            />
+          </div>
+
+          {/* Secondary Metrics */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+            <Card padding="sm" className="text-center">
+              <div className="text-xl font-bold text-blue-600">{kpiMetrics.newTickets}</div>
+              <div className="text-xs text-slate-500 mt-1">New</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-xl font-bold text-orange-600">{kpiMetrics.onHold}</div>
+              <div className="text-xs text-slate-500 mt-1">On Hold</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-xl font-bold text-slate-600">{kpiMetrics.closed}</div>
+              <div className="text-xs text-slate-500 mt-1">Closed</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-xl font-bold text-red-600">{kpiMetrics.high}</div>
+              <div className="text-xs text-slate-500 mt-1">High Priority</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-xl font-bold text-blue-600">{kpiMetrics.medium}</div>
+              <div className="text-xs text-slate-500 mt-1">Medium Priority</div>
+            </Card>
+            <Card padding="sm" className="text-center">
+              <div className="text-xl font-bold text-slate-600">
+                {kpiMetrics.avgResolutionTime > 0 ? `${kpiMetrics.avgResolutionTime}d` : "N/A"}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">Avg Resolution</div>
+            </Card>
+          </div>
+        </div>
+      )}
 
       {/* Create Ticket Form */}
       {showCreateForm && (
