@@ -241,6 +241,13 @@ export default function DashboardPage() {
   const updateEvent = useMutation((api as any).events?.update);
   const deleteEvent = useMutation((api as any).events?.remove);
   
+  // Todo management mutations
+  // Using bracket notation to avoid TypeScript errors until Convex syncs
+  const createTodo = useMutation((api as any).todos?.create);
+  const updateTodo = useMutation((api as any).todos?.update);
+  const deleteTodoMutation = useMutation((api as any).todos?.remove);
+  const toggleTodoComplete = useMutation((api as any).todos?.toggleComplete);
+  
   // Get ticket IDs for escalation check (compute after all hooks)
   const ticketIds = tickets ? tickets.map(t => t._id) : [];
   const escalatedTicketIds = useQuery(
@@ -445,7 +452,7 @@ export default function DashboardPage() {
     }
 
     try {
-      await deleteTodo({ id: todoId, userId: userId as Id<"users"> });
+      await deleteTodoMutation({ id: todoId, userId: userId as Id<"users"> });
       success("Todo deleted successfully");
     } catch (err: any) {
       showError(err.message || "Failed to delete todo");
