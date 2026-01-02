@@ -76,6 +76,7 @@ export default function NotificationsPage() {
         message: "",
         targetType: "all",
         targetUserIds: [],
+        sendEmail: false,
       });
       setShowCreateForm(false);
     } catch (err: any) {
