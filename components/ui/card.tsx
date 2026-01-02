@@ -8,6 +8,7 @@ interface CardProps {
   style?: React.CSSProperties;
   onClick?: () => void;
   variant?: "default" | "elevated" | "outlined";
+  id?: string;
 }
 
 export function Card({
@@ -18,6 +19,7 @@ export function Card({
   style,
   onClick,
   variant = "default",
+  id,
 }: CardProps) {
   const paddings = {
     none: "p-0",
@@ -38,6 +40,7 @@ export function Card({
 
   return (
     <div
+      id={id}
       className={`${variants[variant]} transition-all duration-300 ease-out ${hoverStyles} ${paddings[padding]} ${className}`}
       style={style}
       onClick={onClick}
