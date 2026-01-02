@@ -129,7 +129,6 @@ export default function DashboardPage() {
   
   const router = useRouter();
   const createTicket = useMutation(api.tickets.create);
-  const storageUrl = useStorage();
   const { success, error: showError } = useToastContext();
   
   // Get ticket IDs for escalation check
