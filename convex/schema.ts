@@ -345,4 +345,29 @@ export default defineSchema({
     .index("by_category", ["category"])
     .index("by_createdBy", ["createdBy"])
     .index("by_createdAt", ["createdAt"]),
+
+  // Todos
+  todos: defineTable({
+    title: v.string(),
+    dueDate: v.number(), // Timestamp for due date
+    status: v.union(
+      v.literal("pending"),
+      v.literal("in_progress"),
+      v.literal("completed"),
+      v.literal("overdue")
+    ),
+    priority: v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("high")
+    ),
+    createdBy: v.id("users"),
+    completedAt: v.union(v.number(), v.null()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_createdBy", ["createdBy"])
+    .index("by_status", ["status"])
+    .index("by_dueDate", ["dueDate"])
+    .index("by_createdBy_status", ["createdBy", "status"]),
 });

@@ -72,14 +72,6 @@ const favoriteLinks = [
   { name: "Services User Guide", icon: "📋", color: "text-amber-500" },
 ];
 
-const todoItems = [
-  { title: "Create Services Logo", due: "Due in 2 Days", completed: false },
-  { title: "Create palmware Logo", due: "Due in 3 Days", completed: false },
-  { title: "Create event's for Emp", due: "Due in 3 Days", completed: false },
-  { title: "Create design homepage", due: "Due in 2 Days", completed: false },
-  { title: "Create ui ux dashboard", due: "Due in 3 Days", completed: false },
-];
-
 function LoadingSkeleton() {
   return (
     <div className="animate-pulse space-y-4 lg:space-y-6">
@@ -101,6 +93,14 @@ export default function DashboardPage() {
   const [userRole, setUserRole] = useState<string | null>(null);
   const [suggestionCategory, setSuggestionCategory] = useState("");
   const [suggestionText, setSuggestionText] = useState("");
+  const [showTodoForm, setShowTodoForm] = useState(false);
+  const [editingTodo, setEditingTodo] = useState<any>(null);
+  const [todoForm, setTodoForm] = useState({
+    title: "",
+    dueDate: "",
+    priority: "medium" as "low" | "medium" | "high",
+  });
+  const [showTodoOptions, setShowTodoOptions] = useState<string | null>(null);
   const [showAllServices, setShowAllServices] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
@@ -138,6 +138,23 @@ export default function DashboardPage() {
     if (id) setUserId(id);
     if (role) setUserRole(role);
   }, []);
+
+  // Close todo options menu when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (showTodoOptions) {
+        setShowTodoOptions(null);
+      }
+    };
+
+    if (showTodoOptions) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showTodoOptions]);
 
   // Role-based ticket visibility:
   // - Admin: sees all tickets
@@ -195,6 +212,12 @@ export default function DashboardPage() {
     (api as any).votes?.getUserVote,
     userId ? { userId: userId as Id<"users"> } : "skip"
   ) as string | null | undefined;
+
+  // Fetch todos for current user
+  const todos = useQuery(
+    (api as any).todos?.list,
+    userId ? { userId: userId as Id<"users">, limit: 5 } : "skip"
+  ) as any[] | undefined;
   
   // Fetch storage URL for selected service logo
   const normalizedSelectedLogoId = selectedService?.logoId 
@@ -385,6 +408,140 @@ export default function DashboardPage() {
   // Format time for display (e.g., "10:00 AM - 11:00 AM")
   const formatEventTime = (startTime: string, endTime: string) => {
     return `${startTime} - ${endTime}`;
+  };
+
+  // Todo management handlers
+  const handleAddTodo = () => {
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 2);
+    setTodoForm({
+      title: "",
+      dueDate: tomorrow.toISOString().split("T")[0],
+      priority: "medium",
+    });
+    setEditingTodo(null);
+    setShowTodoForm(true);
+  };
+
+  const handleEditTodo = (todo: any) => {
+    const dueDate = new Date(todo.dueDate);
+    setTodoForm({
+      title: todo.title,
+      dueDate: dueDate.toISOString().split("T")[0],
+      priority: todo.priority,
+    });
+    setEditingTodo(todo);
+    setShowTodoForm(true);
+  };
+
+  const handleDeleteTodo = async (todoId: Id<"todos">) => {
+    if (!confirm("Are you sure you want to delete this todo?")) {
+      return;
+    }
+
+    if (!userId) {
+      showError("You must be logged in to delete todos");
+      return;
+    }
+
+    try {
+      await deleteTodo({ id: todoId, userId: userId as Id<"users"> });
+      success("Todo deleted successfully");
+    } catch (err: any) {
+      showError(err.message || "Failed to delete todo");
+    }
+  };
+
+  const handleToggleTodoComplete = async (todo: any) => {
+    if (!userId) {
+      showError("You must be logged in to update todos");
+      return;
+    }
+
+    try {
+      await toggleTodoComplete({
+        id: todo._id,
+        userId: userId as Id<"users">,
+      });
+    } catch (err: any) {
+      showError(err.message || "Failed to update todo");
+    }
+  };
+
+  const handleTodoSubmit = async () => {
+    if (!todoForm.title.trim()) {
+      showError("Todo title is required");
+      return;
+    }
+    if (!todoForm.dueDate) {
+      showError("Due date is required");
+      return;
+    }
+    if (!userId) {
+      showError("You must be logged in to create todos");
+      return;
+    }
+
+    try {
+      const dueDateTimestamp = new Date(todoForm.dueDate).getTime();
+
+      if (editingTodo) {
+        await updateTodo({
+          id: editingTodo._id,
+          title: todoForm.title.trim(),
+          dueDate: dueDateTimestamp,
+          priority: todoForm.priority,
+          userId: userId as Id<"users">,
+        });
+        success("Todo updated successfully");
+      } else {
+        await createTodo({
+          title: todoForm.title.trim(),
+          dueDate: dueDateTimestamp,
+          priority: todoForm.priority,
+          createdBy: userId as Id<"users">,
+        });
+        success("Todo created successfully");
+      }
+      setShowTodoForm(false);
+      setEditingTodo(null);
+      setTodoForm({
+        title: "",
+        dueDate: "",
+        priority: "medium",
+      });
+    } catch (err: any) {
+      showError(err.message || "Failed to save todo");
+    }
+  };
+
+  const getTodoStatusColor = (status: string) => {
+    switch (status) {
+      case "completed":
+        return "bg-green-500";
+      case "overdue":
+        return "bg-red-500";
+      case "in_progress":
+        return "bg-orange-500";
+      default:
+        return "bg-slate-300";
+    }
+  };
+
+  const formatDueDate = (dueDate: number) => {
+    const now = Date.now();
+    const diff = dueDate - now;
+    const days = Math.ceil(diff / (1000 * 60 * 60 * 24));
+
+    if (days < 0) {
+      return `Overdue ${Math.abs(days)} day${Math.abs(days) !== 1 ? "s" : ""}`;
+    } else if (days === 0) {
+      return "Due today";
+    } else if (days === 1) {
+      return "Due in 1 day";
+    } else {
+      return `Due in ${days} days`;
+    }
   };
 
   const handleRequestSubmit = async () => {
@@ -1547,30 +1704,200 @@ export default function DashboardPage() {
               <h2 className="text-base lg:text-lg font-semibold text-slate-900">Todo</h2>
               <p className="text-xs text-slate-500">Top 5 records</p>
             </div>
-            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Show More
-            </button>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-1 lg:gap-2">
-            {todoItems.map((todo, index) => (
-              <div
-                key={index}
-                className="flex items-center gap-2 lg:gap-3 p-2.5 lg:p-3 hover:bg-slate-50 rounded-xl transition-colors"
+            <div className="flex items-center gap-2">
+              <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
+                Show More
+              </button>
+              <button
+                onClick={handleAddTodo}
+                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 transition-colors"
+                title="Add Todo"
               >
-                <input
-                  type="checkbox"
-                  checked={todo.completed}
-                  onChange={() => {}}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
-                />
-                <div className="min-w-0">
-                  <p className="text-xs lg:text-sm font-medium text-slate-900 truncate">{todo.title}</p>
-                  <p className="text-[10px] lg:text-xs text-slate-500">{todo.due}</p>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+              </button>
+            </div>
+          </div>
+          <div className="space-y-1">
+            {todos && todos.length > 0 ? (
+              todos.map((todo) => (
+                <div
+                  key={todo._id}
+                  className="flex items-center gap-2 lg:gap-3 p-2.5 lg:p-3 hover:bg-slate-50 rounded-xl transition-colors group relative"
+                >
+                  {/* Status indicator bar */}
+                  <div className={`w-1 h-full ${getTodoStatusColor(todo.status)} rounded-full flex-shrink-0`}></div>
+                  
+                  <input
+                    type="checkbox"
+                    checked={todo.status === "completed"}
+                    onChange={() => handleToggleTodoComplete(todo)}
+                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
+                  />
+                  <div className="min-w-0 flex-1">
+                    <p className={`text-xs lg:text-sm font-medium truncate ${
+                      todo.status === "completed" ? "text-slate-400 line-through" : "text-slate-900"
+                    }`}>
+                      {todo.title}
+                    </p>
+                    <p className="text-[10px] lg:text-xs text-slate-500">{formatDueDate(todo.dueDate)}</p>
+                  </div>
+                  <button
+                    onClick={() => setShowTodoOptions(showTodoOptions === todo._id ? null : todo._id)}
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
+                  >
+                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                    </svg>
+                  </button>
+                  
+                  {/* Options menu */}
+                  {showTodoOptions === todo._id && (
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                      <button
+                        onClick={() => {
+                          handleEditTodo(todo);
+                          setShowTodoOptions(null);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-t-lg"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => {
+                          handleDeleteTodo(todo._id);
+                          setShowTodoOptions(null);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-b-lg"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
+              ))
+            ) : (
+              <div className="text-center py-6 text-slate-500">
+                <p className="text-xs lg:text-sm">No todos yet</p>
+                <button
+                  onClick={handleAddTodo}
+                  className="text-xs text-blue-600 hover:text-blue-700 mt-2"
+                >
+                  Add your first todo
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </Card>
+
+        {/* Todo Form Modal */}
+        {showTodoForm && (
+          <div
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => {
+              setShowTodoForm(false);
+              setEditingTodo(null);
+              setTodoForm({
+                title: "",
+                dueDate: "",
+                priority: "medium",
+              });
+            }}
+          >
+            <div
+              className="bg-white rounded-xl shadow-xl max-w-md w-full overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {editingTodo ? "Edit Todo" : "Add Todo"}
+                  </h2>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowTodoForm(false);
+                    setEditingTodo(null);
+                    setTodoForm({
+                      title: "",
+                      dueDate: "",
+                      priority: "medium",
+                    });
+                  }}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-4">
+                  <Input
+                    label="Todo Title"
+                    value={todoForm.title}
+                    onChange={(e) => setTodoForm({ ...todoForm, title: e.target.value })}
+                    placeholder="Enter todo title"
+                    required
+                  />
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Due Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={todoForm.dueDate}
+                      onChange={(e) => setTodoForm({ ...todoForm, dueDate: e.target.value })}
+                      className="w-full py-2 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Priority
+                    </label>
+                    <Select
+                      value={todoForm.priority}
+                      onChange={(e) => setTodoForm({ ...todoForm, priority: e.target.value as any })}
+                      options={[
+                        { value: "low", label: "Low" },
+                        { value: "medium", label: "Medium" },
+                        { value: "high", label: "High" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowTodoForm(false);
+                    setEditingTodo(null);
+                    setTodoForm({
+                      title: "",
+                      dueDate: "",
+                      priority: "medium",
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button variant="gradient" onClick={handleTodoSubmit}>
+                  {editingTodo ? "Update Todo" : "Create Todo"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );
