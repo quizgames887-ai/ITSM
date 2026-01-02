@@ -1,5 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
+import { Id } from "./_generated/dataModel";
 
 export const list = query({
   args: {
@@ -72,7 +73,7 @@ export const createBroadcast = mutation({
     
     for (const userId of targetUsers) {
       const notificationId = await ctx.db.insert("notifications", {
-        userId: userId as any,
+        userId: userId as Id<"users">,
         type: args.type,
         title: args.title,
         message: args.message,
@@ -84,11 +85,11 @@ export const createBroadcast = mutation({
       
       // Collect email addresses if email notification is enabled
       if (args.sendEmail) {
-        const user = await ctx.db.get(userId as any);
-        if (user && user.email) {
+        const user = await ctx.db.get(userId as Id<"users">);
+        if (user && "email" in user) {
           emailRecipients.push({
-            email: user.email,
-            name: user.name || "User",
+            email: (user as any).email,
+            name: (user as any).name || "User",
           });
         }
       }
