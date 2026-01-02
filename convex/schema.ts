@@ -91,13 +91,44 @@ export default defineSchema({
   slaPolicies: defineTable({
     name: v.string(),
     priority: v.string(),
-    responseTime: v.number(),
-    resolutionTime: v.number(),
+    responseTime: v.number(), // Response time in minutes
+    resolutionTime: v.number(), // Resolution time in minutes
     enabled: v.boolean(),
     createdAt: v.number(),
   })
     .index("by_priority", ["priority"])
     .index("by_enabled", ["enabled"]),
+
+  // Escalation Rules
+  escalationRules: defineTable({
+    name: v.string(),
+    description: v.union(v.string(), v.null()),
+    isActive: v.boolean(),
+    priority: v.number(), // Lower number = higher priority (evaluated first)
+    // Conditions for when to escalate
+    conditions: v.object({
+      priorities: v.optional(v.array(v.string())), // Match ticket priorities
+      statuses: v.optional(v.array(v.string())), // Match ticket statuses
+      overdueBy: v.optional(v.number()), // Escalate if overdue by X minutes
+    }),
+    // Escalation actions
+    actions: v.object({
+      notifyUsers: v.optional(v.array(v.id("users"))), // Users to notify
+      notifyTeams: v.optional(v.array(v.id("teams"))), // Teams to notify
+      reassignTo: v.union(
+        v.object({ type: v.literal("agent"), agentId: v.id("users") }),
+        v.object({ type: v.literal("team"), teamId: v.id("teams") }),
+        v.object({ type: v.literal("none") })
+      ),
+      changePriority: v.optional(v.string()), // New priority level
+      addComment: v.optional(v.string()), // Auto-comment to add
+    }),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_isActive", ["isActive"])
+    .index("by_priority", ["priority"]),
 
   notifications: defineTable({
     userId: v.id("users"),

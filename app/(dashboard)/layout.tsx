@@ -29,6 +29,7 @@ export default function DashboardLayout({
     if (pathname === "/notifications") return "Notification Management";
     if (pathname === "/announcements") return "Announcements";
     if (pathname === "/roles") return "Auto-Assignment Rules";
+    if (pathname === "/sla") return "SLA & Escalation";
     if (pathname === "/profile") return "Profile Settings";
     return "Palmware";
   };
