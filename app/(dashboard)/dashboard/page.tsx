@@ -99,7 +99,6 @@ function LoadingSkeleton() {
 export default function DashboardPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
-  const [votingSelection, setVotingSelection] = useState<string | null>(null);
   const [suggestionCategory, setSuggestionCategory] = useState("");
   const [suggestionText, setSuggestionText] = useState("");
   const [showAllServices, setShowAllServices] = useState(false);
@@ -187,6 +186,15 @@ export default function DashboardPage() {
       // Don't filter by userId - all users can see all events
     } : "skip"
   ) as any[] | undefined;
+
+  // Fetch active vote
+  const activeVote = useQuery((api as any).votes?.getActive, {}) as any;
+  
+  // Fetch user's vote for active poll
+  const userVote = useQuery(
+    (api as any).votes?.getUserVote,
+    userId ? { userId: userId as Id<"users"> } : "skip"
+  ) as string | null | undefined;
   
   // Fetch storage URL for selected service logo
   const normalizedSelectedLogoId = selectedService?.logoId 
@@ -200,6 +208,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const createTicket = useMutation(api.tickets.create);
   const toggleFavorite = useMutation((api.serviceCatalog as any).toggleFavorite);
+  const submitVote = useMutation((api as any).votes?.submitVote);
   const { success, error: showError } = useToastContext();
   
   // Event management mutations
@@ -1406,26 +1415,53 @@ export default function DashboardPage() {
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base lg:text-lg font-semibold text-slate-900">Voting</h2>
-            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <Link href="/voting" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
               Show History
-            </button>
+            </Link>
           </div>
-          <p className="text-xs lg:text-sm text-slate-600 mb-4">What do you think of the new portals system?</p>
-          <div className="space-y-2">
-            {["Great", "Good", "Acceptable"].map((option) => (
-              <button
-                key={option}
-                onClick={() => setVotingSelection(option)}
-                className={`w-full py-2.5 lg:py-3 px-4 rounded-xl border-2 text-xs lg:text-sm font-medium transition-all ${
-                  votingSelection === option
-                    ? "border-blue-600 bg-blue-50 text-blue-700"
-                    : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                }`}
-              >
-                {option}
-              </button>
-            ))}
-          </div>
+          {activeVote ? (
+            <>
+              <p className="text-xs lg:text-sm text-slate-600 mb-4">{activeVote.question}</p>
+              <div className="space-y-2">
+                {activeVote.options.map((option: string) => (
+                  <button
+                    key={option}
+                    onClick={async () => {
+                      if (!userId) {
+                        showError("You must be logged in to vote");
+                        return;
+                      }
+                      try {
+                        await submitVote({
+                          userId: userId as Id<"users">,
+                          option: option,
+                        });
+                        success("Vote submitted successfully");
+                      } catch (err: any) {
+                        showError(err.message || "Failed to submit vote");
+                      }
+                    }}
+                    className={`w-full py-2.5 lg:py-3 px-4 rounded-xl border-2 text-xs lg:text-sm font-medium transition-all ${
+                      userVote === option
+                        ? "border-blue-600 bg-blue-50 text-blue-700"
+                        : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
+                    }`}
+                  >
+                    {option}
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-4 text-slate-500">
+              <p className="text-xs lg:text-sm">No active vote</p>
+              {userRole === "admin" && (
+                <Link href="/voting" className="text-xs text-blue-600 hover:text-blue-700 mt-2 inline-block">
+                  Create a vote
+                </Link>
+              )}
+            </div>
+          )}
         </Card>
 
         {/* Suggesting */}

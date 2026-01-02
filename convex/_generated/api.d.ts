@@ -26,6 +26,7 @@ import type * as sla from "../sla.js";
 import type * as teams from "../teams.js";
 import type * as tickets from "../tickets.js";
 import type * as users from "../users.js";
+import type * as votes from "../votes.js";
 
 import type {
   ApiFromModules,
@@ -52,6 +53,7 @@ declare const fullApi: ApiFromModules<{
   teams: typeof teams;
   tickets: typeof tickets;
   users: typeof users;
+  votes: typeof votes;
 }>;
 
 /**

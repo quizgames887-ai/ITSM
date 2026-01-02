@@ -32,6 +32,7 @@ export default function DashboardLayout({
     if (pathname === "/sla") return "SLA & Escalation";
     if (pathname === "/service-catalog") return "Service Catalog";
     if (pathname === "/events") return "Event Management";
+    if (pathname === "/voting") return "Voting Management";
     if (pathname === "/profile") return "Profile Settings";
     return "Palmware";
   };

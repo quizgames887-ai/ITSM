@@ -301,4 +301,27 @@ export default defineSchema({
     .index("by_date", ["date"])
     .index("by_createdBy", ["createdBy"])
     .index("by_date_createdBy", ["date", "createdBy"]),
+
+  // Voting Polls
+  votes: defineTable({
+    question: v.string(),
+    options: v.array(v.string()), // Array of option labels
+    isActive: v.boolean(),
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_isActive", ["isActive"])
+    .index("by_createdBy", ["createdBy"]),
+
+  // User Votes (tracks which user voted for which option in which poll)
+  userVotes: defineTable({
+    voteId: v.id("votes"),
+    userId: v.id("users"),
+    option: v.string(), // The option the user selected
+    createdAt: v.number(),
+  })
+    .index("by_voteId", ["voteId"])
+    .index("by_userId", ["userId"])
+    .index("by_voteId_userId", ["voteId", "userId"]),
 });
