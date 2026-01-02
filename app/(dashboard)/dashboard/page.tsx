@@ -1,14 +1,18 @@
 "use client";
 
-import { useQuery } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { AnnouncementSlider } from "@/components/dashboard/AnnouncementSlider";
+import { useToastContext } from "@/contexts/ToastContext";
 
 // Services will be fetched from the database
 
@@ -51,6 +55,16 @@ export default function DashboardPage() {
   const [suggestionCategory, setSuggestionCategory] = useState("");
   const [suggestionText, setSuggestionText] = useState("");
   const [showAllServices, setShowAllServices] = useState(false);
+  const [showRequestForm, setShowRequestForm] = useState(false);
+  const [selectedService, setSelectedService] = useState<any>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [requestForm, setRequestForm] = useState({
+    title: "",
+    description: "",
+    type: "service_request" as "incident" | "service_request" | "inquiry",
+    priority: "medium" as "low" | "medium" | "high" | "critical",
+    urgency: "medium" as "low" | "medium" | "high",
+  });
 
   useEffect(() => {
     const id = localStorage.getItem("userId");
@@ -86,6 +100,8 @@ export default function DashboardPage() {
   const announcements = useQuery(api.announcements.getActive, {});
   
   const router = useRouter();
+  const createTicket = useMutation(api.tickets.create);
+  const { success, error: showError } = useToastContext();
   
   // Get ticket IDs for escalation check
   const ticketIds = tickets ? tickets.map(t => t._id) : [];
@@ -97,6 +113,59 @@ export default function DashboardPage() {
   if (tickets === undefined || escalatedTicketIds === undefined || services === undefined) {
     return <LoadingSkeleton />;
   }
+
+  const handleServiceClick = (service: any) => {
+    setSelectedService(service);
+    setRequestForm({
+      title: "",
+      description: "",
+      type: "service_request",
+      priority: "medium",
+      urgency: "medium",
+    });
+    setShowRequestForm(true);
+  };
+
+  const handleRequestSubmit = async () => {
+    if (!selectedService || !userId) return;
+    
+    if (!requestForm.title.trim()) {
+      showError("Title is required");
+      return;
+    }
+    if (!requestForm.description.trim()) {
+      showError("Description is required");
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      await createTicket({
+        title: requestForm.title.trim(),
+        description: requestForm.description.trim(),
+        type: requestForm.type,
+        priority: requestForm.priority,
+        urgency: requestForm.urgency,
+        category: selectedService.name,
+        createdBy: userId as Id<"users">,
+      });
+      
+      success(`Service request for "${selectedService.name}" created successfully!`);
+      setShowRequestForm(false);
+      setSelectedService(null);
+      setRequestForm({
+        title: "",
+        description: "",
+        type: "service_request",
+        priority: "medium",
+        urgency: "medium",
+      });
+    } catch (err: any) {
+      showError(err.message || "Failed to create service request");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   // Get user name by ID
   const getUserName = (assignedToId: string | null) => {
@@ -262,6 +331,7 @@ export default function DashboardPage() {
                 {services.slice(0, 8).map((service) => (
                   <div
                     key={service._id}
+                    onClick={() => handleServiceClick(service)}
                     className="flex flex-col items-center p-3 lg:p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
                   >
                     <div className={`w-10 h-10 lg:w-12 lg:h-12 ${service.color} rounded-xl flex items-center justify-center text-lg lg:text-xl mb-2 group-hover:scale-110 transition-transform`}>
@@ -324,6 +394,10 @@ export default function DashboardPage() {
                     {services.map((service) => (
                       <div
                         key={service._id}
+                        onClick={() => {
+                          handleServiceClick(service);
+                          setShowAllServices(false);
+                        }}
                         className="flex flex-col items-center p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group border border-slate-200"
                       >
                         <div className={`w-16 h-16 ${service.color} rounded-xl flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform`}>
@@ -355,6 +429,120 @@ export default function DashboardPage() {
               <div className="p-4 border-t border-slate-200 flex justify-end">
                 <Button variant="outline" onClick={() => setShowAllServices(false)}>
                   Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Service Request Form Modal */}
+        {showRequestForm && selectedService && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowRequestForm(false)}
+          >
+            <div 
+              className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Request Service</h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    Request: <span className="font-medium">{selectedService.name}</span>
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowRequestForm(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 p-4 bg-slate-50 rounded-lg border border-slate-200">
+                    <div className={`w-12 h-12 ${selectedService.color} rounded-xl flex items-center justify-center text-2xl`}>
+                      {selectedService.icon}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900">{selectedService.name}</p>
+                      {selectedService.description && (
+                        <p className="text-sm text-slate-600 mt-1">{selectedService.description}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <Input
+                    label="Title"
+                    value={requestForm.title}
+                    onChange={(e) => setRequestForm({ ...requestForm, title: e.target.value })}
+                    placeholder="Brief summary of your request"
+                  />
+                  
+                  <Textarea
+                    label="Description"
+                    value={requestForm.description}
+                    onChange={(e) => setRequestForm({ ...requestForm, description: e.target.value })}
+                    placeholder="Provide detailed information about your service request..."
+                    rows={4}
+                  />
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                    <Select
+                      label="Type"
+                      value={requestForm.type}
+                      onChange={(e) => setRequestForm({ ...requestForm, type: e.target.value as any })}
+                      options={[
+                        { value: "incident", label: "Incident" },
+                        { value: "service_request", label: "Service Request" },
+                        { value: "inquiry", label: "Inquiry" },
+                      ]}
+                    />
+                    
+                    <Select
+                      label="Priority"
+                      value={requestForm.priority}
+                      onChange={(e) => setRequestForm({ ...requestForm, priority: e.target.value as any })}
+                      options={[
+                        { value: "low", label: "Low" },
+                        { value: "medium", label: "Medium" },
+                        { value: "high", label: "High" },
+                        { value: "critical", label: "Critical" },
+                      ]}
+                    />
+                    
+                    <Select
+                      label="Urgency"
+                      value={requestForm.urgency}
+                      onChange={(e) => setRequestForm({ ...requestForm, urgency: e.target.value as any })}
+                      options={[
+                        { value: "low", label: "Low" },
+                        { value: "medium", label: "Medium" },
+                        { value: "high", label: "High" },
+                      ]}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-200 flex justify-end gap-2">
+                <Button variant="outline" onClick={() => setShowRequestForm(false)}>
+                  Cancel
+                </Button>
+                <Button 
+                  variant="gradient" 
+                  onClick={handleRequestSubmit}
+                  disabled={isSubmitting}
+                  loading={isSubmitting}
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Request"}
                 </Button>
               </div>
             </div>
