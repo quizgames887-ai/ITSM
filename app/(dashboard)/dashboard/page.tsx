@@ -101,6 +101,8 @@ export default function DashboardPage() {
     priority: "medium" as "low" | "medium" | "high",
   });
   const [showTodoOptions, setShowTodoOptions] = useState<string | null>(null);
+  const [showAllTodos, setShowAllTodos] = useState(false);
+  const [todoFilter, setTodoFilter] = useState<"all" | "completed" | "pending">("all");
   const [showAllServices, setShowAllServices] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
@@ -214,10 +216,34 @@ export default function DashboardPage() {
   ) as string | null | undefined;
 
   // Fetch todos for current user
-  const todos = useQuery(
+  const allTodos = useQuery(
     (api as any).todos?.list,
-    userId ? { userId: userId as Id<"users">, limit: 5 } : "skip"
+    userId ? { 
+      userId: userId as Id<"users">,
+      status: todoFilter === "completed" ? "completed" : undefined,
+      limit: showAllTodos ? undefined : (todoFilter === "completed" ? undefined : 5)
+    } : "skip"
   ) as any[] | undefined;
+  
+  // Filter todos client-side
+  let todos = allTodos;
+  if (allTodos) {
+    if (todoFilter === "pending") {
+      // Show only non-completed todos
+      todos = allTodos.filter((todo) => todo.status !== "completed");
+    } else if (todoFilter === "completed") {
+      // Show only completed todos (already filtered by query)
+      todos = allTodos;
+    } else {
+      // Show all todos
+      todos = allTodos;
+    }
+    
+    // Apply limit for "all" view when not showing all
+    if (todoFilter === "all" && !showAllTodos && todos.length > 5) {
+      todos = todos.slice(0, 5);
+    }
+  }
   
   // Fetch storage URL for selected service logo
   const normalizedSelectedLogoId = selectedService?.logoId 
@@ -1709,12 +1735,53 @@ export default function DashboardPage() {
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base lg:text-lg font-semibold text-slate-900">Todo</h2>
-              <p className="text-xs text-slate-500">Top 5 records</p>
+              <p className="text-xs text-slate-500">
+                {showAllTodos ? "All records" : "Top 5 records"}
+                {todoFilter === "completed" && " · Completed"}
+                {todoFilter === "pending" && " · Pending"}
+              </p>
             </div>
             <div className="flex items-center gap-2">
-              <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
-                Show More
-              </button>
+              <div className="flex items-center gap-1">
+                {todoFilter === "completed" && (
+                  <button
+                    onClick={() => setTodoFilter("all")}
+                    className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Show All
+                  </button>
+                )}
+                {todoFilter !== "completed" && (
+                  <button
+                    onClick={() => setTodoFilter("completed")}
+                    className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    Completed
+                  </button>
+                )}
+                {!showAllTodos && (
+                  <>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      onClick={() => setShowAllTodos(true)}
+                      className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Show More
+                    </button>
+                  </>
+                )}
+                {showAllTodos && (
+                  <>
+                    <span className="text-slate-300">|</span>
+                    <button
+                      onClick={() => setShowAllTodos(false)}
+                      className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
+                    >
+                      Show Less
+                    </button>
+                  </>
+                )}
+              </div>
               <button
                 onClick={handleAddTodo}
                 className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 transition-colors"
