@@ -33,6 +33,7 @@ export default function DashboardLayout({
     if (pathname === "/service-catalog") return "Service Catalog";
     if (pathname === "/events") return "Event Management";
     if (pathname === "/voting") return "Voting Management";
+    if (pathname === "/suggestions") return "Suggestions Management";
     if (pathname === "/profile") return "Profile Settings";
     return "Palmware";
   };

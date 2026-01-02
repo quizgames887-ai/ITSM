@@ -23,6 +23,7 @@ import type * as knowledgeBase from "../knowledgeBase.js";
 import type * as notifications from "../notifications.js";
 import type * as serviceCatalog from "../serviceCatalog.js";
 import type * as sla from "../sla.js";
+import type * as suggestions from "../suggestions.js";
 import type * as teams from "../teams.js";
 import type * as tickets from "../tickets.js";
 import type * as users from "../users.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   notifications: typeof notifications;
   serviceCatalog: typeof serviceCatalog;
   sla: typeof sla;
+  suggestions: typeof suggestions;
   teams: typeof teams;
   tickets: typeof tickets;
   users: typeof users;

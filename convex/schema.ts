@@ -324,4 +324,25 @@ export default defineSchema({
     .index("by_voteId", ["voteId"])
     .index("by_userId", ["userId"])
     .index("by_voteId_userId", ["voteId", "userId"]),
+
+  // Suggestions
+  suggestions: defineTable({
+    category: v.string(), // e.g., "UI/UX", "Features", "Performance", "Other"
+    content: v.string(), // The suggestion text
+    status: v.union(
+      v.literal("pending"),
+      v.literal("reviewed"),
+      v.literal("implemented"),
+      v.literal("rejected")
+    ),
+    createdBy: v.id("users"),
+    reviewedBy: v.union(v.id("users"), v.null()),
+    reviewNotes: v.union(v.string(), v.null()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_status", ["status"])
+    .index("by_category", ["category"])
+    .index("by_createdBy", ["createdBy"])
+    .index("by_createdAt", ["createdAt"]),
 });

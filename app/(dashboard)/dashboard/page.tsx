@@ -209,6 +209,7 @@ export default function DashboardPage() {
   const createTicket = useMutation(api.tickets.create);
   const toggleFavorite = useMutation((api.serviceCatalog as any).toggleFavorite);
   const submitVote = useMutation((api as any).votes?.submitVote);
+  const submitSuggestion = useMutation((api as any).suggestions?.submit);
   const { success, error: showError } = useToastContext();
   
   // Event management mutations
@@ -1468,9 +1469,9 @@ export default function DashboardPage() {
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base lg:text-lg font-semibold text-slate-900">Suggesting</h2>
-            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
+            <Link href="/suggestions" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
               Show History
-            </button>
+            </Link>
           </div>
           <p className="text-xs lg:text-sm text-slate-600 mb-4">How we can improve your experience</p>
           <div className="space-y-3">
