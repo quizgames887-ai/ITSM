@@ -146,7 +146,6 @@ export const list = query({
     category: v.optional(v.string()),
     assignedTo: v.optional(v.id("users")),
     createdBy: v.optional(v.id("users")),
-    // Role-based filtering parameters
     userId: v.optional(v.id("users")),
     userRole: v.optional(v.union(v.literal("user"), v.literal("agent"), v.literal("admin"))),
   },

@@ -26,15 +26,42 @@ export default function TicketsPage() {
     if (role) setUserRole(role);
   }, []);
 
+  // Temporary: Use existing parameters until Convex syncs userId/userRole
+  // TODO: Switch back to userId/userRole once Convex dev server syncs
   const tickets = useQuery(
     api.tickets.list,
     userId && userRole
+      ? userRole === "admin"
+        ? {} // Admin sees all tickets
+        : userRole === "agent"
+        ? {
+            // Agent: Fetch all, then filter client-side by tab
+            // This is temporary - will use userId/userRole once Convex syncs
+            createdBy: userId as Id<"users">, // Fetch created tickets, assigned will be filtered client-side
+          }
+        : {
+            // User: Only tickets they created
+            createdBy: userId as Id<"users">,
+          }
+      : "skip"
+  );
+  
+  // For agents, we need to also fetch assigned tickets and merge
+  const assignedTickets = useQuery(
+    api.tickets.list,
+    userId && userRole === "agent"
       ? {
-          userId: userId as Id<"users">,
-          userRole: userRole as "user" | "agent" | "admin",
+          assignedTo: userId as Id<"users">,
         }
       : "skip"
   );
+  
+  // Merge tickets for agents (created + assigned)
+  const allAgentTickets = userRole === "agent" && tickets && assignedTickets
+    ? [...(tickets || []), ...(assignedTickets || [])].filter(
+        (ticket, index, self) => index === self.findIndex((t) => t._id === ticket._id)
+      ) // Remove duplicates
+    : tickets;
   const users = useQuery(api.users.list, {});
   const createTicket = useMutation(api.tickets.create);
   
@@ -44,6 +71,8 @@ export default function TicketsPage() {
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  // Tab state for agents: "created" (My Tickets) or "assigned" (Assigned to Me)
+  const [activeTab, setActiveTab] = useState<"created" | "assigned">("created");
   
   const [newTicket, setNewTicket] = useState({
     title: "",
@@ -56,7 +85,7 @@ export default function TicketsPage() {
 
   const currentUserId = userId;
 
-  if (tickets === undefined) {
+  if (tickets === undefined || (userRole === "agent" && assignedTickets === undefined)) {
     return (
       <div className="animate-pulse space-y-4">
         <div className="h-10 bg-slate-200 rounded w-1/4 mb-4"></div>
@@ -72,8 +101,22 @@ export default function TicketsPage() {
     return user?.name || "Unknown";
   };
 
-  // Filter tickets
-  const filteredTickets = tickets.filter((ticket) => {
+  // Filter tickets based on role and tab
+  let ticketsToDisplay = allAgentTickets || tickets;
+  
+  // For agents, filter by tab (created vs assigned)
+  if (userRole === "agent" && userId && ticketsToDisplay) {
+    if (activeTab === "created") {
+      // Show only tickets created by the agent
+      ticketsToDisplay = ticketsToDisplay.filter((ticket) => ticket.createdBy === userId);
+    } else if (activeTab === "assigned") {
+      // Show only tickets assigned to the agent
+      ticketsToDisplay = ticketsToDisplay.filter((ticket) => ticket.assignedTo === userId);
+    }
+  }
+  
+  // Apply status and priority filters
+  const filteredTickets = ticketsToDisplay.filter((ticket) => {
     if (statusFilter !== "all" && ticket.status !== statusFilter) return false;
     if (priorityFilter !== "all" && ticket.priority !== priorityFilter) return false;
     return true;
@@ -278,6 +321,34 @@ export default function TicketsPage() {
         </Card>
       )}
 
+      {/* Tabs for Agents */}
+      {userRole === "agent" && (
+        <div className="border-b border-slate-200">
+          <div className="flex gap-1">
+            <button
+              onClick={() => setActiveTab("created")}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "created"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              My Tickets
+            </button>
+            <button
+              onClick={() => setActiveTab("assigned")}
+              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+                activeTab === "assigned"
+                  ? "border-blue-600 text-blue-600"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Assigned to Me
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
         <select
@@ -328,9 +399,17 @@ export default function TicketsPage() {
               </svg>
             }
             title="No tickets found"
-            description={tickets.length === 0 ? "Create your first ticket to get started." : "No tickets match your current filters."}
+            description={
+              (allAgentTickets || tickets)?.length === 0
+                ? "Create your first ticket to get started."
+                : userRole === "agent" && activeTab === "assigned"
+                ? "No tickets are currently assigned to you."
+                : userRole === "agent" && activeTab === "created"
+                ? "You haven't created any tickets yet."
+                : "No tickets match your current filters."
+            }
           />
-          {tickets.length === 0 && (
+          {(allAgentTickets || tickets)?.length === 0 && (
             <div className="text-center mt-4">
               <Button variant="gradient" onClick={() => setShowCreateForm(true)}>
                 Create Your First Ticket
@@ -430,7 +509,7 @@ export default function TicketsPage() {
           </div>
           {/* Table footer */}
           <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 text-sm text-slate-500">
-            Showing {filteredTickets.length} of {tickets.length} tickets
+            Showing {filteredTickets.length} of {ticketsToDisplay.length} {userRole === "agent" ? (activeTab === "created" ? "created" : "assigned") : ""} tickets
           </div>
         </Card>
       )}
