@@ -2,6 +2,25 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
+// Helper to normalize logoId (handle cases where it might be a stringified JSON)
+function normalizeLogoId(logoId: any): Id<"_storage"> | null {
+  if (!logoId) return null;
+  if (typeof logoId === "string") {
+    try {
+      // Try to parse if it's a JSON string
+      const parsed = JSON.parse(logoId);
+      if (typeof parsed === "object" && parsed.storageId) {
+        return parsed.storageId as Id<"_storage">;
+      }
+      return parsed as Id<"_storage">;
+    } catch {
+      // If not JSON, treat as direct storage ID
+      return logoId as Id<"_storage">;
+    }
+  }
+  return logoId as Id<"_storage">;
+}
+
 export const list = query({
   args: {
     activeOnly: v.optional(v.boolean()),
@@ -86,7 +105,7 @@ export const create = mutation({
   args: {
     name: v.string(),
     icon: v.string(),
-    logoId: v.optional(v.union(v.id("_storage"), v.null())),
+    logoId: v.optional(v.union(v.id("_storage"), v.null(), v.string())),
     color: v.string(),
     rating: v.number(),
     description: v.optional(v.string()),
@@ -96,10 +115,11 @@ export const create = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
+    const normalizedLogoId = normalizeLogoId(args.logoId);
     return await ctx.db.insert("serviceCatalog", {
       name: args.name,
       icon: args.icon,
-      logoId: args.logoId ?? null,
+      logoId: normalizedLogoId,
       color: args.color,
       rating: args.rating,
       description: args.description,
@@ -118,7 +138,7 @@ export const update = mutation({
     id: v.id("serviceCatalog"),
     name: v.optional(v.string()),
     icon: v.optional(v.string()),
-    logoId: v.optional(v.union(v.id("_storage"), v.null())),
+    logoId: v.optional(v.union(v.id("_storage"), v.null(), v.string())),
     color: v.optional(v.string()),
     rating: v.optional(v.number()),
     description: v.optional(v.string()),
@@ -132,7 +152,7 @@ export const update = mutation({
     };
     if (updates.name !== undefined) patch.name = updates.name;
     if (updates.icon !== undefined) patch.icon = updates.icon;
-    if (updates.logoId !== undefined) patch.logoId = updates.logoId;
+    if (updates.logoId !== undefined) patch.logoId = normalizeLogoId(updates.logoId);
     if (updates.color !== undefined) patch.color = updates.color;
     if (updates.rating !== undefined) patch.rating = updates.rating;
     if (updates.description !== undefined) patch.description = updates.description;

@@ -166,9 +166,25 @@ export default function ServiceCatalogPage() {
         headers: { "Content-Type": file.type },
         body: file,
       });
-      const storageId = await result.text();
+      let storageIdText = await result.text();
       
-      setFormData({ ...formData, logoId: storageId as Id<"_storage"> });
+      // Handle case where response might be a JSON string
+      let storageId: Id<"_storage">;
+      try {
+        const parsed = JSON.parse(storageIdText);
+        if (typeof parsed === "object" && parsed.storageId) {
+          storageId = parsed.storageId as Id<"_storage">;
+        } else if (typeof parsed === "string") {
+          storageId = parsed as Id<"_storage">;
+        } else {
+          storageId = storageIdText as Id<"_storage">;
+        }
+      } catch {
+        // If not JSON, treat as direct storage ID
+        storageId = storageIdText as Id<"_storage">;
+      }
+      
+      setFormData({ ...formData, logoId: storageId });
       success("Logo uploaded successfully!");
     } catch (err: any) {
       showError(err.message || "Failed to upload logo");
