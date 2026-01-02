@@ -144,6 +144,18 @@ export default function DashboardPage() {
   // Fetch service catalog (active services only)
   const services = useQuery(api.serviceCatalog.list, { activeOnly: true });
   
+  // Fetch user's favorite service IDs
+  const favoriteServiceIds = useQuery(
+    (api.serviceCatalog as any).getUserFavoriteIds,
+    userId ? { userId: userId as Id<"users"> } : "skip"
+  ) as Id<"serviceCatalog">[] | undefined;
+  
+  // Fetch user's favorite services with details
+  const favoriteServices = useQuery(
+    (api.serviceCatalog as any).getUserFavorites,
+    userId ? { userId: userId as Id<"users"> } : "skip"
+  ) as any[] | undefined;
+  
   // Fetch all active announcements for slider
   const announcements = useQuery(api.announcements.getActive, {});
   
@@ -156,6 +168,7 @@ export default function DashboardPage() {
   
   const router = useRouter();
   const createTicket = useMutation(api.tickets.create);
+  const toggleFavorite = useMutation((api.serviceCatalog as any).toggleFavorite);
   const { success, error: showError } = useToastContext();
   
   // Get ticket IDs for escalation check
@@ -168,6 +181,9 @@ export default function DashboardPage() {
   if (tickets === undefined || escalatedTicketIds === undefined || services === undefined) {
     return <LoadingSkeleton />;
   }
+  
+  // favoriteServiceIds and favoriteServices may be undefined if Convex hasn't synced yet
+  // This is okay - the UI will handle undefined gracefully
 
   const handleServiceClick = (service: any) => {
     setSelectedService(service);
@@ -179,6 +195,34 @@ export default function DashboardPage() {
       urgency: "medium",
     });
     setShowRequestForm(true);
+  };
+
+  const handleToggleFavorite = async (serviceId: Id<"serviceCatalog">, e: React.MouseEvent) => {
+    e.stopPropagation();
+    
+    if (!userId) {
+      showError("You must be logged in to favorite services");
+      return;
+    }
+
+    try {
+      await toggleFavorite({
+        userId: userId as Id<"users">,
+        serviceId,
+      });
+      // The query will automatically refetch and update the UI
+    } catch (err: any) {
+      // If the function doesn't exist yet, show a helpful message
+      if (err.message?.includes("Could not find public function")) {
+        showError("Favorites feature is not available yet. Please restart 'npx convex dev' to enable it.");
+      } else {
+        showError(err.message || "Failed to update favorite");
+      }
+    }
+  };
+
+  const isServiceFavorite = (serviceId: Id<"serviceCatalog">) => {
+    return favoriteServiceIds?.includes(serviceId) || false;
   };
 
   const handleRequestSubmit = async () => {
@@ -391,13 +435,15 @@ export default function DashboardPage() {
                     >
                       {/* Heart/Favorite icon in top-right */}
                       <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          // TODO: Implement favorite functionality
-                        }}
-                        className="absolute top-2 right-2 p-1 text-blue-600 hover:text-blue-700 transition-colors z-10"
+                        onClick={(e) => handleToggleFavorite(service._id, e)}
+                        className={`absolute top-2 right-2 p-1 transition-colors z-10 ${
+                          isServiceFavorite(service._id)
+                            ? "text-blue-600 hover:text-blue-700"
+                            : "text-slate-400 hover:text-blue-600"
+                        }`}
+                        title={isServiceFavorite(service._id) ? "Remove from favorites" : "Add to favorites"}
                       >
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+                        <svg className="w-4 h-4" fill={isServiceFavorite(service._id) ? "currentColor" : "none"} stroke="currentColor" viewBox="0 0 20 20">
                           <path fillRule="evenodd" d="M3.172 5.172a4 4 0 015.656 0L10 6.343l1.172-1.171a4 4 0 115.656 5.656L10 17.657l-6.828-6.829a4 4 0 010-5.656z" clipRule="evenodd" />
                         </svg>
                       </button>
@@ -774,28 +820,66 @@ export default function DashboardPage() {
         <Card padding="md" className="md:col-span-2 xl:col-span-1">
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-base lg:text-lg font-semibold text-slate-900">My Favorite</h2>
-              <p className="text-xs text-slate-500">Top 5 records</p>
+              <h2 className="text-base lg:text-lg font-semibold text-slate-900">My Favorites</h2>
+              <p className="text-xs text-slate-500">
+                {favoriteServices && favoriteServices.length > 0 
+                  ? `${favoriteServices.length} ${favoriteServices.length === 1 ? 'service' : 'services'}`
+                  : "No favorites yet"}
+              </p>
             </div>
-            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Show More
-            </button>
+            {favoriteServices && favoriteServices.length > 5 && (
+              <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
+                Show More
+              </button>
+            )}
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 gap-1 lg:gap-2">
-            {favoriteLinks.map((link, index) => (
-              <div
-                key={index}
-                className="flex items-center justify-between p-2.5 lg:p-3 hover:bg-slate-50 rounded-xl transition-colors cursor-pointer"
-              >
-                <div className="flex items-center gap-2 lg:gap-3">
-                  <span className={`text-base lg:text-lg ${link.color}`}>{link.icon}</span>
-                  <span className="text-xs lg:text-sm text-slate-700">{link.name}</span>
-                </div>
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                </svg>
+          <div className="space-y-2 lg:space-y-3">
+            {favoriteServices && favoriteServices.length > 0 ? (
+              favoriteServices.slice(0, 5).map((service: any) => {
+                const daysSinceCreation = Math.floor((Date.now() - service.createdAt) / (1000 * 60 * 60 * 24));
+                const duration = daysSinceCreation > 0 ? `${daysSinceCreation} day${daysSinceCreation !== 1 ? 's' : ''}` : '1 day';
+                
+                return (
+                  <div
+                    key={service._id}
+                    onClick={() => handleServiceClick(service)}
+                    className="flex items-center justify-between p-2.5 lg:p-3 bg-slate-50 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer group"
+                  >
+                    <div className="flex items-center gap-2 lg:gap-3 min-w-0 flex-1">
+                      <ServiceLogoDisplay service={service} size="small" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs lg:text-sm font-medium text-slate-900 truncate group-hover:text-blue-600 transition-colors">
+                          {service.name}
+                        </p>
+                        <div className="flex items-center gap-2 mt-0.5">
+                          <div className="flex items-center gap-1 text-slate-500">
+                            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-[10px] lg:text-xs">{duration}</span>
+                          </div>
+                          <div className="flex items-center gap-1 text-slate-500">
+                            <svg className="w-3 h-3 text-yellow-500 fill-current" viewBox="0 0 20 20">
+                              <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                            </svg>
+                            <span className="text-[10px] lg:text-xs">{service.rating.toFixed(1)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                    <svg className="w-4 h-4 text-slate-400 flex-shrink-0 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                );
+              })
+            ) : (
+              <div className="text-center py-6 lg:py-8 text-slate-500">
+                <span className="text-3xl mb-2 block">❤️</span>
+                <p className="text-xs lg:text-sm">No favorite services yet</p>
+                <p className="text-[10px] lg:text-xs text-slate-400 mt-1">Click the heart icon on services to add them here</p>
               </div>
-            ))}
+            )}
           </div>
         </Card>
       </div>

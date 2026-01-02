@@ -276,4 +276,14 @@ export default defineSchema({
   })
     .index("by_isActive", ["isActive"])
     .index("by_order", ["order"]),
+
+  // Service Favorites (user-service favorites)
+  serviceFavorites: defineTable({
+    userId: v.id("users"),
+    serviceId: v.id("serviceCatalog"),
+    createdAt: v.number(),
+  })
+    .index("by_userId", ["userId"])
+    .index("by_serviceId", ["serviceId"])
+    .index("by_userId_serviceId", ["userId", "serviceId"]),
 });

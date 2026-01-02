@@ -229,3 +229,87 @@ export const migrateAddLogoId = mutation({
     return { updated, total: services.length };
   },
 });
+
+// Favorites functionality
+export const toggleFavorite = mutation({
+  args: {
+    userId: v.id("users"),
+    serviceId: v.id("serviceCatalog"),
+  },
+  handler: async (ctx, args) => {
+    // Check if favorite already exists
+    const existing = await ctx.db
+      .query("serviceFavorites")
+      .withIndex("by_userId_serviceId", (q) =>
+        q.eq("userId", args.userId).eq("serviceId", args.serviceId)
+      )
+      .first();
+
+    if (existing) {
+      // Remove favorite
+      await ctx.db.delete(existing._id);
+      return { isFavorite: false };
+    } else {
+      // Add favorite
+      await ctx.db.insert("serviceFavorites", {
+        userId: args.userId,
+        serviceId: args.serviceId,
+        createdAt: Date.now(),
+      });
+      return { isFavorite: true };
+    }
+  },
+});
+
+export const getUserFavorites = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const favorites = await ctx.db
+      .query("serviceFavorites")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    // Get the service details for each favorite
+    const favoriteServices = await Promise.all(
+      favorites.map(async (fav) => {
+        const service = await ctx.db.get(fav.serviceId);
+        return service ? { ...service, favoritedAt: fav.createdAt } : null;
+      })
+    );
+
+    return favoriteServices.filter((s) => s !== null);
+  },
+});
+
+export const isFavorite = query({
+  args: {
+    userId: v.id("users"),
+    serviceId: v.id("serviceCatalog"),
+  },
+  handler: async (ctx, args) => {
+    const favorite = await ctx.db
+      .query("serviceFavorites")
+      .withIndex("by_userId_serviceId", (q) =>
+        q.eq("userId", args.userId).eq("serviceId", args.serviceId)
+      )
+      .first();
+
+    return favorite !== null;
+  },
+});
+
+export const getUserFavoriteIds = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const favorites = await ctx.db
+      .query("serviceFavorites")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+
+    return favorites.map((fav) => fav.serviceId);
+  },
+});
