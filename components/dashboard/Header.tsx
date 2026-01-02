@@ -259,11 +259,19 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
       {/* Right Section */}
       <div className="flex items-center gap-2 lg:gap-4">
         {/* Search - Desktop */}
-        <div className="relative hidden md:block">
+        <div className="relative hidden md:block" ref={searchRef}>
           <input
             type="text"
             value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchResults(e.target.value.length >= 2);
+            }}
+            onFocus={() => {
+              if (searchQuery.length >= 2) {
+                setShowSearchResults(true);
+              }
+            }}
             placeholder="Find..."
             className="w-40 lg:w-64 pl-10 pr-4 py-2 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
           />
@@ -280,6 +288,83 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
               d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
             />
           </svg>
+
+          {/* Search Results Dropdown */}
+          {showSearchResults && searchResults && (
+            <div className="absolute right-0 mt-2 w-80 lg:w-96 bg-white rounded-xl shadow-xl border border-slate-200 py-2 animate-fade-in z-50 max-h-[70vh] overflow-hidden flex flex-col">
+              <div className="px-4 py-2 border-b border-slate-100">
+                <h3 className="font-semibold text-slate-900 text-sm">
+                  Search Results ({searchResults.length})
+                </h3>
+              </div>
+              
+              <div className="overflow-y-auto flex-1 max-h-96">
+                {searchResults.length > 0 ? (
+                  searchResults.map((result) => {
+                    const getIcon = () => {
+                      switch (result.type) {
+                        case "ticket":
+                          return "🎫";
+                        case "service":
+                          return "📋";
+                        case "knowledge":
+                          return "📖";
+                        case "event":
+                          return "📅";
+                        default:
+                          return "🔍";
+                      }
+                    };
+
+                    return (
+                      <Link
+                        key={`${result.type}-${result.id}`}
+                        href={result.href}
+                        onClick={() => {
+                          setShowSearchResults(false);
+                          setSearchQuery("");
+                        }}
+                        className="flex items-start gap-3 px-4 py-3 hover:bg-slate-50 transition-colors border-b border-slate-50 last:border-0"
+                      >
+                        <span className="text-lg flex-shrink-0">{getIcon()}</span>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-slate-900 truncate">
+                            {result.title}
+                          </p>
+                          {result.subtitle && (
+                            <p className="text-xs text-slate-500 truncate mt-0.5">
+                              {result.subtitle}
+                            </p>
+                          )}
+                        </div>
+                        <svg
+                          className="w-4 h-4 text-slate-400 flex-shrink-0"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 5l7 7-7 7"
+                          />
+                        </svg>
+                      </Link>
+                    );
+                  })
+                ) : (
+                  <div className="px-4 py-8 text-center">
+                    <span className="text-3xl mb-2 block">🔍</span>
+                    <p className="text-sm text-slate-600">No results found</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      Try searching for tickets, services, or knowledge articles
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Search - Mobile Toggle */}
