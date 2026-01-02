@@ -1,6 +1,7 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
+import { api } from "./_generated/api";
 
 // Helper function to create notification
 async function createNotification(
@@ -20,6 +21,29 @@ async function createNotification(
     ticketId: ticketId ?? null,
     createdAt: Date.now(),
   });
+}
+
+// Helper function to apply SLA policy and set deadline
+async function applySLAPolicy(
+  ctx: any,
+  priority: string
+): Promise<number | null> {
+  // Get SLA policy for this priority
+  const policy = await ctx.db
+    .query("slaPolicies")
+    .withIndex("by_priority", (q: any) => q.eq("priority", priority))
+    .filter((q: any) => q.eq(q.field("enabled"), true))
+    .first();
+
+  if (!policy) {
+    return null; // No SLA policy for this priority
+  }
+
+  // Calculate deadline: current time + resolution time (in milliseconds)
+  const now = Date.now();
+  const deadline = now + policy.resolutionTime * 60 * 1000; // Convert minutes to milliseconds
+
+  return deadline;
 }
 
 // Helper function to find matching assignment rule and get assignee
@@ -240,6 +264,9 @@ export const create = mutation({
       }
     }
 
+    // Apply SLA policy to set deadline
+    const slaDeadline = await applySLAPolicy(ctx, args.priority);
+
     const ticketId = await ctx.db.insert("tickets", {
       title: args.title,
       description: args.description,
@@ -250,7 +277,7 @@ export const create = mutation({
       category: args.category,
       createdBy: args.createdBy,
       assignedTo: assignedTo,
-      slaDeadline: null,
+      slaDeadline: slaDeadline,
       resolvedAt: null,
       aiCategorySuggestion: null,
       aiPrioritySuggestion: null,
@@ -350,8 +377,20 @@ export const update = mutation({
       }
     }
 
+    // Recalculate SLA deadline if priority changed
+    let slaDeadline = ticket.slaDeadline;
+    if (updates.priority !== undefined && updates.priority !== ticket.priority) {
+      slaDeadline = await applySLAPolicy(ctx, updates.priority);
+      if (slaDeadline !== null) {
+        changes.slaDeadline = {
+          old: ticket.slaDeadline,
+          new: slaDeadline,
+        };
+      }
+    }
+
     // Update ticket
-    const updatedTicket = {
+    const updatedTicket: any = {
       ...updates,
       updatedAt: now,
       resolvedAt:
@@ -359,6 +398,11 @@ export const update = mutation({
           ? now
           : ticket.resolvedAt,
     };
+
+    // Only update slaDeadline if it was recalculated
+    if (slaDeadline !== null && slaDeadline !== ticket.slaDeadline) {
+      updatedTicket.slaDeadline = slaDeadline;
+    }
 
     await ctx.db.patch(id, updatedTicket);
 

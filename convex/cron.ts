@@ -1,8 +1,15 @@
 import { cronJobs } from "convex/server";
+import { api } from "./_generated/api";
 
 const crons = cronJobs();
 
-// Note: Internal functions for cron jobs would be defined in separate files
-// For now, we'll keep this simple and add cron jobs later when needed
+// Process escalation rules every 5 minutes
+crons.interval(
+  "processEscalations",
+  {
+    minutes: 5,
+  },
+  api.sla.processEscalations
+);
 
 export default crons;

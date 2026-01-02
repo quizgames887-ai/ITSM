@@ -215,3 +215,241 @@ export const toggleEscalationActive = mutation({
     });
   },
 });
+
+// Process escalation rules for tickets
+export const processEscalations = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const processedTickets = new Set<string>();
+    
+    // Get all active escalation rules, sorted by priority
+    const rules = await ctx.db
+      .query("escalationRules")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .collect();
+    
+    const sortedRules = rules.sort((a, b) => a.priority - b.priority);
+    
+    // Get all tickets that are not resolved or closed
+    const tickets = await ctx.db
+      .query("tickets")
+      .filter((q) => 
+        q.and(
+          q.neq(q.field("status"), "resolved"),
+          q.neq(q.field("status"), "closed")
+        )
+      )
+      .collect();
+    
+    for (const ticket of tickets) {
+      // Skip if already processed by a higher priority rule
+      if (processedTickets.has(ticket._id)) continue;
+      
+      for (const rule of sortedRules) {
+        // Check if ticket matches rule conditions
+        const matches = checkEscalationConditions(ticket, rule, now);
+        
+        if (matches) {
+          // Execute escalation actions
+          await executeEscalationActions(ctx, ticket, rule);
+          processedTickets.add(ticket._id);
+          break; // Only apply first matching rule per ticket
+        }
+      }
+    }
+    
+    return { processed: processedTickets.size };
+  },
+});
+
+// Helper function to check if ticket matches escalation conditions
+function checkEscalationConditions(
+  ticket: any,
+  rule: any,
+  now: number
+): boolean {
+  const { conditions } = rule;
+  
+  // Check priority match
+  if (conditions.priorities && conditions.priorities.length > 0) {
+    if (!conditions.priorities.includes(ticket.priority)) {
+      return false;
+    }
+  }
+  
+  // Check status match
+  if (conditions.statuses && conditions.statuses.length > 0) {
+    if (!conditions.statuses.includes(ticket.status)) {
+      return false;
+    }
+  }
+  
+  // Check overdue condition
+  if (conditions.overdueBy !== undefined && conditions.overdueBy !== null) {
+    if (!ticket.slaDeadline) {
+      return false; // No deadline set, can't be overdue
+    }
+    
+    const overdueBy = conditions.overdueBy * 60 * 1000; // Convert minutes to milliseconds
+    const isOverdue = now > (ticket.slaDeadline + overdueBy);
+    
+    if (!isOverdue) {
+      return false;
+    }
+  }
+  
+  return true;
+}
+
+// Helper function to execute escalation actions
+async function executeEscalationActions(
+  ctx: any,
+  ticket: any,
+  rule: any
+) {
+  const { actions } = rule;
+  const now = Date.now();
+  
+  // Notify users
+  if (actions.notifyUsers && actions.notifyUsers.length > 0) {
+    for (const userId of actions.notifyUsers) {
+      await ctx.db.insert("notifications", {
+        userId,
+        type: "escalation",
+        title: "Ticket Escalated",
+        message: `Ticket "${ticket.title}" has been escalated by rule "${rule.name}"`,
+        ticketId: ticket._id,
+        read: false,
+        createdAt: now,
+      });
+    }
+  }
+  
+  // Notify teams
+  if (actions.notifyTeams && actions.notifyTeams.length > 0) {
+    for (const teamId of actions.notifyTeams) {
+      // Get team members
+      const teamMembers = await ctx.db
+        .query("teamMembers")
+        .withIndex("by_teamId", (q) => q.eq("teamId", teamId))
+        .collect();
+      
+      for (const member of teamMembers) {
+        await ctx.db.insert("notifications", {
+          userId: member.userId,
+          type: "escalation",
+          title: "Ticket Escalated",
+          message: `Ticket "${ticket.title}" has been escalated by rule "${rule.name}"`,
+          ticketId: ticket._id,
+          read: false,
+          createdAt: now,
+        });
+      }
+    }
+  }
+  
+  // Reassign ticket
+  if (actions.reassignTo.type !== "none") {
+    let newAssignee: string | null = null;
+    
+    if (actions.reassignTo.type === "agent") {
+      newAssignee = actions.reassignTo.agentId;
+    } else if (actions.reassignTo.type === "team") {
+      // Get team members and assign to first one (or implement round-robin)
+      const teamMembers = await ctx.db
+        .query("teamMembers")
+        .withIndex("by_teamId", (q) => q.eq("teamId", actions.reassignTo.teamId))
+        .collect();
+      
+      if (teamMembers.length > 0) {
+        newAssignee = teamMembers[0].userId;
+      }
+    }
+    
+    if (newAssignee && newAssignee !== ticket.assignedTo) {
+      await ctx.db.patch(ticket._id, {
+        assignedTo: newAssignee,
+        updatedAt: now,
+      });
+      
+      // Create history entry
+      await ctx.db.insert("ticketHistory", {
+        ticketId: ticket._id,
+        userId: ticket.createdBy, // System action
+        action: "escalated_reassigned",
+        oldValue: { assignedTo: ticket.assignedTo },
+        newValue: { assignedTo: newAssignee, ruleName: rule.name },
+        createdAt: now,
+      });
+      
+      // Notify new assignee
+      await ctx.db.insert("notifications", {
+        userId: newAssignee,
+        type: "ticket_assigned",
+        title: "Ticket Reassigned via Escalation",
+        message: `Ticket "${ticket.title}" has been reassigned to you due to escalation rule "${rule.name}"`,
+        ticketId: ticket._id,
+        read: false,
+        createdAt: now,
+      });
+    }
+  }
+  
+  // Change priority
+  if (actions.changePriority && actions.changePriority !== ticket.priority) {
+    await ctx.db.patch(ticket._id, {
+      priority: actions.changePriority,
+      updatedAt: now,
+    });
+    
+    // Recalculate SLA deadline for new priority
+    const policy = await ctx.db
+      .query("slaPolicies")
+      .withIndex("by_priority", (q) => q.eq("priority", actions.changePriority))
+      .filter((q) => q.eq(q.field("enabled"), true))
+      .first();
+    
+    if (policy) {
+      const newDeadline = now + policy.resolutionTime * 60 * 1000;
+      await ctx.db.patch(ticket._id, {
+        slaDeadline: newDeadline,
+      });
+    }
+    
+    // Create history entry
+    await ctx.db.insert("ticketHistory", {
+      ticketId: ticket._id,
+      userId: ticket.createdBy,
+      action: "escalated_priority_changed",
+      oldValue: { priority: ticket.priority },
+      newValue: { priority: actions.changePriority, ruleName: rule.name },
+      createdAt: now,
+    });
+  }
+  
+  // Add comment
+  if (actions.addComment && actions.addComment.trim()) {
+    // Find a system user or use ticket creator
+    const systemUserId = ticket.createdBy;
+    
+    await ctx.db.insert("ticketComments", {
+      ticketId: ticket._id,
+      userId: systemUserId,
+      content: `[Escalation: ${rule.name}] ${actions.addComment}`,
+      attachmentIds: [],
+      createdAt: now,
+      updatedAt: now,
+    });
+    
+    // Create history entry
+    await ctx.db.insert("ticketHistory", {
+      ticketId: ticket._id,
+      userId: systemUserId,
+      action: "escalated_comment_added",
+      oldValue: null,
+      newValue: { comment: actions.addComment, ruleName: rule.name },
+      createdAt: now,
+    });
+  }
+}
