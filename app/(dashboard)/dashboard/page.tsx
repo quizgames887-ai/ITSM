@@ -123,6 +123,8 @@ export default function DashboardPage() {
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateStr());
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [viewingEvent, setViewingEvent] = useState<any>(null);
+  const [showViewModal, setShowViewModal] = useState(false);
   const [eventForm, setEventForm] = useState({
     title: "",
     description: "",
@@ -277,6 +279,11 @@ export default function DashboardPage() {
     });
     setEditingEvent(null);
     setShowEventForm(true);
+  };
+
+  const handleViewEvent = (event: any) => {
+    setViewingEvent(event);
+    setShowViewModal(true);
   };
 
   const handleEditEvent = (event: any) => {
@@ -1024,6 +1031,139 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* View Event Modal */}
+        {showViewModal && viewingEvent && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => {
+              setShowViewModal(false);
+              setViewingEvent(null);
+            }}
+          >
+            <div 
+              className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">Event Details</h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    {viewingEvent.date && new Date(viewingEvent.date).toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setViewingEvent(null);
+                  }}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Event Title
+                    </label>
+                    <p className="text-base text-slate-900">{viewingEvent.title}</p>
+                  </div>
+                  
+                  {viewingEvent.description && (
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Description
+                      </label>
+                      <p className="text-sm text-slate-600 whitespace-pre-wrap">{viewingEvent.description}</p>
+                    </div>
+                  )}
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Start Time
+                      </label>
+                      <p className="text-sm text-slate-900">{viewingEvent.startTime}</p>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        End Time
+                      </label>
+                      <p className="text-sm text-slate-900">{viewingEvent.endTime}</p>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Date
+                    </label>
+                    <p className="text-sm text-slate-900">
+                      {viewingEvent.date && new Date(viewingEvent.date).toLocaleDateString('en-US', { 
+                        weekday: 'long', 
+                        year: 'numeric', 
+                        month: 'long', 
+                        day: 'numeric' 
+                      })}
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+                {userRole === "admin" && (
+                  <>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        setShowViewModal(false);
+                        handleEditEvent(viewingEvent);
+                        setViewingEvent(null);
+                      }}
+                    >
+                      Edit Event
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => {
+                        if (confirm("Are you sure you want to delete this event?")) {
+                          handleDeleteEvent(viewingEvent._id);
+                          setShowViewModal(false);
+                          setViewingEvent(null);
+                        }
+                      }}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Delete Event
+                    </Button>
+                  </>
+                )}
+                <Button
+                  variant="gradient"
+                  onClick={() => {
+                    setShowViewModal(false);
+                    setViewingEvent(null);
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Announcement Slider */}
         <div className="xl:col-span-1">
           <AnnouncementSlider announcements={announcements || []} />
@@ -1160,24 +1300,33 @@ export default function DashboardPage() {
                     </p>
                     <p className="text-xs lg:text-sm text-slate-700 truncate">{event.title}</p>
                   </div>
-                  {userRole === "admin" && (
-                    <div className="flex items-center gap-2 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                      <button
-                        onClick={() => handleEditEvent(event)}
-                        className="text-xs text-blue-600 hover:text-blue-700"
-                        title="Edit event"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => handleDeleteEvent(event._id)}
-                        className="text-xs text-red-600 hover:text-red-700"
-                        title="Delete event"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  )}
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleViewEvent(event)}
+                      className="text-xs text-blue-600 hover:text-blue-700"
+                      title="View event"
+                    >
+                      View
+                    </button>
+                    {userRole === "admin" && (
+                      <>
+                        <button
+                          onClick={() => handleEditEvent(event)}
+                          className="text-xs text-blue-600 hover:text-blue-700"
+                          title="Edit event"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteEvent(event._id)}
+                          className="text-xs text-red-600 hover:text-red-700"
+                          title="Delete event"
+                        >
+                          Delete
+                        </button>
+                      </>
+                    )}
+                  </div>
                 </div>
               ))
             ) : (
