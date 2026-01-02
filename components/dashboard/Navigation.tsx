@@ -117,6 +117,7 @@ export function Navigation() {
     { href: "/tickets", label: "Tickets", icon: "🎫" },
     { href: "/forms", label: "Forms", icon: "📝", adminOnly: true },
     { href: "/users", label: "Users", icon: "👥", adminOnly: true },
+    { href: "/events", label: "Events", icon: "📅", adminOnly: true },
     { href: "/profile", label: "Profile", icon: "👤" },
   ];
 

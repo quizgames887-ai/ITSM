@@ -286,4 +286,19 @@ export default defineSchema({
     .index("by_userId", ["userId"])
     .index("by_serviceId", ["serviceId"])
     .index("by_userId_serviceId", ["userId", "serviceId"]),
+
+  // Calendar Events
+  events: defineTable({
+    title: v.string(),
+    description: v.optional(v.string()),
+    startTime: v.string(), // Time string like "10:00 AM"
+    endTime: v.string(), // Time string like "11:00 AM"
+    date: v.string(), // Date string in YYYY-MM-DD format
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_date", ["date"])
+    .index("by_createdBy", ["createdBy"])
+    .index("by_date_createdBy", ["date", "createdBy"]),
 });

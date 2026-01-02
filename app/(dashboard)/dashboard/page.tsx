@@ -113,6 +113,23 @@ export default function DashboardPage() {
     priority: "medium" as "low" | "medium" | "high" | "critical",
     urgency: "medium" as "low" | "medium" | "high",
   });
+  
+  // Event management state
+  // Initialize selectedDate to today's date
+  const getTodayDateStr = () => {
+    const today = new Date();
+    return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  };
+  const [selectedDate, setSelectedDate] = useState<string>(getTodayDateStr());
+  const [showEventForm, setShowEventForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [eventForm, setEventForm] = useState({
+    title: "",
+    description: "",
+    startTime: "",
+    endTime: "",
+    date: "",
+  });
 
   useEffect(() => {
     const id = localStorage.getItem("userId");
@@ -159,8 +176,19 @@ export default function DashboardPage() {
   // Fetch all active announcements for slider
   const announcements = useQuery(api.announcements.getActive, {});
   
+  // Fetch events for selected date
+  const events = useQuery(
+    api.events.getByDate,
+    selectedDate && userId ? { 
+      date: selectedDate,
+      userId: userId as Id<"users">
+    } : "skip"
+  );
+  
   // Fetch storage URL for selected service logo
-  const normalizedSelectedLogoId = normalizeLogoId(selectedService?.logoId);
+  const normalizedSelectedLogoId = selectedService?.logoId 
+    ? normalizeLogoId(selectedService.logoId) 
+    : null;
   const selectedServiceLogoUrl = useQuery(
     api.serviceCatalog.getStorageUrl,
     normalizedSelectedLogoId ? { storageId: normalizedSelectedLogoId } : "skip"
@@ -171,13 +199,19 @@ export default function DashboardPage() {
   const toggleFavorite = useMutation((api.serviceCatalog as any).toggleFavorite);
   const { success, error: showError } = useToastContext();
   
-  // Get ticket IDs for escalation check
+  // Event management mutations
+  const createEvent = useMutation(api.events.create);
+  const updateEvent = useMutation(api.events.update);
+  const deleteEvent = useMutation(api.events.remove);
+  
+  // Get ticket IDs for escalation check (compute after all hooks)
   const ticketIds = tickets ? tickets.map(t => t._id) : [];
   const escalatedTicketIds = useQuery(
     api.audit.getTicketsWithEscalations,
     ticketIds.length > 0 ? { ticketIds } : "skip"
   );
 
+  // Early return check - must be after ALL hooks
   if (tickets === undefined || escalatedTicketIds === undefined || services === undefined) {
     return <LoadingSkeleton />;
   }
@@ -223,6 +257,109 @@ export default function DashboardPage() {
 
   const isServiceFavorite = (serviceId: Id<"serviceCatalog">) => {
     return favoriteServiceIds?.includes(serviceId) || false;
+  };
+
+  // Event management handlers
+  const handleDateSelect = (dateStr: string) => {
+    setSelectedDate(dateStr);
+  };
+
+  const handleAddEvent = (dateStr?: string) => {
+    const targetDate = dateStr || selectedDate;
+    setEventForm({
+      title: "",
+      description: "",
+      startTime: "",
+      endTime: "",
+      date: targetDate,
+    });
+    setEditingEvent(null);
+    setShowEventForm(true);
+  };
+
+  const handleEditEvent = (event: any) => {
+    // Convert date from YYYY-MM-DD to date input format
+    setEventForm({
+      title: event.title,
+      description: event.description || "",
+      startTime: event.startTime, // Already in 12h format
+      endTime: event.endTime, // Already in 12h format
+      date: event.date, // Already in YYYY-MM-DD format
+    });
+    setEditingEvent(event);
+    setShowEventForm(true);
+  };
+
+  const handleDeleteEvent = async (eventId: Id<"events">) => {
+    if (!confirm("Are you sure you want to delete this event?")) {
+      return;
+    }
+
+    try {
+      await deleteEvent({ id: eventId });
+      success("Event deleted successfully");
+    } catch (err: any) {
+      showError(err.message || "Failed to delete event");
+    }
+  };
+
+  const handleEventSubmit = async () => {
+    if (!eventForm.title.trim()) {
+      showError("Event title is required");
+      return;
+    }
+    if (!eventForm.startTime || !eventForm.endTime) {
+      showError("Start time and end time are required");
+      return;
+    }
+    if (!eventForm.date) {
+      showError("Date is required");
+      return;
+    }
+    if (!userId) {
+      showError("You must be logged in to create events");
+      return;
+    }
+
+    try {
+      if (editingEvent) {
+        await updateEvent({
+          id: editingEvent._id,
+          title: eventForm.title.trim(),
+          description: eventForm.description.trim() || undefined,
+          startTime: eventForm.startTime,
+          endTime: eventForm.endTime,
+          date: eventForm.date,
+        });
+        success("Event updated successfully");
+      } else {
+        await createEvent({
+          title: eventForm.title.trim(),
+          description: eventForm.description.trim() || undefined,
+          startTime: eventForm.startTime,
+          endTime: eventForm.endTime,
+          date: eventForm.date,
+          createdBy: userId as Id<"users">,
+        });
+        success("Event created successfully");
+      }
+      setShowEventForm(false);
+      setEditingEvent(null);
+      setEventForm({
+        title: "",
+        description: "",
+        startTime: "",
+        endTime: "",
+        date: "",
+      });
+    } catch (err: any) {
+      showError(err.message || "Failed to save event");
+    }
+  };
+
+  // Format time for display (e.g., "10:00 AM - 11:00 AM")
+  const formatEventTime = (startTime: string, endTime: string) => {
+    return `${startTime} - ${endTime}`;
   };
 
   const handleRequestSubmit = async () => {
@@ -374,26 +511,22 @@ export default function DashboardPage() {
       };
     });
 
-  // Calendar days
+  // Calendar days with full date info
   const today = new Date();
   const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   const calendarDays = [];
   for (let i = -3; i <= 3; i++) {
     const d = new Date(today);
     d.setDate(today.getDate() + i);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
     calendarDays.push({
       day: days[d.getDay()],
       date: d.getDate(),
+      dateStr: dateStr,
       isToday: i === 0,
+      fullDate: d,
     });
   }
-
-  const events = [
-    { time: "10:00 - 11:00 AM", title: "Project Estimation Meeting" },
-    { time: "10:20 - 11:00 AM", title: "Project Estimation Meeting" },
-    { time: "10:20 - 11:00 AM", title: "Project Estimation Meeting" },
-    { time: "10:20 - 11:00 AM", title: "Project Estimation Meeting" },
-  ];
 
   return (
     <div className="space-y-4 lg:space-y-6">
@@ -690,6 +823,199 @@ export default function DashboardPage() {
           </div>
         )}
 
+        {/* Event Form Modal */}
+        {showEventForm && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => {
+              setShowEventForm(false);
+              setEditingEvent(null);
+              setEventForm({
+                title: "",
+                description: "",
+                startTime: "",
+                endTime: "",
+                date: "",
+              });
+            }}
+          >
+            <div 
+              className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">
+                    {editingEvent ? "Edit Event" : "Add Event"}
+                  </h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    {eventForm.date && new Date(eventForm.date).toLocaleDateString('en-US', { 
+                      weekday: 'long', 
+                      year: 'numeric', 
+                      month: 'long', 
+                      day: 'numeric' 
+                    })}
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setShowEventForm(false);
+                    setEditingEvent(null);
+                    setEventForm({
+                      title: "",
+                      description: "",
+                      startTime: "",
+                      endTime: "",
+                      date: "",
+                    });
+                  }}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                <div className="space-y-4">
+                  <Input
+                    label="Event Title"
+                    value={eventForm.title}
+                    onChange={(e) => setEventForm({ ...eventForm, title: e.target.value })}
+                    placeholder="Enter event title"
+                    required
+                  />
+                  
+                  <Textarea
+                    label="Description (Optional)"
+                    value={eventForm.description}
+                    onChange={(e) => setEventForm({ ...eventForm, description: e.target.value })}
+                    placeholder="Add event description..."
+                    rows={3}
+                  />
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        Start Time <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        value={(() => {
+                          // Convert 12h format back to 24h for time input
+                          if (!eventForm.startTime) return '';
+                          const match = eventForm.startTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                          if (!match) return eventForm.startTime;
+                          let hours = parseInt(match[1]);
+                          const minutes = match[2];
+                          const ampm = match[3].toUpperCase();
+                          if (ampm === 'PM' && hours !== 12) hours += 12;
+                          if (ampm === 'AM' && hours === 12) hours = 0;
+                          return `${String(hours).padStart(2, '0')}:${minutes}`;
+                        })()}
+                        onChange={(e) => {
+                          const time = e.target.value;
+                          if (!time) {
+                            setEventForm({ ...eventForm, startTime: '' });
+                            return;
+                          }
+                          // Convert 24h to 12h format for storage
+                          const [hours, minutes] = time.split(':');
+                          const hour24 = parseInt(hours);
+                          const hour12 = hour24 === 0 ? 12 : hour24 === 12 ? 12 : hour24 % 12;
+                          const ampm = hour24 >= 12 ? 'PM' : 'AM';
+                          setEventForm({ ...eventForm, startTime: `${hour12}:${minutes} ${ampm}` });
+                        }}
+                        className="w-full py-2 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                        End Time <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="time"
+                        value={(() => {
+                          // Convert 12h format back to 24h for time input
+                          if (!eventForm.endTime) return '';
+                          const match = eventForm.endTime.match(/(\d+):(\d+)\s*(AM|PM)/i);
+                          if (!match) return eventForm.endTime;
+                          let hours = parseInt(match[1]);
+                          const minutes = match[2];
+                          const ampm = match[3].toUpperCase();
+                          if (ampm === 'PM' && hours !== 12) hours += 12;
+                          if (ampm === 'AM' && hours === 12) hours = 0;
+                          return `${String(hours).padStart(2, '0')}:${minutes}`;
+                        })()}
+                        onChange={(e) => {
+                          const time = e.target.value;
+                          if (!time) {
+                            setEventForm({ ...eventForm, endTime: '' });
+                            return;
+                          }
+                          // Convert 24h to 12h format for storage
+                          const [hours, minutes] = time.split(':');
+                          const hour24 = parseInt(hours);
+                          const hour12 = hour24 === 0 ? 12 : hour24 === 12 ? 12 : hour24 % 12;
+                          const ampm = hour24 >= 12 ? 'PM' : 'AM';
+                          setEventForm({ ...eventForm, endTime: `${hour12}:${minutes} ${ampm}` });
+                        }}
+                        className="w-full py-2 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                        required
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Date <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="date"
+                      value={eventForm.date}
+                      onChange={(e) => setEventForm({ ...eventForm, date: e.target.value })}
+                      className="w-full py-2 px-3 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+                      required
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-slate-200 flex justify-end gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEventForm(false);
+                    setEditingEvent(null);
+                    setEventForm({
+                      title: "",
+                      description: "",
+                      startTime: "",
+                      endTime: "",
+                      date: "",
+                    });
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  variant="gradient"
+                  onClick={handleEventSubmit}
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? "Saving..." : editingEvent ? "Update Event" : "Create Event"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Announcement Slider */}
         <div className="xl:col-span-1">
           <AnnouncementSlider announcements={announcements || []} />
@@ -776,43 +1102,83 @@ export default function DashboardPage() {
               <h2 className="text-base lg:text-lg font-semibold text-slate-900">
                 Calendar <span className="text-slate-400 font-normal">Events</span>
               </h2>
-              <p className="text-xs text-slate-500">Top 4 records</p>
+              <p className="text-xs text-slate-500">
+                {events ? `${events.length} ${events.length === 1 ? 'event' : 'events'}` : "Loading..."}
+              </p>
             </div>
-            <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
-              Show More
+            <button 
+              onClick={() => handleAddEvent()}
+              className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
+            >
+              + Add Event
             </button>
           </div>
           
           {/* Calendar Week */}
           <div className="flex justify-between mb-4 gap-1">
-            {calendarDays.map((day, index) => (
-              <div
-                key={index}
-                className={`flex flex-col items-center p-1.5 lg:p-2 rounded-lg lg:rounded-xl flex-1 ${
-                  day.isToday
-                    ? "bg-blue-600 text-white"
-                    : "text-slate-600 hover:bg-slate-50"
-                } transition-colors cursor-pointer`}
-              >
-                <span className="text-[10px] lg:text-xs font-medium">{day.day}</span>
-                <span className={`text-sm lg:text-lg font-semibold ${day.isToday ? "text-white" : "text-slate-900"}`}>
-                  {day.date}
-                </span>
-              </div>
-            ))}
+            {calendarDays.map((day, index) => {
+              const isSelected = selectedDate === day.dateStr;
+              return (
+                <div
+                  key={index}
+                  onClick={() => handleDateSelect(day.dateStr)}
+                  className={`flex flex-col items-center p-1.5 lg:p-2 rounded-lg lg:rounded-xl flex-1 ${
+                    isSelected
+                      ? "bg-blue-600 text-white"
+                      : day.isToday
+                      ? "bg-blue-100 text-blue-700"
+                      : "text-slate-600 hover:bg-slate-50"
+                  } transition-colors cursor-pointer`}
+                >
+                  <span className="text-[10px] lg:text-xs font-medium">{day.day}</span>
+                  <span className={`text-sm lg:text-lg font-semibold ${isSelected || day.isToday ? "text-white" : "text-slate-900"}`}>
+                    {day.date}
+                  </span>
+                </div>
+              );
+            })}
           </div>
 
           {/* Events List */}
           <div className="space-y-2 max-h-32 lg:max-h-40 overflow-y-auto">
-            {events.map((event, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0">
-                <div className="min-w-0">
-                  <p className="text-[10px] lg:text-xs text-slate-500">{event.time}</p>
-                  <p className="text-xs lg:text-sm text-slate-700 truncate">{event.title}</p>
+            {events && events.length > 0 ? (
+              events.slice(0, 4).map((event) => (
+                <div key={event._id} className="flex items-center justify-between py-2 border-b border-slate-100 last:border-0 group">
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[10px] lg:text-xs text-slate-500">
+                      {formatEventTime(event.startTime, event.endTime)}
+                    </p>
+                    <p className="text-xs lg:text-sm text-slate-700 truncate">{event.title}</p>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      onClick={() => handleEditEvent(event)}
+                      className="text-xs text-blue-600 hover:text-blue-700"
+                      title="Edit event"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      onClick={() => handleDeleteEvent(event._id)}
+                      className="text-xs text-red-600 hover:text-red-700"
+                      title="Delete event"
+                    >
+                      Delete
+                    </button>
+                  </div>
                 </div>
-                <button className="text-xs text-blue-600 hover:text-blue-700 flex-shrink-0 ml-2">View</button>
+              ))
+            ) : (
+              <div className="text-center py-4 text-slate-500">
+                <p className="text-xs lg:text-sm">No events for this date</p>
+                <button
+                  onClick={() => handleAddEvent(selectedDate)}
+                  className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+                >
+                  Add your first event
+                </button>
               </div>
-            ))}
+            )}
           </div>
         </Card>
 
