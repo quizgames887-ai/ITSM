@@ -157,3 +157,25 @@ export const incrementRequestCount = mutation({
     }
   },
 });
+
+// Migration: Add logoId field to existing documents that don't have it
+export const migrateAddLogoId = mutation({
+  args: {},
+  handler: async (ctx) => {
+    const services = await ctx.db.query("serviceCatalog").collect();
+    let updated = 0;
+    
+    for (const service of services) {
+      // Check if logoId field is missing (undefined, not just null)
+      if (!("logoId" in service)) {
+        await ctx.db.patch(service._id, {
+          logoId: null,
+          updatedAt: Date.now(),
+        });
+        updated++;
+      }
+    }
+    
+    return { updated, total: services.length };
+  },
+});

@@ -263,7 +263,7 @@ export default defineSchema({
   serviceCatalog: defineTable({
     name: v.string(),
     icon: v.string(), // Emoji or icon identifier
-    logoId: v.union(v.id("_storage"), v.null()), // Uploaded logo image
+    logoId: v.optional(v.union(v.id("_storage"), v.null())), // Uploaded logo image
     color: v.string(), // Background color class (e.g., "bg-blue-100")
     rating: v.number(), // Service rating (0-5)
     description: v.optional(v.string()),
