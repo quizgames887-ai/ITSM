@@ -330,6 +330,27 @@ export const create = mutation({
       );
     }
 
+    // Increment request count for the service category
+    // This is done asynchronously and won't block ticket creation
+    try {
+      // Find service by name and increment count
+      const services = await ctx.db
+        .query("serviceCatalog")
+        .filter((q: any) => q.eq(q.field("name"), args.category))
+        .collect();
+      
+      if (services.length > 0) {
+        // Update the first matching service
+        await ctx.db.patch(services[0]._id, {
+          requestCount: services[0].requestCount + 1,
+          updatedAt: Date.now(),
+        });
+      }
+    } catch (error) {
+      // Silently fail if service doesn't exist - not critical
+      // This allows tickets to be created even if service catalog entry doesn't exist
+    }
+
     return ticketId;
   },
 });

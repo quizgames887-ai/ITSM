@@ -10,17 +10,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { AnnouncementSlider } from "@/components/dashboard/AnnouncementSlider";
 
-// Service icons for the grid
-const services = [
-  { name: "IT Support", icon: "💻", rating: 4.4, color: "bg-blue-100" },
-  { name: "HR Services", icon: "👥", rating: 4.7, color: "bg-red-100" },
-  { name: "Finance", icon: "📊", rating: 4.3, color: "bg-amber-100" },
-  { name: "Facilities", icon: "🏢", rating: 3.8, color: "bg-green-100" },
-  { name: "Security", icon: "🔐", rating: 4.2, color: "bg-purple-100" },
-  { name: "Maintenance", icon: "🛠️", rating: 4.3, color: "bg-orange-100" },
-  { name: "Training", icon: "📚", rating: 4.5, color: "bg-yellow-100" },
-  { name: "Analytics", icon: "📈", rating: 4.3, color: "bg-cyan-100" },
-];
+// Services will be fetched from the database
 
 const favoriteLinks = [
   { name: "Get Help & Support", icon: "❓", color: "text-purple-500" },
@@ -88,6 +78,9 @@ export default function DashboardPage() {
   // Fetch SLA policies for SLA status display
   const slaPolicies = useQuery(api.sla.list, {});
   
+  // Fetch service catalog (active services only)
+  const services = useQuery(api.serviceCatalog.list, { activeOnly: true });
+  
   // Fetch all active announcements for slider
   const announcements = useQuery(api.announcements.getActive, {});
   
@@ -100,7 +93,7 @@ export default function DashboardPage() {
     ticketIds.length > 0 ? { ticketIds } : "skip"
   );
 
-  if (tickets === undefined || escalatedTicketIds === undefined) {
+  if (tickets === undefined || escalatedTicketIds === undefined || services === undefined) {
     return <LoadingSkeleton />;
   }
 
@@ -243,29 +236,50 @@ export default function DashboardPage() {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-base lg:text-lg font-semibold text-slate-900">Most Services Request</h2>
-                <p className="text-xs text-slate-500">Top 8 services</p>
+                <p className="text-xs text-slate-500">
+                  {services && services.length > 0 ? `Top ${Math.min(services.length, 8)} services` : "No services available"}
+                </p>
               </div>
-              <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
-                Show More
-              </button>
+              {userRole === "admin" && (
+                <Link href="/service-catalog" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  Manage
+                </Link>
+              )}
+              {userRole !== "admin" && services && services.length > 8 && (
+                <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
+                  Show More
+                </button>
+              )}
             </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-4">
-              {services.map((service, index) => (
-                <div
-                  key={index}
-                  className="flex flex-col items-center p-3 lg:p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
-                >
-                  <div className={`w-10 h-10 lg:w-12 lg:h-12 ${service.color} rounded-xl flex items-center justify-center text-lg lg:text-xl mb-2 group-hover:scale-110 transition-transform`}>
-                    {service.icon}
+            {services && services.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-4">
+                {services.slice(0, 8).map((service) => (
+                  <div
+                    key={service._id}
+                    className="flex flex-col items-center p-3 lg:p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
+                  >
+                    <div className={`w-10 h-10 lg:w-12 lg:h-12 ${service.color} rounded-xl flex items-center justify-center text-lg lg:text-xl mb-2 group-hover:scale-110 transition-transform`}>
+                      {service.icon}
+                    </div>
+                    <p className="text-xs lg:text-sm font-medium text-slate-700 text-center truncate w-full">{service.name}</p>
+                    <div className="flex items-center gap-1 mt-1">
+                      <span className="text-yellow-500 text-xs">⭐</span>
+                      <span className="text-xs text-slate-500">{service.rating}</span>
+                    </div>
                   </div>
-                  <p className="text-xs lg:text-sm font-medium text-slate-700 text-center truncate w-full">{service.name}</p>
-                  <div className="flex items-center gap-1 mt-1">
-                    <span className="text-yellow-500 text-xs">⭐</span>
-                    <span className="text-xs text-slate-500">{service.rating}</span>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-8 text-slate-500">
+                <span className="text-3xl mb-2 block">📋</span>
+                <p className="text-xs lg:text-sm">No services available</p>
+                {userRole === "admin" && (
+                  <Link href="/service-catalog" className="text-xs text-blue-600 hover:underline mt-1 inline-block">
+                    Create your first service
+                  </Link>
+                )}
+              </div>
+            )}
           </Card>
         </div>
 

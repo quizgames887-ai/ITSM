@@ -20,6 +20,7 @@ import type * as cron from "../cron.js";
 import type * as forms from "../forms.js";
 import type * as knowledgeBase from "../knowledgeBase.js";
 import type * as notifications from "../notifications.js";
+import type * as serviceCatalog from "../serviceCatalog.js";
 import type * as sla from "../sla.js";
 import type * as teams from "../teams.js";
 import type * as tickets from "../tickets.js";
@@ -44,6 +45,7 @@ declare const fullApi: ApiFromModules<{
   forms: typeof forms;
   knowledgeBase: typeof knowledgeBase;
   notifications: typeof notifications;
+  serviceCatalog: typeof serviceCatalog;
   sla: typeof sla;
   teams: typeof teams;
   tickets: typeof tickets;

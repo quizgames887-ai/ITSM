@@ -258,4 +258,21 @@ export default defineSchema({
   })
     .index("by_isActive", ["isActive"])
     .index("by_priority", ["priority"]),
+
+  // Service Catalog
+  serviceCatalog: defineTable({
+    name: v.string(),
+    icon: v.string(), // Emoji or icon identifier
+    color: v.string(), // Background color class (e.g., "bg-blue-100")
+    rating: v.number(), // Service rating (0-5)
+    description: v.optional(v.string()),
+    isActive: v.boolean(),
+    order: v.number(), // Display order (lower = shown first)
+    requestCount: v.number(), // Number of requests for this service
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_isActive", ["isActive"])
+    .index("by_order", ["order"]),
 });
