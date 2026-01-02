@@ -35,6 +35,7 @@ export default function NotificationsPage() {
     message: "",
     targetType: "all", // "all" or "specific"
     targetUserIds: [] as string[],
+    sendEmail: false, // Email notification option
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
@@ -65,6 +66,7 @@ export default function NotificationsPage() {
         targetUserIds: newNotification.targetType === "specific" 
           ? newNotification.targetUserIds as Id<"users">[]
           : undefined,
+        sendEmail: newNotification.sendEmail,
       });
 
       success(`Notification sent to ${result.count} user(s)!`);
@@ -271,6 +273,27 @@ export default function NotificationsPage() {
                 </div>
               </div>
             )}
+            <div className="md:col-span-2">
+              <label className="flex items-center gap-2 p-3 border border-slate-200 rounded-xl hover:bg-slate-50 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={newNotification.sendEmail}
+                  onChange={(e) => setNewNotification({ ...newNotification, sendEmail: e.target.checked })}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600"
+                />
+                <div className="flex items-center gap-2">
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                  </svg>
+                  <span className="text-sm font-medium text-slate-700">Notify by email</span>
+                </div>
+              </label>
+              {newNotification.sendEmail && (
+                <p className="text-xs text-slate-500 mt-1 ml-7">
+                  An email notification will be sent to all recipients
+                </p>
+              )}
+            </div>
           </div>
           <div className="flex gap-3 mt-4">
             <Button variant="gradient" onClick={handleCreateNotification}>

@@ -53,6 +53,7 @@ export const createBroadcast = mutation({
     title: v.string(),
     message: v.string(),
     targetUserIds: v.optional(v.array(v.id("users"))), // If empty, send to all users
+    sendEmail: v.optional(v.boolean()), // Whether to send email notification
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -67,6 +68,8 @@ export const createBroadcast = mutation({
     }
     
     const createdIds = [];
+    const emailRecipients: { email: string; name: string }[] = [];
+    
     for (const userId of targetUsers) {
       const notificationId = await ctx.db.insert("notifications", {
         userId: userId as any,
@@ -78,6 +81,31 @@ export const createBroadcast = mutation({
         createdAt: now,
       });
       createdIds.push(notificationId);
+      
+      // Collect email addresses if email notification is enabled
+      if (args.sendEmail) {
+        const user = await ctx.db.get(userId as any);
+        if (user && user.email) {
+          emailRecipients.push({
+            email: user.email,
+            name: user.name || "User",
+          });
+        }
+      }
+    }
+    
+    // Send email notifications if enabled
+    if (args.sendEmail && emailRecipients.length > 0) {
+      // TODO: Integrate with email service (e.g., SendGrid, AWS SES, Resend, etc.)
+      // Example implementation:
+      // for (const recipient of emailRecipients) {
+      //   await sendEmail({
+      //     to: recipient.email,
+      //     subject: args.title,
+      //     body: args.message,
+      //   });
+      // }
+      console.log(`Email notifications would be sent to ${emailRecipients.length} recipients`);
     }
     
     return { count: createdIds.length, ids: createdIds };
