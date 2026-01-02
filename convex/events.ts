@@ -60,7 +60,7 @@ export const get = query({
   },
 });
 
-// Create a new event
+// Create a new event (admin only)
 export const create = mutation({
   args: {
     title: v.string(),
@@ -71,6 +71,15 @@ export const create = mutation({
     createdBy: v.id("users"),
   },
   handler: async (ctx, args) => {
+    // Check if user is admin
+    const user = await ctx.db.get(args.createdBy);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    if (user.role !== "admin") {
+      throw new Error("Only admins can create events");
+    }
+
     const now = Date.now();
     return await ctx.db.insert("events", {
       title: args.title,
@@ -85,7 +94,7 @@ export const create = mutation({
   },
 });
 
-// Update an existing event
+// Update an existing event (admin only)
 export const update = mutation({
   args: {
     id: v.id("events"),
@@ -94,11 +103,21 @@ export const update = mutation({
     startTime: v.optional(v.string()),
     endTime: v.optional(v.string()),
     date: v.optional(v.string()),
+    userId: v.id("users"), // User making the update
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
-    const event = await ctx.db.get(id);
+    const { id, userId, ...updates } = args;
     
+    // Check if user is admin
+    const user = await ctx.db.get(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    if (user.role !== "admin") {
+      throw new Error("Only admins can update events");
+    }
+
+    const event = await ctx.db.get(id);
     if (!event) {
       throw new Error("Event not found");
     }
@@ -117,12 +136,22 @@ export const update = mutation({
   },
 });
 
-// Delete an event
+// Delete an event (admin only)
 export const remove = mutation({
   args: {
     id: v.id("events"),
+    userId: v.id("users"), // User making the delete
   },
   handler: async (ctx, args) => {
+    // Check if user is admin
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    if (user.role !== "admin") {
+      throw new Error("Only admins can delete events");
+    }
+
     await ctx.db.delete(args.id);
   },
 });

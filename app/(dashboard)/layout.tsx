@@ -31,6 +31,7 @@ export default function DashboardLayout({
     if (pathname === "/roles") return "Auto-Assignment Rules";
     if (pathname === "/sla") return "SLA & Escalation";
     if (pathname === "/service-catalog") return "Service Catalog";
+    if (pathname === "/events") return "Event Management";
     if (pathname === "/profile") return "Profile Settings";
     return "Palmware";
   };

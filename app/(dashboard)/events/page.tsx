@@ -90,8 +90,13 @@ export default function EventsPage() {
       return;
     }
 
+    if (!currentUserId) {
+      showError("You must be logged in to delete events");
+      return;
+    }
+
     try {
-      await deleteEvent({ id: eventId });
+      await deleteEvent({ id: eventId, userId: currentUserId as Id<"users"> });
       success("Event deleted successfully");
     } catch (err: any) {
       showError(err.message || "Failed to delete event");
@@ -125,6 +130,7 @@ export default function EventsPage() {
           startTime: eventForm.startTime,
           endTime: eventForm.endTime,
           date: eventForm.date,
+          userId: currentUserId as Id<"users">,
         });
         success("Event updated successfully");
       } else {

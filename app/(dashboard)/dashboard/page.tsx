@@ -176,13 +176,13 @@ export default function DashboardPage() {
   // Fetch all active announcements for slider
   const announcements = useQuery(api.announcements.getActive, {});
   
-  // Fetch events for selected date
+  // Fetch events for selected date (all users can see all events)
   // Using bracket notation to avoid TypeScript errors until Convex syncs
   const events = useQuery(
     (api as any).events?.getByDate,
-    selectedDate && userId ? { 
-      date: selectedDate,
-      userId: userId as Id<"users">
+    selectedDate ? { 
+      date: selectedDate
+      // Don't filter by userId - all users can see all events
     } : "skip"
   ) as any[] | undefined;
   
@@ -297,8 +297,13 @@ export default function DashboardPage() {
       return;
     }
 
+    if (!userId) {
+      showError("You must be logged in to delete events");
+      return;
+    }
+
     try {
-      await deleteEvent({ id: eventId });
+      await deleteEvent({ id: eventId, userId: userId as Id<"users"> });
       success("Event deleted successfully");
     } catch (err: any) {
       showError(err.message || "Failed to delete event");
@@ -332,6 +337,7 @@ export default function DashboardPage() {
           startTime: eventForm.startTime,
           endTime: eventForm.endTime,
           date: eventForm.date,
+          userId: userId as Id<"users">,
         });
         success("Event updated successfully");
       } else {
@@ -1108,12 +1114,14 @@ export default function DashboardPage() {
                 {events ? `${events.length} ${events.length === 1 ? 'event' : 'events'}` : "Loading..."}
               </p>
             </div>
-            <button 
-              onClick={() => handleAddEvent()}
-              className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
-            >
-              + Add Event
-            </button>
+            {userRole === "admin" && (
+              <button 
+                onClick={() => handleAddEvent()}
+                className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
+              >
+                + Add Event
+              </button>
+            )}
           </div>
           
           {/* Calendar Week */}
@@ -1152,33 +1160,37 @@ export default function DashboardPage() {
                     </p>
                     <p className="text-xs lg:text-sm text-slate-700 truncate">{event.title}</p>
                   </div>
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <button
-                      onClick={() => handleEditEvent(event)}
-                      className="text-xs text-blue-600 hover:text-blue-700"
-                      title="Edit event"
-                    >
-                      Edit
-                    </button>
-                    <button
-                      onClick={() => handleDeleteEvent(event._id)}
-                      className="text-xs text-red-600 hover:text-red-700"
-                      title="Delete event"
-                    >
-                      Delete
-                    </button>
-                  </div>
+                  {userRole === "admin" && (
+                    <div className="flex items-center gap-2 flex-shrink-0 ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button
+                        onClick={() => handleEditEvent(event)}
+                        className="text-xs text-blue-600 hover:text-blue-700"
+                        title="Edit event"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => handleDeleteEvent(event._id)}
+                        className="text-xs text-red-600 hover:text-red-700"
+                        title="Delete event"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  )}
                 </div>
               ))
             ) : (
               <div className="text-center py-4 text-slate-500">
                 <p className="text-xs lg:text-sm">No events for this date</p>
-                <button
-                  onClick={() => handleAddEvent(selectedDate)}
-                  className="text-xs text-blue-600 hover:text-blue-700 mt-1"
-                >
-                  Add your first event
-                </button>
+                {userRole === "admin" && (
+                  <button
+                    onClick={() => handleAddEvent(selectedDate)}
+                    className="text-xs text-blue-600 hover:text-blue-700 mt-1"
+                  >
+                    Add your first event
+                  </button>
+                )}
               </div>
             )}
           </div>
