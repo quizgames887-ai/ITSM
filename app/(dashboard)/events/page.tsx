@@ -39,8 +39,9 @@ export default function EventsPage() {
   );
 
   // Get all events (admin only)
+  // Using bracket notation to avoid TypeScript errors until Convex syncs
   const events = useQuery(
-    (api.events as any)?.getAll,
+    (api as any).events?.getAll,
     dateFilter ? { startDate: dateFilter, endDate: dateFilter } : {}
   ) as any[] | undefined;
 
@@ -48,9 +49,9 @@ export default function EventsPage() {
   const users = useQuery(api.users.list, {});
 
   // Mutations
-  const createEvent = useMutation((api.events as any)?.create);
-  const updateEvent = useMutation((api.events as any)?.update);
-  const deleteEvent = useMutation((api.events as any)?.remove);
+  const createEvent = useMutation((api as any).events?.create);
+  const updateEvent = useMutation((api as any).events?.update);
+  const deleteEvent = useMutation((api as any).events?.remove);
 
   const isAdmin = currentUser?.role === "admin";
 

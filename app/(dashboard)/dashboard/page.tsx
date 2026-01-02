@@ -177,8 +177,9 @@ export default function DashboardPage() {
   const announcements = useQuery(api.announcements.getActive, {});
   
   // Fetch events for selected date
+  // Using bracket notation to avoid TypeScript errors until Convex syncs
   const events = useQuery(
-    (api.events as any)?.getByDate,
+    (api as any).events?.getByDate,
     selectedDate && userId ? { 
       date: selectedDate,
       userId: userId as Id<"users">
@@ -200,9 +201,10 @@ export default function DashboardPage() {
   const { success, error: showError } = useToastContext();
   
   // Event management mutations
-  const createEvent = useMutation((api.events as any)?.create);
-  const updateEvent = useMutation((api.events as any)?.update);
-  const deleteEvent = useMutation((api.events as any)?.remove);
+  // Using bracket notation to avoid TypeScript errors until Convex syncs
+  const createEvent = useMutation((api as any).events?.create);
+  const updateEvent = useMutation((api as any).events?.update);
+  const deleteEvent = useMutation((api as any).events?.remove);
   
   // Get ticket IDs for escalation check (compute after all hooks)
   const ticketIds = tickets ? tickets.map(t => t._id) : [];
