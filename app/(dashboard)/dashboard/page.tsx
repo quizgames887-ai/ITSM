@@ -85,12 +85,22 @@ export default function DashboardPage() {
   // Fetch all users to get assignee names
   const users = useQuery(api.users.list, {});
   
+  // Fetch SLA policies for SLA status display
+  const slaPolicies = useQuery(api.sla.list, {});
+  
   // Fetch all active announcements for slider
   const announcements = useQuery(api.announcements.getActive, {});
   
   const router = useRouter();
+  
+  // Get ticket IDs for escalation check
+  const ticketIds = tickets ? tickets.map(t => t._id) : [];
+  const escalatedTicketIds = useQuery(
+    api.audit.getTicketsWithEscalations,
+    ticketIds.length > 0 ? { ticketIds } : "skip"
+  );
 
-  if (tickets === undefined) {
+  if (tickets === undefined || escalatedTicketIds === undefined) {
     return <LoadingSkeleton />;
   }
 
@@ -126,17 +136,81 @@ export default function DashboardPage() {
     }
   };
 
+  // Helper function to get SLA status
+  const getSLAStatus = (ticket: any) => {
+    if (!ticket.slaDeadline) return null;
+    
+    const now = Date.now();
+    const deadline = ticket.slaDeadline;
+    const diff = deadline - now;
+    const diffMinutes = Math.floor(diff / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    
+    const isOverdue = diff < 0;
+    const isUrgent = diff >= 0 && diff < 60 * 60 * 1000; // Less than 1 hour remaining
+    
+    let statusText = "";
+    let statusColor = "";
+    
+    if (isOverdue) {
+      const overdueHours = Math.floor(Math.abs(diffMinutes) / 60);
+      const overdueDays = Math.floor(overdueHours / 24);
+      if (overdueDays > 0) {
+        statusText = `${overdueDays}d overdue`;
+      } else if (overdueHours > 0) {
+        statusText = `${overdueHours}h overdue`;
+      } else {
+        statusText = `${Math.abs(diffMinutes)}m overdue`;
+      }
+      statusColor = "text-red-600 bg-red-50 border-red-200";
+    } else if (isUrgent) {
+      if (diffMinutes < 60) {
+        statusText = `${diffMinutes}m left`;
+      } else {
+        statusText = `${diffHours}h left`;
+      }
+      statusColor = "text-orange-600 bg-orange-50 border-orange-200";
+    } else {
+      if (diffDays > 0) {
+        statusText = `${diffDays}d left`;
+      } else if (diffHours > 0) {
+        statusText = `${diffHours}h left`;
+      } else {
+        statusText = `${diffMinutes}m left`;
+      }
+      statusColor = "text-green-600 bg-green-50 border-green-200";
+    }
+    
+    return {
+      text: statusText,
+      color: statusColor,
+      isOverdue,
+      isUrgent,
+    };
+  };
+
   const recentUpdates = tickets
     .sort((a, b) => b.updatedAt - a.updatedAt)
     .slice(0, 5)
-    .map((t) => ({
-      _id: t._id,
-      title: t.title || "Untitled Ticket",
-      ticketNumber: `#TK-${t._id.slice(-6).toUpperCase()}`,
-      assignee: getUserName(t.assignedTo),
-      status: t.status,
-      updatedAt: t.updatedAt,
-    }));
+    .map((t) => {
+      const slaStatus = getSLAStatus(t);
+      // Check if ticket has escalation actions
+      const hasEscalation = escalatedTicketIds?.includes(t._id) || false;
+      
+      return {
+        _id: t._id,
+        title: t.title || "Untitled Ticket",
+        ticketNumber: `#TK-${t._id.slice(-6).toUpperCase()}`,
+        assignee: getUserName(t.assignedTo),
+        status: t.status,
+        updatedAt: t.updatedAt,
+        slaDeadline: t.slaDeadline,
+        slaStatus,
+        hasEscalation,
+        priority: t.priority,
+      };
+    });
 
   // Calendar days
   const today = new Date();
@@ -228,7 +302,7 @@ export default function DashboardPage() {
                     <div className={`w-7 h-7 lg:w-8 lg:h-8 ${getStatusColor(update.status)} rounded-lg flex items-center justify-center flex-shrink-0`}>
                       <span className="text-xs lg:text-sm">🎫</span>
                     </div>
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <p className="text-xs lg:text-sm font-medium text-slate-900 truncate group-hover:text-blue-600 transition-colors">
                         {update.title}
                       </p>
@@ -236,6 +310,25 @@ export default function DashboardPage() {
                       <p className="text-xs text-slate-400 truncate">
                         {formatTimeAgo(update.updatedAt)} · <span className="text-blue-600">{update.assignee}</span>
                       </p>
+                      {/* SLA Status */}
+                      {update.slaStatus && (
+                        <div className="mt-1.5 flex items-center gap-1.5">
+                          <span className={`inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border ${update.slaStatus.color}`}>
+                            <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            {update.slaStatus.text}
+                          </span>
+                          {update.hasEscalation && (
+                            <span className="inline-flex items-center gap-1 px-1.5 py-0.5 text-[10px] rounded border text-orange-600 bg-orange-50 border-orange-200">
+                              <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                              </svg>
+                              Escalated
+                            </span>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </div>
                   <svg className="w-4 h-4 text-slate-400 flex-shrink-0 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">

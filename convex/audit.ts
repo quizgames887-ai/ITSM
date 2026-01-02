@@ -131,6 +131,41 @@ export const getRecentActivity = query({
   },
 });
 
+// Check if tickets have escalation actions
+export const getTicketsWithEscalations = query({
+  args: {
+    ticketIds: v.array(v.id("tickets")),
+  },
+  handler: async (ctx, args) => {
+    try {
+      const escalationActions = ["escalated_reassigned", "escalated_priority_changed", "escalated_comment_added"];
+      const ticketsWithEscalations = new Set<string>();
+      
+      // Check history for each ticket
+      for (const ticketId of args.ticketIds) {
+        const history = await ctx.db
+          .query("ticketHistory")
+          .withIndex("by_ticketId", (q) => q.eq("ticketId", ticketId))
+          .collect();
+        
+        // Check if any history entry has escalation action
+        const hasEscalation = history.some(entry => 
+          escalationActions.includes(entry.action)
+        );
+        
+        if (hasEscalation) {
+          ticketsWithEscalations.add(ticketId);
+        }
+      }
+      
+      return Array.from(ticketsWithEscalations);
+    } catch (error) {
+      console.error("Error in getTicketsWithEscalations:", error);
+      return [];
+    }
+  },
+});
+
 export const getAuditStats = query({
   args: {
     days: v.optional(v.number()),
