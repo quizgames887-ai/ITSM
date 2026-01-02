@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [votingSelection, setVotingSelection] = useState<string | null>(null);
   const [suggestionCategory, setSuggestionCategory] = useState("");
   const [suggestionText, setSuggestionText] = useState("");
+  const [showAllServices, setShowAllServices] = useState(false);
 
   useEffect(() => {
     const id = localStorage.getItem("userId");
@@ -240,16 +241,21 @@ export default function DashboardPage() {
                   {services && services.length > 0 ? `Top ${Math.min(services.length, 8)} services` : "No services available"}
                 </p>
               </div>
-              {userRole === "admin" && (
-                <Link href="/service-catalog" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
-                  Manage
-                </Link>
-              )}
-              {userRole !== "admin" && services && services.length > 8 && (
-                <button className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
-                  Show More
-                </button>
-              )}
+              <div className="flex items-center gap-3">
+                {userRole === "admin" && (
+                  <Link href="/service-catalog" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
+                    Manage
+                  </Link>
+                )}
+                {services && services.length > 8 && (
+                  <button 
+                    onClick={() => setShowAllServices(true)}
+                    className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
+                  >
+                    View All
+                  </button>
+                )}
+              </div>
             </div>
             {services && services.length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 lg:gap-4">
@@ -282,6 +288,78 @@ export default function DashboardPage() {
             )}
           </Card>
         </div>
+
+        {/* View All Services Modal */}
+        {showAllServices && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAllServices(false)}
+          >
+            <div 
+              className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">All Services</h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    {services?.length || 0} {services?.length === 1 ? 'service' : 'services'} available
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAllServices(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {services && services.length > 0 ? (
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
+                    {services.map((service) => (
+                      <div
+                        key={service._id}
+                        className="flex flex-col items-center p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group border border-slate-200"
+                      >
+                        <div className={`w-16 h-16 ${service.color} rounded-xl flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform`}>
+                          {service.icon}
+                        </div>
+                        <p className="text-sm font-medium text-slate-700 text-center mb-1">{service.name}</p>
+                        <div className="flex items-center gap-1">
+                          <span className="text-yellow-500 text-xs">⭐</span>
+                          <span className="text-xs text-slate-500">{service.rating}</span>
+                        </div>
+                        {service.description && (
+                          <p className="text-xs text-slate-500 text-center mt-2 line-clamp-2">{service.description}</p>
+                        )}
+                        {service.requestCount > 0 && (
+                          <p className="text-xs text-slate-400 mt-1">{service.requestCount} requests</p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-slate-500">
+                    <span className="text-4xl mb-3 block">📋</span>
+                    <p className="text-sm">No services available</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-200 flex justify-end">
+                <Button variant="outline" onClick={() => setShowAllServices(false)}>
+                  Close
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Announcement Slider */}
         <div className="xl:col-span-1">
