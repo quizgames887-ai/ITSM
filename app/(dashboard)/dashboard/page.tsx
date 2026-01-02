@@ -178,12 +178,12 @@ export default function DashboardPage() {
   
   // Fetch events for selected date
   const events = useQuery(
-    api.events.getByDate,
+    (api.events as any)?.getByDate,
     selectedDate && userId ? { 
       date: selectedDate,
       userId: userId as Id<"users">
     } : "skip"
-  );
+  ) as any[] | undefined;
   
   // Fetch storage URL for selected service logo
   const normalizedSelectedLogoId = selectedService?.logoId 
@@ -200,9 +200,9 @@ export default function DashboardPage() {
   const { success, error: showError } = useToastContext();
   
   // Event management mutations
-  const createEvent = useMutation(api.events.create);
-  const updateEvent = useMutation(api.events.update);
-  const deleteEvent = useMutation(api.events.remove);
+  const createEvent = useMutation((api.events as any)?.create);
+  const updateEvent = useMutation((api.events as any)?.update);
+  const deleteEvent = useMutation((api.events as any)?.remove);
   
   // Get ticket IDs for escalation check (compute after all hooks)
   const ticketIds = tickets ? tickets.map(t => t._id) : [];

@@ -40,17 +40,17 @@ export default function EventsPage() {
 
   // Get all events (admin only)
   const events = useQuery(
-    api.events.getAll,
+    (api.events as any)?.getAll,
     dateFilter ? { startDate: dateFilter, endDate: dateFilter } : {}
-  );
+  ) as any[] | undefined;
 
   // Get all users for display
   const users = useQuery(api.users.list, {});
 
   // Mutations
-  const createEvent = useMutation(api.events.create);
-  const updateEvent = useMutation(api.events.update);
-  const deleteEvent = useMutation(api.events.remove);
+  const createEvent = useMutation((api.events as any)?.create);
+  const updateEvent = useMutation((api.events as any)?.update);
+  const deleteEvent = useMutation((api.events as any)?.remove);
 
   const isAdmin = currentUser?.role === "admin";
 
