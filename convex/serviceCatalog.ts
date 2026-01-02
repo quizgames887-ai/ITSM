@@ -30,6 +30,16 @@ export const get = query({
   },
 });
 
+export const getStorageUrl = query({
+  args: {
+    storageId: v.union(v.id("_storage"), v.null()),
+  },
+  handler: async (ctx, args) => {
+    if (!args.storageId) return null;
+    return await ctx.storage.getUrl(args.storageId);
+  },
+});
+
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {

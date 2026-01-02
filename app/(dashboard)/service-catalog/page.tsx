@@ -6,11 +6,10 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
-import { useStorage } from "convex/react";
 
 const COLOR_OPTIONS = [
   { value: "bg-blue-100", label: "Blue" },
@@ -27,6 +26,44 @@ const COLOR_OPTIONS = [
   { value: "bg-slate-100", label: "Slate/Gray" },
 ];
 
+// Component to handle service logo display with storage URL
+function ServiceLogo({ service }: { service: any }) {
+  const logoUrl = useQuery(
+    api.serviceCatalog.getStorageUrl,
+    service.logoId ? { storageId: service.logoId } : "skip"
+  );
+
+  return (
+    <div className={`w-12 h-12 ${service.color} rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden`}>
+      {logoUrl ? (
+        <img 
+          src={logoUrl} 
+          alt={service.name}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span>{service.icon}</span>
+      )}
+    </div>
+  );
+}
+
+// Component to load logo preview for form
+function LogoPreviewLoader({ logoId, onLoad }: { logoId: Id<"_storage"> | null; onLoad: (url: string | null) => void }) {
+  const logoUrl = useQuery(
+    api.serviceCatalog.getStorageUrl,
+    logoId ? { storageId: logoId } : "skip"
+  );
+
+  useEffect(() => {
+    if (logoUrl !== undefined) {
+      onLoad(logoUrl);
+    }
+  }, [logoUrl, onLoad]);
+
+  return null;
+}
+
 export default function ServiceCatalogPage() {
   const services = useQuery(api.serviceCatalog.list, { activeOnly: false });
   
@@ -35,7 +72,6 @@ export default function ServiceCatalogPage() {
   const removeService = useMutation(api.serviceCatalog.remove);
   const toggleActive = useMutation(api.serviceCatalog.toggleActive);
   const generateUploadUrl = useMutation(api.serviceCatalog.generateUploadUrl);
-  const storageUrl = useStorage();
   
   const { success, error: showError } = useToastContext();
   
@@ -203,12 +239,8 @@ export default function ServiceCatalogPage() {
       order: service.order,
       logoId: service.logoId || null,
     });
-    // Set logo preview if logo exists
-    if (service.logoId && storageUrl) {
-      setLogoPreview(storageUrl(service.logoId));
-    } else {
-      setLogoPreview(null);
-    }
+    // Set logo preview if logo exists - will be loaded via query
+    setLogoPreview(null);
     setLogoFile(null);
     setShowForm(true);
   };
@@ -326,6 +358,67 @@ export default function ServiceCatalogPage() {
               </div>
             </div>
 
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Logo (Image)
+              </label>
+              {editingId && formData.logoId && (
+                <LogoPreviewLoader 
+                  logoId={formData.logoId} 
+                  onLoad={(url) => {
+                    if (url && !logoPreview) {
+                      setLogoPreview(url);
+                    }
+                  }}
+                />
+              )}
+              <div className="space-y-2">
+                {logoPreview ? (
+                  <div className="relative inline-block">
+                    <img 
+                      src={logoPreview} 
+                      alt="Logo preview" 
+                      className="w-16 h-16 object-cover rounded-lg border border-slate-200"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setLogoPreview(null);
+                        setLogoFile(null);
+                        setFormData({ ...formData, logoId: null });
+                      }}
+                      className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-20 border-2 border-dashed border-slate-300 rounded-lg cursor-pointer hover:bg-slate-50 transition-colors">
+                    <div className="flex flex-col items-center justify-center pt-2">
+                      <svg className="w-6 h-6 text-slate-400 mb-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-xs text-slate-500">Click to upload</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) handleLogoUpload(file);
+                      }}
+                      disabled={uploadingLogo}
+                    />
+                  </label>
+                )}
+                {uploadingLogo && (
+                  <p className="text-xs text-slate-500">Uploading...</p>
+                )}
+                <p className="text-xs text-slate-500">Upload a logo image (max 5MB). Logo will be used instead of emoji if provided.</p>
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <Input
                 label="Rating (0-5)"
@@ -397,17 +490,7 @@ export default function ServiceCatalogPage() {
                 
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <div className={`w-12 h-12 ${service.color} rounded-xl flex items-center justify-center text-xl flex-shrink-0 overflow-hidden`}>
-                      {service.logoId && storageUrl ? (
-                        <img 
-                          src={storageUrl(service.logoId)} 
-                          alt={service.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span>{service.icon}</span>
-                      )}
-                    </div>
+                    <ServiceLogo service={service} />
                     <div className="flex-1 min-w-0">
                       <h4 className="font-semibold text-slate-900">{service.name}</h4>
                       <div className="flex items-center gap-3 mt-1">

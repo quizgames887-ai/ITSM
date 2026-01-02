@@ -1,6 +1,6 @@
 "use client";
 
-import { useQuery, useMutation, useStorage } from "convex/react";
+import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -15,6 +15,34 @@ import { AnnouncementSlider } from "@/components/dashboard/AnnouncementSlider";
 import { useToastContext } from "@/contexts/ToastContext";
 
 // Services will be fetched from the database
+
+// Component to handle service logo display with storage URL
+function ServiceLogoDisplay({ service, size = "small" }: { service: any; size?: "small" | "medium" | "large" }) {
+  const logoUrl = useQuery(
+    api.serviceCatalog.getStorageUrl,
+    service?.logoId ? { storageId: service.logoId } : "skip"
+  );
+
+  const sizeClasses = {
+    small: "w-10 h-10 lg:w-12 lg:h-12 text-lg lg:text-xl",
+    medium: "w-12 h-12 text-2xl",
+    large: "w-16 h-16 text-2xl",
+  };
+
+  return (
+    <div className={`${sizeClasses[size]} ${service.color} rounded-xl flex items-center justify-center overflow-hidden ${size === "small" ? "group-hover:scale-110 transition-transform mb-2" : size === "large" ? "group-hover:scale-110 transition-transform mb-3" : ""}`}>
+      {logoUrl ? (
+        <img 
+          src={logoUrl} 
+          alt={service.name}
+          className="w-full h-full object-cover"
+        />
+      ) : (
+        <span>{service.icon}</span>
+      )}
+    </div>
+  );
+}
 
 const favoriteLinks = [
   { name: "Get Help & Support", icon: "❓", color: "text-purple-500" },
@@ -335,17 +363,7 @@ export default function DashboardPage() {
                     onClick={() => handleServiceClick(service)}
                     className="flex flex-col items-center p-3 lg:p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group"
                   >
-                    <div className={`w-10 h-10 lg:w-12 lg:h-12 ${service.color} rounded-xl flex items-center justify-center text-lg lg:text-xl mb-2 group-hover:scale-110 transition-transform overflow-hidden`}>
-                      {service.logoId && storageUrl ? (
-                        <img 
-                          src={storageUrl(service.logoId)} 
-                          alt={service.name}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span>{service.icon}</span>
-                      )}
-                    </div>
+                    <ServiceLogoDisplay service={service} />
                     <p className="text-xs lg:text-sm font-medium text-slate-700 text-center truncate w-full">{service.name}</p>
                     <div className="flex items-center gap-1 mt-1">
                       <span className="text-yellow-500 text-xs">⭐</span>
