@@ -1493,7 +1493,48 @@ export default function DashboardPage() {
               rows={3}
               className="w-full py-2 lg:py-2.5 px-3 lg:px-4 rounded-xl border border-slate-200 text-xs lg:text-sm text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 resize-none"
             />
-            <Button variant="gradient" className="w-full text-sm">
+            <Button
+              variant="gradient"
+              className="w-full text-sm"
+              onClick={async () => {
+                if (!suggestionCategory) {
+                  showError("Please select a category");
+                  return;
+                }
+                if (!suggestionText.trim()) {
+                  showError("Please enter your suggestion");
+                  return;
+                }
+                if (!userId) {
+                  showError("You must be logged in to submit suggestions");
+                  return;
+                }
+
+                // Check if function is available
+                if (!submitSuggestion) {
+                  showError("Suggestion feature is not available yet. Please wait for Convex to sync.");
+                  return;
+                }
+
+                try {
+                  await submitSuggestion({
+                    category: suggestionCategory,
+                    content: suggestionText.trim(),
+                    userId: userId as Id<"users">,
+                  });
+                  success("Suggestion submitted successfully!");
+                  setSuggestionCategory("");
+                  setSuggestionText("");
+                } catch (err: any) {
+                  const errorMessage = err.message || "Failed to submit suggestion";
+                  if (errorMessage.includes("Could not find public function")) {
+                    showError("Suggestion feature is syncing. Please wait a moment and try again.");
+                  } else {
+                    showError(errorMessage);
+                  }
+                }
+              }}
+            >
               Submit
             </Button>
           </div>
