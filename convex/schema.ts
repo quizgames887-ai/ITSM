@@ -7,7 +7,7 @@ export default defineSchema({
     name: v.string(),
     role: v.union(v.literal("user"), v.literal("admin"), v.literal("agent")),
     onboardingCompleted: v.boolean(),
-    profilePictureId: v.union(v.id("_storage"), v.null()),
+    profilePictureId: v.optional(v.union(v.id("_storage"), v.null())),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
