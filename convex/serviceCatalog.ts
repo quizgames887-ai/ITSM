@@ -43,7 +43,12 @@ export const getStorageUrl = query({
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    return await ctx.storage.generateUploadUrl();
+    try {
+      return await ctx.storage.generateUploadUrl();
+    } catch (error: any) {
+      console.error("Error generating upload URL:", error);
+      throw new Error(`Failed to generate upload URL: ${error.message || "Unknown error"}`);
+    }
   },
 });
 
