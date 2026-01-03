@@ -220,30 +220,12 @@ export default function DashboardPage() {
     (api as any).todos?.list,
     userId ? { 
       userId: userId as Id<"users">,
-      status: todoFilter === "completed" ? "completed" : undefined,
-      limit: showAllTodos ? undefined : (todoFilter === "completed" ? undefined : 5)
+      limit: showAllTodos ? undefined : 5
     } : "skip"
   ) as any[] | undefined;
   
-  // Filter todos client-side
-  let todos = allTodos;
-  if (allTodos) {
-    if (todoFilter === "pending") {
-      // Show only non-completed todos
-      todos = allTodos.filter((todo) => todo.status !== "completed");
-    } else if (todoFilter === "completed") {
-      // Show only completed todos (already filtered by query)
-      todos = allTodos;
-    } else {
-      // Show all todos
-      todos = allTodos;
-    }
-    
-    // Apply limit for "all" view when not showing all
-    if (todoFilter === "all" && !showAllTodos && todos.length > 5) {
-      todos = todos.slice(0, 5);
-    }
-  }
+  // Use all todos directly (no filtering needed for simplified design)
+  const todos = allTodos;
   
   // Fetch storage URL for selected service logo
   const normalizedSelectedLogoId = selectedService?.logoId 
@@ -556,6 +538,8 @@ export default function DashboardPage() {
         return "bg-red-500";
       case "in_progress":
         return "bg-orange-500";
+      case "pending":
+        return "bg-amber-500";
       default:
         return "bg-slate-300";
     }
@@ -1736,59 +1720,25 @@ export default function DashboardPage() {
 
         {/* Todo */}
         <Card padding="md" className="md:col-span-2 xl:col-span-1">
-          <div className="flex items-center justify-between mb-4">
+          <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="text-base lg:text-lg font-semibold text-slate-900">Todo</h2>
+              <h2 className="text-lg lg:text-xl font-semibold text-slate-900 mb-1">Todo</h2>
               <p className="text-xs text-slate-500">
-                {showAllTodos ? "All records" : "Top 5 records"}
-                {todoFilter === "completed" && " · Completed"}
-                {todoFilter === "pending" && " · Pending"}
+                Top 5 records
               </p>
             </div>
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1">
-                {todoFilter === "completed" && (
-                  <button
-                    onClick={() => setTodoFilter("all")}
-                    className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Show All
-                  </button>
-                )}
-                {todoFilter !== "completed" && (
-                  <button
-                    onClick={() => setTodoFilter("completed")}
-                    className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
-                  >
-                    Completed
-                  </button>
-                )}
-                {!showAllTodos && (
-                  <>
-                    <span className="text-slate-300">|</span>
-                    <button
-                      onClick={() => setShowAllTodos(true)}
-                      className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      Show More
-                    </button>
-                  </>
-                )}
-                {showAllTodos && (
-                  <>
-                    <span className="text-slate-300">|</span>
-                    <button
-                      onClick={() => setShowAllTodos(false)}
-                      className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
-                    >
-                      Show Less
-                    </button>
-                  </>
-                )}
+              <div className="relative">
+                <button
+                  onClick={() => setShowAllTodos(!showAllTodos)}
+                  className="px-3 py-1.5 text-xs lg:text-sm text-slate-600 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+                >
+                  Show More
+                </button>
               </div>
               <button
                 onClick={handleAddTodo}
-                className="w-7 h-7 flex items-center justify-center rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 hover:text-slate-700 transition-colors"
+                className="w-8 h-8 flex items-center justify-center rounded-lg border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 hover:text-slate-700 transition-colors"
                 title="Add Todo"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1797,53 +1747,70 @@ export default function DashboardPage() {
               </button>
             </div>
           </div>
-          <div className="space-y-1">
+          <div className="space-y-0">
             {todos && todos.length > 0 ? (
               todos.map((todo) => (
                 <div
                   key={todo._id}
-                  className="flex items-center gap-2 lg:gap-3 p-2.5 lg:p-3 hover:bg-slate-50 rounded-xl transition-colors group relative"
+                  className="flex items-start gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors group relative"
                 >
-                  {/* Status indicator bar */}
-                  <div className={`w-1 h-full ${getTodoStatusColor(todo.status)} rounded-full flex-shrink-0`}></div>
+                  {/* Status indicator bar - vertical colored bar on the left */}
+                  <div 
+                    className={`w-[3px] h-full min-h-[48px] ${getTodoStatusColor(todo.status)} rounded-full flex-shrink-0`}
+                  ></div>
                   
-                  <input
-                    type="checkbox"
-                    checked={todo.status === "completed"}
-                    onChange={() => handleToggleTodoComplete(todo)}
-                    className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500 flex-shrink-0"
-                  />
-                  <div className="min-w-0 flex-1">
-                    <p className={`text-xs lg:text-sm font-medium truncate ${
-                      todo.status === "completed" ? "text-slate-400 line-through" : "text-slate-900"
-                    }`}>
-                      {todo.title}
-                    </p>
-                    <p className="text-[10px] lg:text-xs text-slate-500">{formatDueDate(todo.dueDate)}</p>
+                  {/* Task content */}
+                  <div className="min-w-0 flex-1 flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className={`text-sm font-medium text-slate-900 mb-1 ${
+                        todo.status === "completed" ? "line-through text-slate-400" : ""
+                      }`}>
+                        {todo.title}
+                      </p>
+                      <p className="text-xs text-slate-500">{formatDueDate(todo.dueDate)}</p>
+                    </div>
+                    
+                    {/* Options icon (ellipsis) */}
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setShowTodoOptions(showTodoOptions === todo._id ? null : todo._id);
+                      }}
+                      className="opacity-60 hover:opacity-100 transition-opacity p-1.5 hover:bg-slate-100 rounded flex-shrink-0"
+                      title="Options"
+                    >
+                      <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                      </svg>
+                    </button>
                   </div>
-                  <button
-                    onClick={() => setShowTodoOptions(showTodoOptions === todo._id ? null : todo._id)}
-                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1 hover:bg-slate-200 rounded"
-                  >
-                    <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
-                    </svg>
-                  </button>
                   
                   {/* Options menu */}
                   {showTodoOptions === todo._id && (
-                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-10 min-w-[120px]">
+                    <div className="absolute right-0 top-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg z-20 min-w-[120px]">
                       <button
-                        onClick={() => {
-                          handleEditTodo(todo);
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleToggleTodoComplete(todo);
                           setShowTodoOptions(null);
                         }}
                         className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-t-lg"
                       >
+                        {todo.status === "completed" ? "Mark Incomplete" : "Mark Complete"}
+                      </button>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleEditTodo(todo);
+                          setShowTodoOptions(null);
+                        }}
+                        className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+                      >
                         Edit
                       </button>
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           handleDeleteTodo(todo._id);
                           setShowTodoOptions(null);
                         }}
@@ -1856,8 +1823,8 @@ export default function DashboardPage() {
                 </div>
               ))
             ) : (
-              <div className="text-center py-6 text-slate-500">
-                <p className="text-xs lg:text-sm">No todos yet</p>
+              <div className="text-center py-8 text-slate-500">
+                <p className="text-sm">No todos yet</p>
                 <button
                   onClick={handleAddTodo}
                   className="text-xs text-blue-600 hover:text-blue-700 mt-2"
