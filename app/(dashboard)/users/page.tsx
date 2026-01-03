@@ -180,6 +180,7 @@ export default function UsersPage() {
 
       await updateUser({
         id: userId,
+        currentUserId: currentUserId as Id<"users">,
         ...updates,
       });
 

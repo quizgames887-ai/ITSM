@@ -84,6 +84,7 @@ function ProfilePageContent() {
     try {
       await updateUser({
         id: userId as Id<"users">,
+        currentUserId: userId as Id<"users">,
         name: name.trim(),
         email: email.trim(),
       });
@@ -257,6 +258,7 @@ function ProfilePageContent() {
       // Update user profile with new picture
       await updateProfilePicture({
         userId: userId as Id<"users">,
+        currentUserId: userId as Id<"users">,
         storageId: storageId,
       });
 
@@ -290,6 +292,7 @@ function ProfilePageContent() {
     try {
       await removeProfilePicture({
         userId: userId as Id<"users">,
+        currentUserId: userId as Id<"users">,
       });
 
       setSuccess("Profile picture removed successfully!");
