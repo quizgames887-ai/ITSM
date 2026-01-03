@@ -144,12 +144,13 @@ export const update = mutation({
     content: v.optional(v.string()),
     buttonText: v.optional(v.union(v.string(), v.null())),
     buttonLink: v.optional(v.union(v.string(), v.null())),
+    imageId: v.optional(v.union(v.id("_storage"), v.null())),
     isActive: v.optional(v.boolean()),
     priority: v.optional(v.number()),
     expiresAt: v.optional(v.union(v.number(), v.null())),
   },
   handler: async (ctx, args) => {
-    const { id, buttonText, buttonLink, expiresAt, ...rest } = args;
+    const { id, buttonText, buttonLink, imageId, expiresAt, ...rest } = args;
     
     const announcement = await ctx.db.get(id);
     if (!announcement) {
@@ -167,6 +168,9 @@ export const update = mutation({
     }
     if (buttonLink !== undefined) {
       updates.buttonLink = buttonLink === null ? undefined : buttonLink;
+    }
+    if (imageId !== undefined) {
+      updates.imageId = imageId === null ? undefined : imageId;
     }
     if (expiresAt !== undefined) {
       updates.expiresAt = expiresAt === null ? undefined : expiresAt;
