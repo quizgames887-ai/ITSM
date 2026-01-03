@@ -111,6 +111,36 @@ export const submitVote = mutation({
   },
 });
 
+// Undo/remove a user's vote
+export const undoVote = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Get active vote
+    const activeVote = await ctx.db
+      .query("votes")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .first();
+
+    if (!activeVote) {
+      throw new Error("No active vote found");
+    }
+
+    // Find and delete user's vote
+    const existingVote = await ctx.db
+      .query("userVotes")
+      .withIndex("by_voteId_userId", (q) =>
+        q.eq("voteId", activeVote._id).eq("userId", args.userId)
+      )
+      .first();
+
+    if (existingVote) {
+      await ctx.db.delete(existingVote._id);
+    }
+  },
+});
+
 // Get all votes (admin only)
 export const list = query({
   args: {},

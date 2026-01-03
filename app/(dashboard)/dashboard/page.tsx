@@ -257,6 +257,7 @@ export default function DashboardPage() {
   const createTicket = useMutation(api.tickets.create);
   const toggleFavorite = useMutation((api.serviceCatalog as any).toggleFavorite);
   const submitVote = useMutation((api as any).votes?.submitVote);
+  const undoVote = useMutation((api as any).votes?.undoVote);
   const submitSuggestion = useMutation((api as any).suggestions?.submit);
   const { success, error: showError } = useToastContext();
   
@@ -1869,44 +1870,100 @@ export default function DashboardPage() {
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base lg:text-lg font-semibold text-slate-900">Voting</h2>
-            {userRole === "admin" && (
-              <Link href="/voting" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
-                Show History
-              </Link>
-            )}
+            <div className="flex items-center gap-3">
+              {userVote && (
+                <button
+                  onClick={async () => {
+                    if (!userId) {
+                      showError("You must be logged in");
+                      return;
+                    }
+                    try {
+                      await undoVote({
+                        userId: userId as Id<"users">,
+                      });
+                      success("Vote removed successfully");
+                    } catch (err: any) {
+                      showError(err.message || "Failed to remove vote");
+                    }
+                  }}
+                  className="text-xs lg:text-sm text-slate-400 hover:text-slate-600 font-medium transition-colors"
+                >
+                  Undo
+                </button>
+              )}
+              {userRole === "admin" && (
+                <Link href="/voting" className="text-xs lg:text-sm text-slate-600 hover:text-slate-900 font-medium transition-colors">
+                  Show History
+                </Link>
+              )}
+            </div>
           </div>
           {activeVote ? (
             <>
               <p className="text-xs lg:text-sm text-slate-600 mb-4">{activeVote.question}</p>
-              <div className="space-y-2">
-                {activeVote.options.map((option: string) => (
-                  <button
-                    key={option}
-                    onClick={async () => {
-                      if (!userId) {
-                        showError("You must be logged in to vote");
-                        return;
-                      }
-                      try {
-                        await submitVote({
-                          userId: userId as Id<"users">,
-                          option: option,
-                        });
-                        success("Vote submitted successfully");
-                      } catch (err: any) {
-                        showError(err.message || "Failed to submit vote");
-                      }
-                    }}
-                    className={`w-full py-2.5 lg:py-3 px-4 rounded-xl border-2 text-xs lg:text-sm font-medium transition-all ${
-                      userVote === option
-                        ? "border-blue-600 bg-blue-50 text-blue-700"
-                        : "border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50"
-                    }`}
-                  >
-                    {option}
-                  </button>
-                ))}
-              </div>
+              {userVote ? (
+                // Show results after voting
+                <div className="space-y-3">
+                  {activeVote.options.map((option: string, index: number) => {
+                    const count = activeVote.voteCounts?.[option] || 0;
+                    const total = activeVote.totalVotes || 0;
+                    const percentage = total > 0 ? Math.round((count / total) * 100) : 0;
+                    
+                    // Different colors for each option (blue, teal, red/orange)
+                    const colors = [
+                      "bg-blue-600", // First option - blue
+                      "bg-cyan-500", // Second option - teal/cyan
+                      "bg-orange-500", // Third option - orange
+                      "bg-purple-500", // Fourth option - purple (if more than 3)
+                      "bg-pink-500", // Fifth option - pink (if more than 4)
+                    ];
+                    const barColor = colors[index] || colors[0];
+                    
+                    return (
+                      <div key={option} className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs lg:text-sm text-slate-900 font-medium">{option}</span>
+                          <span className="text-xs text-slate-500">{percentage}%</span>
+                        </div>
+                        <div className="w-full bg-slate-200 rounded-full h-2 overflow-hidden">
+                          <div
+                            className={`${barColor} h-2 rounded-full transition-all duration-300`}
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              ) : (
+                // Show voting buttons if user hasn't voted
+                <div className="space-y-2">
+                  {activeVote.options.map((option: string) => (
+                    <button
+                      key={option}
+                      onClick={async () => {
+                        if (!userId) {
+                          showError("You must be logged in to vote");
+                          return;
+                        }
+                        try {
+                          await submitVote({
+                            userId: userId as Id<"users">,
+                            option: option,
+                          });
+                          success("Vote submitted successfully");
+                        } catch (err: any) {
+                          showError(err.message || "Failed to submit vote");
+                        }
+                      }}
+                      className="w-full py-2.5 lg:py-3 px-4 rounded-xl border-2 border-slate-200 text-slate-600 hover:border-slate-300 hover:bg-slate-50 text-xs lg:text-sm font-medium transition-all"
+                    >
+                      {option}
+                    </button>
+                  ))}
+                </div>
+              )}
             </>
           ) : (
             <div className="text-center py-4 text-slate-500">
