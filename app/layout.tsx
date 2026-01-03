@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Merriweather, Lora } from "next/font/google";
 import "./globals.css";
 import { Providers } from "./providers";
+import { LanguageProvider } from "@/components/LanguageProvider";
 
 const merriweather = Merriweather({
   weight: ["300", "400", "700"],
@@ -32,7 +33,9 @@ export default function RootLayout({
       <body
         className={`${merriweather.variable} ${lora.variable} antialiased`}
       >
-        <Providers>{children}</Providers>
+        <LanguageProvider>
+          <Providers>{children}</Providers>
+        </LanguageProvider>
       </body>
     </html>
   );

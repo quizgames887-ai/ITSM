@@ -111,6 +111,7 @@ export const update = mutation({
       v.union(v.literal("user"), v.literal("admin"), v.literal("agent"))
     ),
     onboardingCompleted: v.optional(v.boolean()),
+    language: v.optional(v.union(v.literal("en"), v.literal("ar"))),
   },
   handler: async (ctx, args) => {
     const { id, currentUserId, ...updates } = args;
@@ -183,6 +184,14 @@ export const update = mutation({
         throw new Error("You can only update your own onboarding status");
       }
       allowedUpdates.onboardingCompleted = updates.onboardingCompleted;
+    }
+    
+    // Language preference can only be updated by the user themselves
+    if (updates.language !== undefined) {
+      if (currentUserId !== id) {
+        throw new Error("You can only update your own language preference");
+      }
+      allowedUpdates.language = updates.language;
     }
 
     await ctx.db.patch(id, allowedUpdates);

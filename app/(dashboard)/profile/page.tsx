@@ -32,6 +32,7 @@ function ProfilePageContent() {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [language, setLanguage] = useState<"en" | "ar">("en");
 
   useEffect(() => {
     const storedUserId = localStorage.getItem("userId");
@@ -69,8 +70,15 @@ function ProfilePageContent() {
     if (user) {
       setName(user.name);
       setEmail(user.email);
-      // Store role in localStorage for navigation
+      // Set language preference
+      const userLanguage = (user.language as "en" | "ar" | null) || "en";
+      setLanguage(userLanguage);
+      // Store role and language in localStorage for navigation
       localStorage.setItem("userRole", user.role);
+      localStorage.setItem("userLanguage", userLanguage);
+      // Apply language direction
+      document.documentElement.setAttribute("dir", userLanguage === "ar" ? "rtl" : "ltr");
+      document.documentElement.setAttribute("lang", userLanguage);
     }
   }, [user]);
 
@@ -927,6 +935,50 @@ function ProfilePageContent() {
                     </span>
                   )}
                 </p>
+              </div>
+
+              {/* Language Selection */}
+              <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                <div className="flex items-center gap-2.5 mb-3">
+                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                  </svg>
+                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
+                    Language Preference
+                  </p>
+                </div>
+                <div className="flex flex-col gap-3">
+                  <select
+                    value={language}
+                    onChange={(e) => {
+                      const newLanguage = e.target.value as "en" | "ar";
+                      setLanguage(newLanguage);
+                      // Apply immediately
+                      localStorage.setItem("userLanguage", newLanguage);
+                      document.documentElement.setAttribute("dir", newLanguage === "ar" ? "rtl" : "ltr");
+                      document.documentElement.setAttribute("lang", newLanguage);
+                      // Save to database
+                      if (userId) {
+                        updateUser({
+                          id: userId as Id<"users">,
+                          currentUserId: userId as Id<"users">,
+                          language: newLanguage,
+                        }).catch((err) => {
+                          console.error("Failed to update language:", err);
+                        });
+                      }
+                    }}
+                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 bg-white text-sm font-medium"
+                  >
+                    <option value="en">English</option>
+                    <option value="ar">العربية (Arabic)</option>
+                  </select>
+                  <p className="text-xs text-slate-500">
+                    {language === "ar" 
+                      ? "The interface will be displayed from right to left" 
+                      : "The interface will be displayed from left to right"}
+                  </p>
+                </div>
               </div>
             </div>
           </Card>

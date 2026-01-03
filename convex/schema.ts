@@ -8,6 +8,7 @@ export default defineSchema({
     role: v.union(v.literal("user"), v.literal("admin"), v.literal("agent")),
     onboardingCompleted: v.boolean(),
     profilePictureId: v.optional(v.union(v.id("_storage"), v.null())),
+    language: v.optional(v.union(v.literal("en"), v.literal("ar"))), // Language preference: en (English) or ar (Arabic)
     createdAt: v.number(),
     updatedAt: v.number(),
   })

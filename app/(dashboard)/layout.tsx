@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Header } from "@/components/dashboard/Header";
 import { usePathname } from "next/navigation";
@@ -12,6 +12,14 @@ export default function DashboardLayout({
 }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  
+  // Apply language preference on mount
+  useEffect(() => {
+    const savedLanguage = localStorage.getItem("userLanguage") || "en";
+    const direction = savedLanguage === "ar" ? "rtl" : "ltr";
+    document.documentElement.setAttribute("dir", direction);
+    document.documentElement.setAttribute("lang", savedLanguage);
+  }, []);
   
   const handleCloseSidebar = useCallback(() => {
     setSidebarOpen(false);
