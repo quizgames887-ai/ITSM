@@ -108,6 +108,7 @@ export default function DashboardPage() {
   const [showAllFavoritesModal, setShowAllFavoritesModal] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
   const [selectedService, setSelectedService] = useState<any>(null);
+  const [showSuggestionSuccessModal, setShowSuggestionSuccessModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [requestForm, setRequestForm] = useState({
     title: "",
@@ -2036,9 +2037,9 @@ export default function DashboardPage() {
                     content: suggestionText.trim(),
                     userId: userId as Id<"users">,
                   });
-                  success("Suggestion submitted successfully!");
                   setSuggestionCategory("");
                   setSuggestionText("");
+                  setShowSuggestionSuccessModal(true);
                 } catch (err: any) {
                   const errorMessage = err.message || "Failed to submit suggestion";
                   if (errorMessage.includes("Could not find public function")) {
@@ -2579,6 +2580,49 @@ export default function DashboardPage() {
                   Close
                 </Button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Suggestion Success Modal */}
+        {showSuggestionSuccessModal && (
+          <div
+            className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4"
+            onClick={() => setShowSuggestionSuccessModal(false)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-xl max-w-md w-full p-8 flex flex-col items-center"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Success Icon */}
+              <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mb-5">
+                <svg
+                  className="w-8 h-8 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={3}
+                    d="M5 13l4 4L19 7"
+                  />
+                </svg>
+              </div>
+
+              {/* Message */}
+              <h3 className="text-base font-semibold text-slate-700 mb-6 text-center">
+                Thanks for your suggestion
+              </h3>
+
+              {/* OK Button */}
+              <button
+                onClick={() => setShowSuggestionSuccessModal(false)}
+                className="w-full py-2.5 px-4 bg-blue-500 hover:bg-blue-600 text-white font-medium rounded-lg transition-colors"
+              >
+                OK
+              </button>
             </div>
           </div>
         )}
