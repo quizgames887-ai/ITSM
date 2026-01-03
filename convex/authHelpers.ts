@@ -103,7 +103,7 @@ export const signUp = mutation({
       role: "user",
       onboardingCompleted: false,
       profilePictureId: null,
-      language: null,
+      language: undefined,
       createdAt: now,
       updatedAt: now,
     });

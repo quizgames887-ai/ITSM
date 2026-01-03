@@ -44,7 +44,7 @@ export const createUser = mutation({
       role: args.role,
       onboardingCompleted: false,
       profilePictureId: null,
-      language: null,
+      language: undefined,
       createdAt: now,
       updatedAt: now,
     });
