@@ -114,8 +114,15 @@ export default function TranslationsPage() {
   };
 
   const handleAdd = async () => {
+    console.log("handleAdd called", { currentUserId, isAdmin, newTranslation });
+    
     if (!currentUserId) {
-      showError("You must be logged in");
+      showError("You must be logged in. Please refresh the page.");
+      return;
+    }
+
+    if (!isAdmin) {
+      showError("Only admins can add translations. Your role: " + (currentUser?.role || "unknown"));
       return;
     }
 
@@ -130,6 +137,7 @@ export default function TranslationsPage() {
     }
 
     try {
+      console.log("Attempting to save English translation...");
       // Save English translation
       await upsertTranslation({
         key: newTranslation.key.trim(),
@@ -139,6 +147,7 @@ export default function TranslationsPage() {
         userId: currentUserId as Id<"users">,
       });
 
+      console.log("English translation saved, saving Arabic...");
       // Save Arabic translation
       await upsertTranslation({
         key: newTranslation.key.trim(),
@@ -148,11 +157,13 @@ export default function TranslationsPage() {
         userId: currentUserId as Id<"users">,
       });
 
+      console.log("Both translations saved successfully");
       success("Translation added successfully");
       setNewTranslation({ key: "", en: "", ar: "", category: "" });
       setShowAddForm(false);
     } catch (err: any) {
-      showError(err.message || "Failed to add translation");
+      console.error("Error adding translation:", err);
+      showError(err.message || "Failed to add translation. Check console for details.");
     }
   };
 
@@ -394,6 +405,9 @@ export default function TranslationsPage() {
           <span className="text-5xl mb-4 block">🔒</span>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Denied</h2>
           <p className="text-slate-600 mb-4">You need admin privileges to manage translations.</p>
+          <p className="text-sm text-slate-500 mb-4">
+            Your current role: <strong>{currentUser?.role || "unknown"}</strong>
+          </p>
           <Link href="/dashboard">
             <Button variant="gradient">Back to Dashboard</Button>
           </Link>
@@ -402,8 +416,31 @@ export default function TranslationsPage() {
     );
   }
 
+  // Debug info (remove in production)
+  useEffect(() => {
+    console.log("Translations Page Debug:", {
+      currentUserId,
+      isAdmin,
+      currentUser: currentUser ? { id: currentUser._id, role: currentUser.role, email: currentUser.email } : null,
+      showAddForm,
+      translationsCount: translations?.length || 0,
+    });
+  }, [currentUserId, isAdmin, currentUser, showAddForm, translations]);
+
   return (
     <div className="space-y-6">
+      {/* Debug Status Banner - Remove in production */}
+      {currentUser && (
+        <Card padding="sm" className="bg-blue-50 border-blue-200">
+          <div className="text-xs text-slate-600">
+            <strong>Status:</strong> User ID: {currentUserId ? "✓" : "✗"} | 
+            Admin: {isAdmin ? "✓ Yes" : "✗ No"} | 
+            Role: {currentUser.role || "unknown"} |
+            Translations loaded: {translations ? translations.length : "loading..."}
+          </div>
+        </Card>
+      )}
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -490,7 +527,11 @@ export default function TranslationsPage() {
               rows={2}
             />
             <div className="flex gap-3">
-              <Button variant="gradient" onClick={handleAdd}>
+              <Button 
+                variant="gradient" 
+                onClick={handleAdd}
+                disabled={!isAdmin || !currentUserId}
+              >
                 Add Translation
               </Button>
               <Button variant="outline" onClick={() => {
