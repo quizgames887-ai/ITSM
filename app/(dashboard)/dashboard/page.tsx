@@ -124,6 +124,9 @@ export default function DashboardPage() {
     return `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
   };
   const [selectedDate, setSelectedDate] = useState<string>(getTodayDateStr());
+  const [calendarView, setCalendarView] = useState<"week" | "month">("week");
+  const [calendarViewDate, setCalendarViewDate] = useState<Date>(new Date());
+  const [showCalendarDropdown, setShowCalendarDropdown] = useState(false);
   const [showEventForm, setShowEventForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
   const [viewingEvent, setViewingEvent] = useState<any>(null);
@@ -151,16 +154,20 @@ export default function DashboardPage() {
       if (showTodoOptions && !target.closest('.todo-options-menu') && !target.closest('.todo-options-button')) {
         setShowTodoOptions(null);
       }
+      // Close calendar dropdown when clicking outside
+      if (showCalendarDropdown && !target.closest('.calendar-dropdown')) {
+        setShowCalendarDropdown(false);
+      }
     };
 
-    if (showTodoOptions) {
+    if (showTodoOptions || showCalendarDropdown) {
       document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
-  }, [showTodoOptions]);
+  }, [showTodoOptions, showCalendarDropdown]);
 
   // Role-based ticket visibility:
   // - Admin: sees all tickets
@@ -324,6 +331,9 @@ export default function DashboardPage() {
   // Event management handlers
   const handleDateSelect = (dateStr: string) => {
     setSelectedDate(dateStr);
+    // Update calendar view date to the selected date
+    const selectedDateObj = new Date(dateStr);
+    setCalendarViewDate(selectedDateObj);
   };
 
   const handleAddEvent = (dateStr?: string) => {
@@ -770,21 +780,114 @@ export default function DashboardPage() {
       };
     });
 
-  // Calendar days with full date info - show 10 days
-  const today = new Date();
+  // Calendar navigation handlers
+  const handlePreviousPeriod = () => {
+    const newDate = new Date(calendarViewDate);
+    if (calendarView === "week") {
+      newDate.setDate(newDate.getDate() - 7);
+    } else {
+      newDate.setMonth(newDate.getMonth() - 1);
+    }
+    setCalendarViewDate(newDate);
+  };
+
+  const handleNextPeriod = () => {
+    const newDate = new Date(calendarViewDate);
+    if (calendarView === "week") {
+      newDate.setDate(newDate.getDate() + 7);
+    } else {
+      newDate.setMonth(newDate.getMonth() + 1);
+    }
+    setCalendarViewDate(newDate);
+  };
+
+  const handleToday = () => {
+    const today = new Date();
+    setCalendarViewDate(today);
+    setSelectedDate(getTodayDateStr());
+  };
+
+  // Calendar days generation based on view
   const days = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
   const calendarDays = [];
-  for (let i = -2; i <= 7; i++) {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-    calendarDays.push({
-      day: days[d.getDay()],
-      date: d.getDate(),
-      dateStr: dateStr,
-      isToday: i === 0,
-      fullDate: d,
-    });
+  
+  if (calendarView === "week") {
+    // Week view: show 7 days starting from the first day of the week
+    const startDate = new Date(calendarViewDate);
+    const dayOfWeek = startDate.getDay();
+    startDate.setDate(startDate.getDate() - dayOfWeek); // Start from Sunday
+    
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startDate);
+      d.setDate(startDate.getDate() + i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const today = new Date();
+      const isToday = d.toDateString() === today.toDateString();
+      
+      calendarDays.push({
+        day: days[d.getDay()],
+        date: d.getDate(),
+        dateStr: dateStr,
+        isToday: isToday,
+        fullDate: d,
+      });
+    }
+  } else {
+    // Month view: show all days in the month
+    const year = calendarViewDate.getFullYear();
+    const month = calendarViewDate.getMonth();
+    const firstDay = new Date(year, month, 1);
+    const lastDay = new Date(year, month + 1, 0);
+    const daysInMonth = lastDay.getDate();
+    const startDayOfWeek = firstDay.getDay();
+    
+    // Add days from previous month to fill the first week
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+    for (let i = startDayOfWeek - 1; i >= 0; i--) {
+      const d = new Date(year, month - 1, prevMonthLastDay - i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      calendarDays.push({
+        day: days[d.getDay()],
+        date: d.getDate(),
+        dateStr: dateStr,
+        isToday: false,
+        fullDate: d,
+        isOtherMonth: true,
+      });
+    }
+    
+    // Add days of current month
+    const today = new Date();
+    for (let i = 1; i <= daysInMonth; i++) {
+      const d = new Date(year, month, i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      const isToday = d.toDateString() === today.toDateString();
+      
+      calendarDays.push({
+        day: days[d.getDay()],
+        date: d.getDate(),
+        dateStr: dateStr,
+        isToday: isToday,
+        fullDate: d,
+        isOtherMonth: false,
+      });
+    }
+    
+    // Add days from next month to fill the last week (up to 35 or 42 days total)
+    const totalDays = calendarDays.length;
+    const remainingDays = totalDays % 7 === 0 ? 0 : 7 - (totalDays % 7);
+    for (let i = 1; i <= remainingDays; i++) {
+      const d = new Date(year, month + 1, i);
+      const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+      calendarDays.push({
+        day: days[d.getDay()],
+        date: d.getDate(),
+        dateStr: dateStr,
+        isToday: false,
+        fullDate: d,
+        isOtherMonth: true,
+      });
+    }
   }
 
   return (
@@ -1503,41 +1606,154 @@ export default function DashboardPage() {
                 Top 8 records
               </p>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 relative calendar-dropdown">
               <button 
-                className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium"
+                onClick={() => setShowCalendarDropdown(!showCalendarDropdown)}
+                className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
               >
                 Show More
-              </button>
-              <button className="p-1 text-slate-400 hover:text-slate-600">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className={`w-4 h-4 transition-transform ${showCalendarDropdown ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                 </svg>
               </button>
+              
+              {/* Dropdown Menu */}
+              {showCalendarDropdown && (
+                <div className="absolute right-0 top-full mt-2 bg-white border border-slate-200 rounded-lg shadow-lg z-20 min-w-[140px] calendar-dropdown">
+                  <button
+                    onClick={() => {
+                      setCalendarView("week");
+                      setShowCalendarDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-t-lg ${
+                      calendarView === "week" ? "bg-blue-50 text-blue-700 font-semibold" : ""
+                    }`}
+                  >
+                    Week View
+                  </button>
+                  <button
+                    onClick={() => {
+                      setCalendarView("month");
+                      setShowCalendarDropdown(false);
+                    }}
+                    className={`w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-b-lg ${
+                      calendarView === "month" ? "bg-blue-50 text-blue-700 font-semibold" : ""
+                    }`}
+                  >
+                    Month View
+                  </button>
+                </div>
+              )}
             </div>
           </div>
           
-          {/* Calendar Week */}
-          <div className="flex justify-between mb-4 gap-1">
-            {calendarDays.map((day, index) => {
-              const isSelected = selectedDate === day.dateStr;
-              return (
-                <div
-                  key={index}
-                  onClick={() => handleDateSelect(day.dateStr)}
-                  className={`flex flex-col items-center p-1.5 lg:p-2 rounded-lg lg:rounded-xl flex-1 ${
-                    isSelected
-                      ? "bg-blue-50 border-2 border-blue-500"
-                      : "text-slate-600 hover:bg-slate-50"
-                  } transition-colors cursor-pointer`}
-                >
-                  <span className="text-[10px] lg:text-xs font-medium">{day.day}</span>
-                  <span className={`text-sm lg:text-lg font-semibold ${isSelected ? "text-blue-600" : "text-slate-900"}`}>
-                    {day.date}
-                  </span>
-                </div>
-              );
-            })}
+          {/* Calendar Navigation */}
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={handlePreviousPeriod}
+                className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                title={`Previous ${calendarView === "week" ? "Week" : "Month"}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                </svg>
+              </button>
+              <button
+                onClick={handleToday}
+                className="px-3 py-1.5 text-xs font-medium text-slate-700 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+              >
+                Today
+              </button>
+              <button
+                onClick={handleNextPeriod}
+                className="p-1.5 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"
+                title={`Next ${calendarView === "week" ? "Week" : "Month"}`}
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </button>
+            </div>
+            <div className="text-sm font-semibold text-slate-900">
+              {calendarView === "week" 
+                ? (() => {
+                    const start = calendarDays[0]?.fullDate;
+                    const end = calendarDays[6]?.fullDate;
+                    if (start && end) {
+                      return `${start.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} - ${end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: start.getFullYear() !== end.getFullYear() ? 'numeric' : undefined })}`;
+                    }
+                    return "";
+                  })()
+                : calendarViewDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+              }
+            </div>
+          </div>
+          
+          {/* Calendar Days */}
+          <div className={`grid mb-4 gap-1 ${
+            calendarView === "week" 
+              ? "grid-cols-7" 
+              : "grid-cols-7"
+          }`}>
+            {calendarView === "week" && (
+              <>
+                {calendarDays.map((day, index) => {
+                  const isSelected = selectedDate === day.dateStr;
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => handleDateSelect(day.dateStr)}
+                      className={`flex flex-col items-center p-1.5 lg:p-2 rounded-lg lg:rounded-xl ${
+                        isSelected
+                          ? "bg-blue-50 border-2 border-blue-500"
+                          : "text-slate-600 hover:bg-slate-50 border border-transparent"
+                      } transition-colors cursor-pointer`}
+                    >
+                      <span className="text-[10px] lg:text-xs font-medium">{day.day}</span>
+                      <span className={`text-sm lg:text-lg font-semibold ${isSelected ? "text-blue-600" : "text-slate-900"}`}>
+                        {day.date}
+                      </span>
+                    </div>
+                  );
+                })}
+              </>
+            )}
+            
+            {calendarView === "month" && (
+              <>
+                {/* Day headers */}
+                {days.map((dayName) => (
+                  <div key={dayName} className="text-center text-xs font-semibold text-slate-500 py-2">
+                    {dayName}
+                  </div>
+                ))}
+                {/* Calendar days */}
+                {calendarDays.map((day, index) => {
+                  const isSelected = selectedDate === day.dateStr;
+                  const isOtherMonth = (day as any).isOtherMonth;
+                  return (
+                    <div
+                      key={index}
+                      onClick={() => !isOtherMonth && handleDateSelect(day.dateStr)}
+                      className={`flex flex-col items-center justify-center p-1.5 lg:p-2 rounded-lg lg:rounded-xl min-h-[40px] lg:min-h-[48px] ${
+                        isSelected
+                          ? "bg-blue-50 border-2 border-blue-500"
+                          : isOtherMonth
+                          ? "text-slate-300 hover:bg-slate-50/50 border border-transparent cursor-default"
+                          : "text-slate-600 hover:bg-slate-50 border border-transparent cursor-pointer"
+                      } transition-colors ${day.isToday && !isSelected ? "bg-blue-50/50 border border-blue-200" : ""}`}
+                    >
+                      <span className={`text-xs lg:text-sm font-semibold ${
+                        isSelected ? "text-blue-600" : isOtherMonth ? "text-slate-300" : day.isToday ? "text-blue-600" : "text-slate-900"
+                      }`}>
+                        {day.date}
+                      </span>
+                    </div>
+                  );
+                })}
+              </>
+            )}
           </div>
 
           {/* Events List */}
