@@ -1,0 +1,201 @@
+TRANSLATION KEYS - KEY | ENGLISH | CATEGORY
+============================================
+
+COMMON
+common.save | Save | common
+common.cancel | Cancel | common
+common.delete | Delete | common
+common.edit | Edit | common
+common.close | Close | common
+common.submit | Submit | common
+common.search | Search | common
+common.loading | Loading... | common
+common.error | Error | common
+common.success | Success | common
+common.confirm | Confirm | common
+common.yes | Yes | common
+common.no | No | common
+
+DASHBOARD
+dashboard.title | My Workspace | dashboard
+dashboard.welcome | Welcome | dashboard
+dashboard.mostServicesRequest | Most Services Request | dashboard
+dashboard.showMore | Show More | dashboard
+dashboard.manage | Manage | dashboard
+dashboard.lastUpdate | Last update | dashboard
+dashboard.calendarEvents | Calendar Events | dashboard
+dashboard.voting | Voting | dashboard
+dashboard.suggesting | Suggesting | dashboard
+dashboard.todo | Todo | dashboard
+dashboard.myFavorites | My Favorites | dashboard
+dashboard.topRecords | Top {count} records | dashboard
+dashboard.add | Add | dashboard
+dashboard.noEvents | No events for this date | dashboard
+dashboard.addFirstEvent | Add your first event | dashboard
+dashboard.noActiveVote | No active vote | dashboard
+dashboard.createVote | Create a vote | dashboard
+dashboard.undo | Undo | dashboard
+dashboard.showHistory | Show History | dashboard
+dashboard.thanksForSuggestion | Thanks for your suggestion | dashboard
+dashboard.noServices | No services available | dashboard
+dashboard.createFirstService | Create your first service | dashboard
+
+PROFILE
+profile.title | Profile | profile
+profile.personalInformation | Personal Information | profile
+profile.editProfile | Edit Profile | profile
+profile.name | Name | profile
+profile.email | Email | profile
+profile.role | Role | profile
+profile.passwordReset | Password Reset | profile
+profile.changePassword | Change Password | profile
+profile.currentPassword | Current Password | profile
+profile.newPassword | New Password | profile
+profile.confirmPassword | Confirm New Password | profile
+profile.accountDetails | Account Details | profile
+profile.accountCreated | Account Created | profile
+profile.lastUpdated | Last Updated | profile
+profile.onboardingStatus | Onboarding Status | profile
+profile.completed | Completed | profile
+profile.pending | Pending | profile
+profile.languagePreference | Language Preference | profile
+profile.languageDescription | The interface will be displayed from {direction} | profile
+profile.leftToRight | left to right | profile
+profile.rightToLeft | right to left | profile
+profile.updateSuccess | Profile updated successfully! | profile
+profile.updateError | Failed to update profile | profile
+
+NAVIGATION
+nav.dashboard | Dashboard | navigation
+nav.tickets | Tickets | navigation
+nav.serviceCatalog | Service Catalog | navigation
+nav.forms | Forms | navigation
+nav.users | Users | navigation
+nav.notifications | Notification Management | navigation
+nav.announcements | Announcements | navigation
+nav.roles | Auto-Assignment Rules | navigation
+nav.sla | SLA & Escalation | navigation
+nav.events | Event Management | navigation
+nav.voting | Voting | navigation
+nav.suggestions | Suggestions | navigation
+nav.profile | Profile | navigation
+
+BUTTONS
+button.create | Create | buttons
+button.update | Update | buttons
+button.save | Save | buttons
+button.cancel | Cancel | buttons
+button.delete | Delete | buttons
+button.edit | Edit | buttons
+button.view | View | buttons
+button.close | Close | buttons
+button.submit | Submit | buttons
+button.back | Back | buttons
+button.ok | OK | buttons
+button.activate | Activate | buttons
+button.deactivate | Deactivate | buttons
+button.copy | Copy | buttons
+
+FORMS
+form.required | Required | forms
+form.invalid | Invalid | forms
+form.submit | Submit | forms
+form.cancel | Cancel | forms
+
+MESSAGES
+message.success | Operation completed successfully | messages
+message.error | An error occurred | messages
+message.confirmDelete | Are you sure you want to delete this item? | messages
+message.suggestionSubmitted | Suggestion submitted successfully! | messages
+message.voteSubmitted | Vote submitted successfully! | messages
+message.voteRemoved | Vote removed successfully | messages
+
+EVENTS
+events.title | Event Management | events
+events.createEvent | Create Event | events
+events.eventTitle | Event Title | events
+events.description | Description | events
+events.date | Date | events
+events.startTime | Start Time | events
+events.endTime | End Time | events
+events.noEvents | No events found | events
+events.createFirst | Create your first event | events
+
+VOTING
+voting.title | Voting Management | voting
+voting.createVote | Create Vote | voting
+voting.question | Question | voting
+voting.options | Options | voting
+voting.activeVote | Active Vote | voting
+voting.inactiveVotes | Inactive Votes | voting
+voting.totalVotes | total votes | voting
+voting.votes | votes | voting
+voting.voterDetails | Voter Details | voting
+voting.hideDetails | Hide Voter Details | voting
+voting.viewDetails | View Voter Details | voting
+voting.noVotes | No votes yet | voting
+
+SUGGESTIONS
+suggestions.title | Suggestions Management | suggestions
+suggestions.category | Category | suggestions
+suggestions.content | Content | suggestions
+suggestions.submit | Submit | suggestions
+suggestions.selectCategory | Select category | suggestions
+suggestions.typeSuggestion | Type your suggestion here... | suggestions
+
+TODOS
+todos.title | Todo | todos
+todos.add | Add | todos
+todos.taskTitle | Task Title | todos
+todos.description | Description | todos
+todos.dueDate | Due Date | todos
+todos.priority | Priority | todos
+todos.priorityLow | Low | todos
+todos.priorityMedium | Medium | todos
+todos.priorityHigh | High | todos
+todos.status | Status | todos
+todos.statusPending | Pending | todos
+todos.statusInProgress | In Progress | todos
+todos.statusCompleted | Completed | todos
+todos.statusOverdue | Overdue | todos
+todos.markComplete | Mark as Complete | todos
+todos.markIncomplete | Mark as Incomplete | todos
+
+SERVICES
+services.title | Service Catalog | services
+services.name | Service Name | services
+services.description | Description | services
+services.rating | Rating | services
+services.duration | Duration | services
+services.requests | requests | services
+services.allServices | All Services | services
+services.servicesAvailable | services available | services
+services.serviceAvailable | service available | services
+
+TICKETS
+tickets.title | Tickets | tickets
+tickets.createTicket | Create Ticket | tickets
+tickets.ticketTitle | Ticket Title | tickets
+tickets.status | Status | tickets
+tickets.priority | Priority | tickets
+tickets.assignedTo | Assigned To | tickets
+tickets.noTickets | No tickets yet | tickets
+tickets.createFirst | Create your first ticket | tickets
+
+USERS
+users.title | User Management | users
+users.name | Name | users
+users.email | Email | users
+users.role | Role | users
+users.admin | Admin | users
+users.agent | Agent | users
+users.user | User | users
+
+CALENDAR
+calendar.weekView | Week View | calendar
+calendar.monthView | Month View | calendar
+calendar.today | Today | calendar
+calendar.previousWeek | Previous Week | calendar
+calendar.nextWeek | Next Week | calendar
+calendar.previousMonth | Previous Month | calendar
+calendar.nextMonth | Next Month | calendar
