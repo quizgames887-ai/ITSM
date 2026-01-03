@@ -16,6 +16,7 @@ interface HeaderProps {
 
 export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   const router = useRouter();
+  const { t } = useTranslation();
   const [userName, setUserName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
