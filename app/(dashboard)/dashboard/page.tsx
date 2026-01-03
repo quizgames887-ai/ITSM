@@ -525,6 +525,7 @@ export default function DashboardPage() {
       setEditingTodo(null);
       setTodoForm({
         title: "",
+        description: "",
         dueDate: "",
         priority: "medium",
       });
