@@ -316,6 +316,20 @@ export default defineSchema({
     .index("by_isActive", ["isActive"])
     .index("by_createdBy", ["createdBy"]),
 
+  // Translations (for multi-language support)
+  translations: defineTable({
+    key: v.string(), // Translation key (e.g., "dashboard.title")
+    language: v.union(v.literal("en"), v.literal("ar")), // Language code
+    value: v.string(), // Translated text
+    category: v.optional(v.string()), // Category for organization (e.g., "dashboard", "common", "forms")
+    updatedBy: v.id("users"), // User who last updated this translation
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_language", ["language"])
+    .index("by_key_language", ["key", "language"])
+    .index("by_category", ["category"]),
+
   // User Votes (tracks which user voted for which option in which poll)
   userVotes: defineTable({
     voteId: v.id("votes"),

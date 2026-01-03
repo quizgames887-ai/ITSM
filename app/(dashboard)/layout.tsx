@@ -42,6 +42,7 @@ export default function DashboardLayout({
     if (pathname === "/events") return "Event Management";
     if (pathname === "/voting") return "Voting Management";
     if (pathname === "/suggestions") return "Suggestions Management";
+    if (pathname === "/translations") return "Translation Management";
     if (pathname === "/profile") return "Profile Settings";
     return "Palmware";
   };

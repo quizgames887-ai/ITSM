@@ -11,6 +11,7 @@ import { useRouter } from "next/navigation";
 import { Id } from "@/convex/_generated/dataModel";
 import { ProfileSkeleton } from "@/components/ui/LoadingSkeleton";
 import { PasswordStrength } from "@/components/ui/PasswordStrength";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 function ProfilePageContent() {
   const router = useRouter();
@@ -944,7 +945,7 @@ function ProfilePageContent() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                   </svg>
                   <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
-                    Language Preference
+                    {t("profile.languagePreference", "Language Preference")}
                   </p>
                 </div>
                 <div className="flex flex-col gap-3">
@@ -957,6 +958,8 @@ function ProfilePageContent() {
                       localStorage.setItem("userLanguage", newLanguage);
                       document.documentElement.setAttribute("dir", newLanguage === "ar" ? "rtl" : "ltr");
                       document.documentElement.setAttribute("lang", newLanguage);
+                      // Trigger language change event
+                      window.dispatchEvent(new Event("languageChanged"));
                       // Save to database
                       if (userId) {
                         updateUser({
@@ -975,8 +978,8 @@ function ProfilePageContent() {
                   </select>
                   <p className="text-xs text-slate-500">
                     {language === "ar" 
-                      ? "The interface will be displayed from right to left" 
-                      : "The interface will be displayed from left to right"}
+                      ? t("profile.rightToLeft", "The interface will be displayed from right to left")
+                      : t("profile.leftToRight", "The interface will be displayed from left to right")}
                   </p>
                 </div>
               </div>

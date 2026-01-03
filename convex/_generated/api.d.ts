@@ -28,6 +28,7 @@ import type * as suggestions from "../suggestions.js";
 import type * as teams from "../teams.js";
 import type * as tickets from "../tickets.js";
 import type * as todos from "../todos.js";
+import type * as translations from "../translations.js";
 import type * as users from "../users.js";
 import type * as votes from "../votes.js";
 
@@ -58,6 +59,7 @@ declare const fullApi: ApiFromModules<{
   teams: typeof teams;
   tickets: typeof tickets;
   todos: typeof todos;
+  translations: typeof translations;
   users: typeof users;
   votes: typeof votes;
 }>;
