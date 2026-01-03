@@ -20,11 +20,6 @@ export default function AnnouncementsPage() {
   const removeAnnouncement = useMutation(api.announcements.remove);
   const toggleActive = useMutation(api.announcements.toggleActive);
   const generateUploadUrl = useMutation(api.announcements.generateUploadUrl);
-  // Get image URL for preview when editing
-  const previewImageUrl = useQuery(
-    api.announcements.getImageUrl,
-    formData.imageId ? { storageId: formData.imageId } : "skip"
-  );
   
   const { success, error: showError } = useToastContext();
   
@@ -42,6 +37,12 @@ export default function AnnouncementsPage() {
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  
+  // Get image URL for preview when editing (must be after formData is declared)
+  const previewImageUrl = useQuery(
+    api.announcements.getImageUrl,
+    formData.imageId ? { storageId: formData.imageId } : "skip"
+  );
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   const currentUser = useQuery(
