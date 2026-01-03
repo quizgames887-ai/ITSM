@@ -70,9 +70,14 @@ export default function AnnouncementsPage() {
   };
 
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
+    console.log("handleImageUpload called", event.target.files);
+    if (!event.target.files || event.target.files.length === 0) {
+      console.log("No files selected");
+      return;
+    }
 
     const file = event.target.files[0];
+    console.log("Selected file:", file.name, file.type, file.size);
     
     // Validate file type
     if (!file.type.startsWith("image/")) {
@@ -98,18 +103,23 @@ export default function AnnouncementsPage() {
       reader.readAsDataURL(file);
 
       // Generate upload URL
+      console.log("Generating upload URL...");
       const uploadUrl = await generateUploadUrl();
+      console.log("Upload URL generated:", uploadUrl ? "Success" : "Failed");
       
       if (!uploadUrl || typeof uploadUrl !== "string") {
         throw new Error("Failed to generate upload URL: Invalid response");
       }
 
       // Upload file to Convex storage
+      console.log("Uploading file to:", uploadUrl.substring(0, 50) + "...");
+      console.log("File size:", file.size, "bytes, File type:", file.type);
       const uploadResult = await fetch(uploadUrl, {
         method: "POST",
         headers: { "Content-Type": file.type },
         body: file,
       });
+      console.log("Upload response status:", uploadResult.status, uploadResult.statusText);
 
       if (!uploadResult.ok) {
         let errorText = "";
@@ -122,23 +132,30 @@ export default function AnnouncementsPage() {
       }
 
       // Get storage ID from the response (Convex returns JSON with storageId)
+      // Read the response as text first, then parse JSON
+      // This allows us to see the raw response if parsing fails
+      const responseText = await uploadResult.text();
       let responseData;
+      
       try {
-        responseData = await uploadResult.json();
+        responseData = JSON.parse(responseText);
       } catch (parseError) {
-        const textResponse = await uploadResult.text();
-        throw new Error(`Invalid response format: ${textResponse}`);
+        console.error("Failed to parse upload response as JSON:", responseText);
+        throw new Error(`Invalid response format from server: ${responseText.substring(0, 200)}`);
       }
       
       const storageId = responseData?.storageId;
+      console.log("Extracted storageId:", storageId);
       
       if (!storageId) {
-        console.error("Upload response:", responseData);
+        console.error("Upload response data:", responseData);
         throw new Error("Failed to get storage ID from upload response. Response: " + JSON.stringify(responseData));
       }
 
-      setFormData({ ...formData, imageId: storageId });
+      console.log("Setting imageId in formData:", storageId);
+      setFormData({ ...formData, imageId: storageId as Id<"_storage"> });
       success("Image uploaded successfully!");
+      console.log("Image upload completed successfully");
       
       // Clear the file input so the same file can be uploaded again if needed
       if (fileInputRef.current) {
@@ -381,23 +398,23 @@ export default function AnnouncementsPage() {
                   </div>
                 )}
                 <div className="flex items-center gap-2">
-                  <label className="cursor-pointer">
-                    <input
-                      type="file"
-                      accept="image/*"
-                      onChange={handleImageUpload}
-                      disabled={uploadingImage}
-                      className="hidden"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={uploadingImage}
-                      className="cursor-pointer"
-                    >
-                      {uploadingImage ? "Uploading..." : imagePreview || previewImageUrl ? "Change Photo" : "Upload Photo"}
-                    </Button>
-                  </label>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleImageUpload}
+                    disabled={uploadingImage}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={uploadingImage}
+                    onClick={() => fileInputRef.current?.click()}
+                    className="cursor-pointer"
+                  >
+                    {uploadingImage ? "Uploading..." : imagePreview || previewImageUrl ? "Change Photo" : "Upload Photo"}
+                  </Button>
                   {formData.imageId && !imagePreview && !previewImageUrl && (
                     <span className="text-xs text-slate-500">Image uploaded</span>
                   )}
