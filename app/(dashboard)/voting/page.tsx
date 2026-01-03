@@ -206,7 +206,7 @@ export default function VotingPage() {
     );
   }
 
-  const activeVote = votes?.find((v) => v.isActive);
+  const activeVotes = votes?.filter((v) => v.isActive) || [];
   const historyVotes = votes?.filter((v) => !v.isActive || showHistory) || [];
 
   return (
@@ -222,24 +222,29 @@ export default function VotingPage() {
         </Button>
       </div>
 
-      {/* Active Vote */}
-      {activeVote && (
-        <Card padding="md" className="border-2 border-blue-200 bg-blue-50/30">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-lg font-semibold text-slate-900">Active Vote</h2>
-              <p className="text-xs text-slate-500 mt-1">
-                Created on {formatDate(activeVote.createdAt)} · {activeVote.totalVotes || 0} total votes
-              </p>
-            </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleToggleActive(activeVote)}
-            >
-              Deactivate
-            </Button>
-          </div>
+      {/* Active Votes */}
+      {activeVotes.length > 0 && (
+        <div className="space-y-4">
+          <h2 className="text-lg font-semibold text-slate-900">
+            Active Votes ({activeVotes.length})
+          </h2>
+          {activeVotes.map((activeVote) => (
+            <Card key={activeVote._id} padding="md" className="border-2 border-blue-200 bg-blue-50/30">
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className="text-base font-semibold text-slate-900">Active Vote</h3>
+                  <p className="text-xs text-slate-500 mt-1">
+                    Created on {formatDate(activeVote.createdAt)} · {activeVote.totalVotes || 0} total votes
+                  </p>
+                </div>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handleToggleActive(activeVote)}
+                >
+                  Deactivate
+                </Button>
+              </div>
           <div className="space-y-3">
             <p className="text-sm font-medium text-slate-700">{activeVote.question}</p>
             <div className="space-y-2">
@@ -314,7 +319,9 @@ export default function VotingPage() {
               )}
             </div>
           </div>
-        </Card>
+            </Card>
+          ))}
+        </div>
       )}
 
       {/* Votes List */}

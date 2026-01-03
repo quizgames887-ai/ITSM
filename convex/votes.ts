@@ -2,7 +2,7 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
-// Get active vote (for dashboard display)
+// Get active vote (for dashboard display) - returns first active vote for backward compatibility
 export const getActive = query({
   args: {},
   handler: async (ctx) => {
@@ -38,7 +38,50 @@ export const getActive = query({
   },
 });
 
-// Get user's vote for active poll
+// Get all active votes (for multiple active votes support)
+export const getAllActive = query({
+  args: {},
+  handler: async (ctx) => {
+    const activeVotes = await ctx.db
+      .query("votes")
+      .withIndex("by_isActive", (q) => q.eq("isActive", true))
+      .collect();
+
+    if (activeVotes.length === 0) {
+      return [];
+    }
+
+    // Get vote counts for each active vote
+    const votesWithCounts = await Promise.all(
+      activeVotes.map(async (vote) => {
+        const allVotes = await ctx.db
+          .query("userVotes")
+          .withIndex("by_voteId", (q) => q.eq("voteId", vote._id))
+          .collect();
+
+        const voteCounts: Record<string, number> = {};
+        vote.options.forEach((option) => {
+          voteCounts[option] = 0;
+        });
+
+        allVotes.forEach((userVote) => {
+          voteCounts[userVote.option] = (voteCounts[userVote.option] || 0) + 1;
+        });
+
+        return {
+          ...vote,
+          voteCounts,
+          totalVotes: allVotes.length,
+        };
+      })
+    );
+
+    // Sort by creation date (newest first)
+    return votesWithCounts.sort((a, b) => b.createdAt - a.createdAt);
+  },
+});
+
+// Get user's vote for active poll (backward compatibility - uses first active vote)
 export const getUserVote = query({
   args: {
     userId: v.id("users"),
@@ -64,25 +107,54 @@ export const getUserVote = query({
   },
 });
 
-// Submit a vote (user action)
+// Get user's vote for a specific vote
+export const getUserVoteForVote = query({
+  args: {
+    userId: v.id("users"),
+    voteId: v.id("votes"),
+  },
+  handler: async (ctx, args) => {
+    const userVote = await ctx.db
+      .query("userVotes")
+      .withIndex("by_voteId_userId", (q) =>
+        q.eq("voteId", args.voteId).eq("userId", args.userId)
+      )
+      .first();
+
+    return userVote ? userVote.option : null;
+  },
+});
+
+// Submit a vote (user action) - backward compatibility (uses first active vote)
 export const submitVote = mutation({
   args: {
     userId: v.id("users"),
     option: v.string(),
+    voteId: v.optional(v.id("votes")), // Optional: if provided, use this vote instead of first active
   },
   handler: async (ctx, args) => {
-    // Get active vote
-    const activeVote = await ctx.db
-      .query("votes")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
-      .first();
+    let vote;
+    
+    if (args.voteId) {
+      // Use specific vote ID if provided
+      vote = await ctx.db.get(args.voteId);
+      if (!vote || !vote.isActive) {
+        throw new Error("Vote not found or not active");
+      }
+    } else {
+      // Get first active vote for backward compatibility
+      vote = await ctx.db
+        .query("votes")
+        .withIndex("by_isActive", (q) => q.eq("isActive", true))
+        .first();
 
-    if (!activeVote) {
-      throw new Error("No active vote found");
+      if (!vote) {
+        throw new Error("No active vote found");
+      }
     }
 
     // Check if option is valid
-    if (!activeVote.options.includes(args.option)) {
+    if (!vote.options.includes(args.option)) {
       throw new Error("Invalid option");
     }
 
@@ -90,7 +162,7 @@ export const submitVote = mutation({
     const existingVote = await ctx.db
       .query("userVotes")
       .withIndex("by_voteId_userId", (q) =>
-        q.eq("voteId", activeVote._id).eq("userId", args.userId)
+        q.eq("voteId", vote._id).eq("userId", args.userId)
       )
       .first();
 
@@ -102,7 +174,7 @@ export const submitVote = mutation({
     } else {
       // Create new vote
       await ctx.db.insert("userVotes", {
-        voteId: activeVote._id,
+        voteId: vote._id,
         userId: args.userId,
         option: args.option,
         createdAt: Date.now(),
@@ -115,23 +187,34 @@ export const submitVote = mutation({
 export const undoVote = mutation({
   args: {
     userId: v.id("users"),
+    voteId: v.optional(v.id("votes")), // Optional: if provided, use this vote instead of first active
   },
   handler: async (ctx, args) => {
-    // Get active vote
-    const activeVote = await ctx.db
-      .query("votes")
-      .withIndex("by_isActive", (q) => q.eq("isActive", true))
-      .first();
+    let vote;
+    
+    if (args.voteId) {
+      // Use specific vote ID if provided
+      vote = await ctx.db.get(args.voteId);
+      if (!vote || !vote.isActive) {
+        throw new Error("Vote not found or not active");
+      }
+    } else {
+      // Get first active vote for backward compatibility
+      vote = await ctx.db
+        .query("votes")
+        .withIndex("by_isActive", (q) => q.eq("isActive", true))
+        .first();
 
-    if (!activeVote) {
-      throw new Error("No active vote found");
+      if (!vote) {
+        throw new Error("No active vote found");
+      }
     }
 
     // Find and delete user's vote
     const existingVote = await ctx.db
       .query("userVotes")
       .withIndex("by_voteId_userId", (q) =>
-        q.eq("voteId", activeVote._id).eq("userId", args.userId)
+        q.eq("voteId", vote._id).eq("userId", args.userId)
       )
       .first();
 
@@ -275,23 +358,8 @@ export const update = mutation({
     if (args.question !== undefined) updates.question = args.question;
     if (args.options !== undefined) updates.options = args.options;
 
-    // If activating this vote, deactivate all others
-    if (args.isActive === true) {
-      const activeVotes = await ctx.db
-        .query("votes")
-        .withIndex("by_isActive", (q) => q.eq("isActive", true))
-        .collect();
-
-      for (const activeVote of activeVotes) {
-        if (activeVote._id !== args.id) {
-          await ctx.db.patch(activeVote._id, {
-            isActive: false,
-            updatedAt: Date.now(),
-          });
-        }
-      }
-      updates.isActive = true;
-    } else if (args.isActive !== undefined) {
+    // Allow multiple active votes - don't deactivate others when activating
+    if (args.isActive !== undefined) {
       updates.isActive = args.isActive;
     }
 

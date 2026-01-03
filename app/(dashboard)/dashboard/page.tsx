@@ -224,13 +224,26 @@ export default function DashboardPage() {
     } : "skip"
   ) as any[] | undefined;
 
-  // Fetch active vote
-  const activeVote = useQuery((api as any).votes?.getActive, {}) as any;
+  // Fetch all active votes
+  const activeVotes = useQuery((api as any).votes?.getAllActive, {}) as any[] | undefined;
   
-  // Fetch user's vote for active poll
+  // State for selected active vote
+  const [selectedVoteId, setSelectedVoteId] = useState<Id<"votes"> | null>(null);
+  
+  // Set default selected vote (first active vote)
+  useEffect(() => {
+    if (activeVotes && activeVotes.length > 0 && !selectedVoteId) {
+      setSelectedVoteId(activeVotes[0]._id);
+    }
+  }, [activeVotes, selectedVoteId]);
+  
+  // Get currently selected vote
+  const activeVote = activeVotes?.find(v => v._id === selectedVoteId) || activeVotes?.[0] || null;
+  
+  // Fetch user's vote for selected poll
   const userVote = useQuery(
-    (api as any).votes?.getUserVote,
-    userId ? { userId: userId as Id<"users"> } : "skip"
+    (api as any).votes?.getUserVoteForVote,
+    userId && selectedVoteId ? { userId: userId as Id<"users">, voteId: selectedVoteId } : "skip"
   ) as string | null | undefined;
 
   // Fetch todos for current user (limited to 5 for dashboard)
@@ -1960,6 +1973,7 @@ export default function DashboardPage() {
                     try {
                       await undoVote({
                         userId: userId as Id<"users">,
+                        voteId: activeVote._id,
                       });
                       success("Vote removed successfully");
                     } catch (err: any) {
@@ -2030,6 +2044,7 @@ export default function DashboardPage() {
                           await submitVote({
                             userId: userId as Id<"users">,
                             option: option,
+                            voteId: activeVote._id,
                           });
                           success("Vote submitted successfully");
                         } catch (err: any) {
