@@ -21,6 +21,7 @@ import type * as events from "../events.js";
 import type * as forms from "../forms.js";
 import type * as knowledgeBase from "../knowledgeBase.js";
 import type * as notifications from "../notifications.js";
+import type * as security from "../security.js";
 import type * as serviceCatalog from "../serviceCatalog.js";
 import type * as sla from "../sla.js";
 import type * as suggestions from "../suggestions.js";
@@ -50,6 +51,7 @@ declare const fullApi: ApiFromModules<{
   forms: typeof forms;
   knowledgeBase: typeof knowledgeBase;
   notifications: typeof notifications;
+  security: typeof security;
   serviceCatalog: typeof serviceCatalog;
   sla: typeof sla;
   suggestions: typeof suggestions;
