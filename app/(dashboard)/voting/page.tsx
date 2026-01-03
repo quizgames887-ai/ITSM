@@ -16,6 +16,7 @@ export default function VotingPage() {
   const [showVoteForm, setShowVoteForm] = useState(false);
   const [editingVote, setEditingVote] = useState<any>(null);
   const [showHistory, setShowHistory] = useState(false);
+  const [expandedVoteId, setExpandedVoteId] = useState<Id<"votes"> | null>(null);
   const [voteForm, setVoteForm] = useState({
     question: "",
     options: ["", "", ""],
@@ -39,6 +40,12 @@ export default function VotingPage() {
 
   // Get all users for display
   const users = useQuery(api.users.list, {});
+
+  // Get detailed vote information when expanded
+  const voteDetails = useQuery(
+    (api as any).votes?.getVoteDetails,
+    expandedVoteId ? { voteId: expandedVoteId } : "skip"
+  ) as any;
 
   // Mutations
   const createVote = useMutation((api as any).votes?.create);
@@ -243,6 +250,55 @@ export default function VotingPage() {
                 );
               })}
             </div>
+            <div className="mt-4 pt-4 border-t border-slate-200">
+              <button
+                onClick={() => setExpandedVoteId(expandedVoteId === activeVote._id ? null : activeVote._id)}
+                className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+              >
+                {expandedVoteId === activeVote._id ? (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                    </svg>
+                    Hide Voter Details
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                    View Voter Details
+                  </>
+                )}
+              </button>
+              {expandedVoteId === activeVote._id && voteDetails && (
+                <div className="mt-3 space-y-2">
+                  {voteDetails.voters && voteDetails.voters.length > 0 ? (
+                    <div className="space-y-2">
+                      <div className="text-xs font-semibold text-slate-700 mb-2">Voter Information:</div>
+                      {voteDetails.voters.map((voter: any) => (
+                        <div key={voter._id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg text-xs">
+                          <div className="flex-1">
+                            <div className="font-medium text-slate-900">{voter.userName}</div>
+                            {voter.userEmail && (
+                              <div className="text-slate-500 text-[10px]">{voter.userEmail}</div>
+                            )}
+                            <div className="text-slate-400 text-[10px] mt-0.5">
+                              {formatVoteDate(voter.votedAt)}
+                            </div>
+                          </div>
+                          <div className="ml-4 px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
+                            {voter.option}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-slate-500 py-2">No votes yet</div>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         </Card>
       )}
@@ -302,6 +358,55 @@ export default function VotingPage() {
                     <span>Total: {vote.totalVotes || 0} votes</span>
                     <span>Created: {formatDate(vote.createdAt)}</span>
                     <span>By: {getUserName(vote.createdBy)}</span>
+                  </div>
+                  <div className="mt-3 pt-3 border-t border-slate-200">
+                    <button
+                      onClick={() => setExpandedVoteId(expandedVoteId === vote._id ? null : vote._id)}
+                      className="text-xs text-blue-600 hover:text-blue-700 font-medium flex items-center gap-1"
+                    >
+                      {expandedVoteId === vote._id ? (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                          Hide Voter Details
+                        </>
+                      ) : (
+                        <>
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                          View Voter Details
+                        </>
+                      )}
+                    </button>
+                    {expandedVoteId === vote._id && voteDetails && voteDetails.vote?._id === vote._id && (
+                      <div className="mt-3 space-y-2">
+                        {voteDetails.voters && voteDetails.voters.length > 0 ? (
+                          <div className="space-y-2">
+                            <div className="text-xs font-semibold text-slate-700 mb-2">Voter Information:</div>
+                            {voteDetails.voters.map((voter: any) => (
+                              <div key={voter._id} className="flex items-center justify-between p-2 bg-slate-50 rounded-lg text-xs">
+                                <div className="flex-1">
+                                  <div className="font-medium text-slate-900">{voter.userName}</div>
+                                  {voter.userEmail && (
+                                    <div className="text-slate-500 text-[10px]">{voter.userEmail}</div>
+                                  )}
+                                  <div className="text-slate-400 text-[10px] mt-0.5">
+                                    {formatVoteDate(voter.votedAt)}
+                                  </div>
+                                </div>
+                                <div className="ml-4 px-2 py-1 bg-blue-100 text-blue-700 rounded font-medium">
+                                  {voter.option}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-xs text-slate-500 py-2">No votes yet</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">

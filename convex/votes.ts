@@ -361,3 +361,51 @@ export const getHistory = query({
     return history.sort((a, b) => b.createdAt - a.createdAt);
   },
 });
+
+// Get detailed voter information for a specific vote
+export const getVoteDetails = query({
+  args: {
+    voteId: v.id("votes"),
+  },
+  handler: async (ctx, args) => {
+    const vote = await ctx.db.get(args.voteId);
+    if (!vote) {
+      return null;
+    }
+
+    // Get all user votes for this poll
+    const userVotes = await ctx.db
+      .query("userVotes")
+      .withIndex("by_voteId", (q) => q.eq("voteId", args.voteId))
+      .collect();
+
+    // Get user details for each vote
+    const voteDetails = await Promise.all(
+      userVotes.map(async (userVote) => {
+        const user = await ctx.db.get(userVote.userId);
+        return {
+          _id: userVote._id,
+          userId: userVote.userId,
+          userName: user?.name || "Unknown User",
+          userEmail: user?.email || null,
+          option: userVote.option,
+          votedAt: userVote.createdAt,
+        };
+      })
+    );
+
+    // Sort by vote time (newest first)
+    voteDetails.sort((a, b) => b.votedAt - a.votedAt);
+
+    return {
+      vote: {
+        _id: vote._id,
+        question: vote.question,
+        options: vote.options,
+        createdAt: vote.createdAt,
+      },
+      voters: voteDetails,
+      totalVotes: voteDetails.length,
+    };
+  },
+});
