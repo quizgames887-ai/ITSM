@@ -107,30 +107,15 @@ export default function AnnouncementsPage() {
       });
 
       if (!uploadResult.ok) {
-        throw new Error("Failed to upload image");
+        const errorText = await uploadResult.text();
+        throw new Error(`Failed to upload image: ${errorText || uploadResult.statusText}`);
       }
 
-      // Get storage ID from the response
-      let storageIdText = await uploadResult.text();
-      
-      // Handle case where response might be a JSON string
-      let storageId: Id<"_storage">;
-      try {
-        const parsed = JSON.parse(storageIdText);
-        if (typeof parsed === "object" && parsed.storageId) {
-          storageId = parsed.storageId as Id<"_storage">;
-        } else if (typeof parsed === "string") {
-          storageId = parsed as Id<"_storage">;
-        } else {
-          storageId = storageIdText as Id<"_storage">;
-        }
-      } catch {
-        // If not JSON, treat as direct storage ID
-        storageId = storageIdText as Id<"_storage">;
-      }
+      // Get storage ID from the response (Convex returns JSON with storageId)
+      const { storageId } = await uploadResult.json();
       
       if (!storageId) {
-        throw new Error("Failed to get storage ID from upload");
+        throw new Error("Failed to get storage ID from upload response");
       }
 
       setFormData({ ...formData, imageId: storageId });

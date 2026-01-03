@@ -166,22 +166,17 @@ export default function ServiceCatalogPage() {
         headers: { "Content-Type": file.type },
         body: file,
       });
-      let storageIdText = await result.text();
       
-      // Handle case where response might be a JSON string
-      let storageId: Id<"_storage">;
-      try {
-        const parsed = JSON.parse(storageIdText);
-        if (typeof parsed === "object" && parsed.storageId) {
-          storageId = parsed.storageId as Id<"_storage">;
-        } else if (typeof parsed === "string") {
-          storageId = parsed as Id<"_storage">;
-        } else {
-          storageId = storageIdText as Id<"_storage">;
-        }
-      } catch {
-        // If not JSON, treat as direct storage ID
-        storageId = storageIdText as Id<"_storage">;
+      if (!result.ok) {
+        const errorText = await result.text();
+        throw new Error(`Failed to upload logo: ${errorText || result.statusText}`);
+      }
+      
+      // Get storage ID from the response (Convex returns JSON with storageId)
+      const { storageId } = await result.json();
+      
+      if (!storageId) {
+        throw new Error("Failed to get storage ID from upload response");
       }
       
       setFormData({ ...formData, logoId: storageId });
