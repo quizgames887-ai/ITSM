@@ -16,24 +16,24 @@ export function Button({
   ...props
 }: ButtonProps) {
   const baseStyles =
-    "font-medium rounded-xl font-medium transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none relative overflow-hidden";
+    "font-semibold rounded-lg transition-all duration-200 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:transform-none relative overflow-hidden";
   
   const variants = {
     primary:
-      "bg-slate-900 text-white hover:bg-slate-800 focus:ring-slate-500 shadow-md hover:shadow-lg hover:shadow-slate-900/20 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-98",
+      "bg-slate-900 text-white hover:bg-slate-800 focus:ring-slate-500 shadow-sm hover:shadow-md hover:shadow-slate-900/25 active:scale-[0.98]",
     secondary:
-      "bg-slate-50 text-slate-900 hover:bg-slate-100 focus:ring-slate-500 shadow-sm hover:shadow-md border border-slate-200 hover:border-slate-300",
+      "bg-slate-50 text-slate-900 hover:bg-slate-100 focus:ring-slate-500 shadow-sm hover:shadow border border-slate-200 hover:border-slate-300 active:scale-[0.98]",
     outline:
-      "border-2 border-slate-300 text-slate-900 hover:bg-slate-50 hover:border-slate-400 focus:ring-slate-500 bg-white hover:shadow-sm",
-    ghost: "text-slate-700 hover:bg-slate-100 focus:ring-slate-500 hover:text-slate-900",
+      "border-2 border-slate-300 text-slate-900 hover:bg-slate-50 hover:border-slate-400 focus:ring-slate-500 bg-white hover:shadow-sm active:scale-[0.98]",
+    ghost: "text-slate-700 hover:bg-slate-100 focus:ring-slate-500 hover:text-slate-900 active:bg-slate-200",
     gradient:
-      "bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:via-indigo-700 hover:to-purple-700 focus:ring-indigo-500 shadow-md hover:shadow-lg hover:shadow-indigo-500/30 transform hover:-translate-y-0.5 active:translate-y-0 active:scale-98",
+      "bg-gradient-to-r from-indigo-600 via-indigo-600 to-purple-600 text-white hover:from-indigo-700 hover:via-indigo-700 hover:to-purple-700 focus:ring-indigo-500 shadow-sm hover:shadow-md hover:shadow-indigo-500/30 active:scale-[0.98]",
   };
 
   const sizes = {
-    sm: "px-4 py-2 text-xs sm:text-sm font-medium",
-    md: "px-5 py-2.5 text-sm sm:py-3 sm:text-base font-medium",
-    lg: "px-6 py-3 text-base sm:px-8 sm:py-3.5 sm:text-lg font-semibold",
+    sm: "px-3.5 py-2 text-xs font-semibold",
+    md: "px-4 py-2.5 text-sm font-semibold",
+    lg: "px-6 py-3 text-base font-semibold",
   };
 
   return (

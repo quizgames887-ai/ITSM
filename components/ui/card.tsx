@@ -29,13 +29,13 @@ export function Card({
   };
 
   const variants = {
-    default: "bg-white rounded-2xl shadow-sm border border-slate-100",
-    elevated: "bg-white rounded-2xl shadow-md border border-slate-100",
-    outlined: "bg-white rounded-2xl shadow-none border-2 border-slate-200",
+    default: "bg-white rounded-xl shadow-sm border border-slate-200/60",
+    elevated: "bg-white rounded-xl shadow-md border border-slate-200/60",
+    outlined: "bg-white rounded-xl shadow-none border-2 border-slate-300",
   };
 
   const hoverStyles = hover
-    ? "hover:shadow-xl hover:shadow-slate-200/50 hover:border-slate-200 hover:-translate-y-1 hover:scale-[1.01] cursor-pointer"
+    ? "hover:shadow-lg hover:shadow-slate-200/40 hover:border-slate-300 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer"
     : "";
 
   return (

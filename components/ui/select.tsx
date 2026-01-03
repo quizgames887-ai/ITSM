@@ -22,7 +22,7 @@ export function Select({
       )}
       <div className="relative">
         <select
-          className={`w-full px-4 py-3 rounded-xl border border-slate-200 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 transition-all duration-200 hover:border-slate-300 appearance-none bg-white cursor-pointer focus:shadow-md focus:shadow-indigo-500/10 pr-10 ${
+          className={`w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 transition-all duration-200 hover:border-slate-400 appearance-none bg-white cursor-pointer focus:shadow-sm focus:shadow-indigo-500/10 pr-10 text-sm ${
             error ? "border-red-400 focus:ring-red-500/20 focus:border-red-500 bg-red-50/50" : ""
           } ${className}`}
           {...props}

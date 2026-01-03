@@ -149,12 +149,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200 z-50 flex flex-col transform transition-transform duration-300 ease-in-out ${
+        className={`fixed left-0 top-0 h-screen w-64 bg-white border-r border-slate-200/80 z-50 flex flex-col transform transition-transform duration-300 ease-in-out shadow-sm ${
           isOpen ? "translate-x-0" : "-translate-x-full"
         } lg:translate-x-0`}
       >
         {/* Logo */}
-        <div className="p-4 lg:p-6 border-b border-slate-100 flex items-center justify-between">
+        <div className="p-5 lg:p-6 border-b border-slate-200/60 flex items-center justify-between">
           <Link href="/dashboard" className="flex items-center gap-3">
             <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
               <svg className="w-5 h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -193,12 +193,12 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
                     : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`}
               >
-                <span className={isActive ? "text-blue-600" : "text-slate-400"}>
+                <span className={isActive ? "text-indigo-600" : "text-slate-400"}>
                   {item.icon}
                 </span>
                 {item.label}
                 {isActive && (
-                  <span className="ml-auto w-1.5 h-1.5 bg-blue-600 rounded-full"></span>
+                  <span className="ml-auto w-1.5 h-1.5 bg-indigo-600 rounded-full"></span>
                 )}
               </Link>
             );
@@ -207,8 +207,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Admin Section */}
           {userRole === "admin" && (
             <>
-              <div className="pt-4 pb-2">
-                <p className="px-3 lg:px-4 text-xs font-semibold text-slate-400 uppercase tracking-wider">
+              <div className="pt-6 pb-2 mt-4 border-t border-slate-200/60">
+                <p className="px-3 lg:px-4 text-xs font-bold text-slate-500 uppercase tracking-wider">
                   Admin
                 </p>
               </div>

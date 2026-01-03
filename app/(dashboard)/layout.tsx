@@ -39,7 +39,7 @@ export default function DashboardLayout({
   };
 
   return (
-    <div className="min-h-screen bg-slate-50">
+    <div className="min-h-screen bg-slate-50/50">
       {/* Sidebar */}
       <Sidebar isOpen={sidebarOpen} onClose={handleCloseSidebar} />
       
@@ -49,24 +49,26 @@ export default function DashboardLayout({
           title={getPageTitle()} 
           onMenuClick={() => setSidebarOpen(true)} 
         />
-        <main className="flex-1 p-4 lg:p-6">
-          {children}
+        <main className="flex-1 p-4 lg:p-6 xl:p-8">
+          <div className="max-w-7xl mx-auto w-full">
+            {children}
+          </div>
         </main>
         
         {/* Footer */}
-        <footer className="px-4 lg:px-6 py-3 lg:py-4 border-t border-slate-200 bg-white">
-          <div className="flex flex-col sm:flex-row justify-between items-center gap-2 text-xs text-slate-500">
-            <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-center">
-              <span>Docs</span>
-              <span className="hidden sm:inline">|</span>
-              <span>FAQ</span>
-              <span className="hidden sm:inline">|</span>
-              <span className="hidden md:inline">Support@palmware.com.sa</span>
-              <span className="hidden md:inline">|</span>
+        <footer className="px-4 lg:px-6 xl:px-8 py-4 lg:py-5 border-t border-slate-200/80 bg-white/80 backdrop-blur-sm">
+          <div className="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-3 text-xs text-slate-600">
+            <div className="flex items-center gap-3 sm:gap-4 flex-wrap justify-center">
+              <a href="#" className="hover:text-slate-900 transition-colors font-medium">Docs</a>
+              <span className="hidden sm:inline text-slate-300">|</span>
+              <a href="#" className="hover:text-slate-900 transition-colors font-medium">FAQ</a>
+              <span className="hidden sm:inline text-slate-300">|</span>
+              <a href="mailto:Support@palmware.com.sa" className="hidden md:inline hover:text-slate-900 transition-colors">Support@palmware.com.sa</a>
+              <span className="hidden md:inline text-slate-300">|</span>
               <span className="hidden md:inline">00966-0198765432</span>
             </div>
             <div className="text-center sm:text-right">
-              © <span className="text-blue-600 font-medium">Palmware Solutions</span>
+              © <span className="text-indigo-600 font-semibold">Palmware Solutions</span>
             </div>
           </div>
         </footer>
