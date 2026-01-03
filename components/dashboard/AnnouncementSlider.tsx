@@ -10,6 +10,7 @@ interface Announcement {
   content: string;
   buttonText?: string | null;
   buttonLink?: string | null;
+  imageUrl?: string | null;
 }
 
 interface AnnouncementSliderProps {
@@ -106,6 +107,16 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
     const announcement = announcements[0];
     return (
       <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-hidden min-h-[200px]">
+        {/* Image if available */}
+        {announcement.imageUrl && (
+          <div className="mb-3 rounded-lg overflow-hidden">
+            <img
+              src={announcement.imageUrl}
+              alt={announcement.title}
+              className="w-full h-48 object-cover"
+            />
+          </div>
+        )}
         <div className="relative z-10 h-full flex flex-col">
           <span className="text-xs text-teal-200 font-medium">Announcement</span>
           <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-3">
@@ -123,13 +134,17 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
             </button>
           )}
         </div>
-        {/* Decorative illustration */}
-        <div className="absolute right-0 bottom-0 w-24 lg:w-32 h-24 lg:h-32 opacity-20">
-          <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full transform translate-x-8 translate-y-8"></div>
-        </div>
-        <div className="absolute right-6 lg:right-8 top-6 lg:top-8 w-12 lg:w-16 h-12 lg:h-16 opacity-30">
-          <div className="w-full h-full bg-gradient-to-br from-pink-300 to-purple-400 rounded-full"></div>
-        </div>
+        {/* Decorative illustration - only show if no image */}
+        {!announcement.imageUrl && (
+          <>
+            <div className="absolute right-0 bottom-0 w-24 lg:w-32 h-24 lg:h-32 opacity-20">
+              <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full transform translate-x-8 translate-y-8"></div>
+            </div>
+            <div className="absolute right-6 lg:right-8 top-6 lg:top-8 w-12 lg:w-16 h-12 lg:h-16 opacity-30">
+              <div className="w-full h-full bg-gradient-to-br from-pink-300 to-purple-400 rounded-full"></div>
+            </div>
+          </>
+        )}
       </div>
     );
   }
@@ -158,6 +173,17 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
         </svg>
       </button>
+
+      {/* Image if available */}
+      {currentAnnouncement.imageUrl && (
+        <div className="mb-3 rounded-lg overflow-hidden">
+          <img
+            src={currentAnnouncement.imageUrl}
+            alt={currentAnnouncement.title}
+            className="w-full h-48 object-cover"
+          />
+        </div>
+      )}
 
       {/* Slide Content */}
       <div className="relative z-10 h-full flex flex-col pl-10 pr-10">
@@ -194,13 +220,17 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
         ))}
       </div>
 
-      {/* Decorative illustration */}
-      <div className="absolute right-0 bottom-0 w-24 lg:w-32 h-24 lg:h-32 opacity-20">
-        <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full transform translate-x-8 translate-y-8"></div>
-      </div>
-      <div className="absolute right-6 lg:right-8 top-6 lg:top-8 w-12 lg:w-16 h-12 lg:h-16 opacity-30">
-        <div className="w-full h-full bg-gradient-to-br from-pink-300 to-purple-400 rounded-full"></div>
-      </div>
+      {/* Decorative illustration - only show if no image */}
+      {!currentAnnouncement.imageUrl && (
+        <>
+          <div className="absolute right-0 bottom-0 w-24 lg:w-32 h-24 lg:h-32 opacity-20">
+            <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full transform translate-x-8 translate-y-8"></div>
+          </div>
+          <div className="absolute right-6 lg:right-8 top-6 lg:top-8 w-12 lg:w-16 h-12 lg:h-16 opacity-30">
+            <div className="w-full h-full bg-gradient-to-br from-pink-300 to-purple-400 rounded-full"></div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

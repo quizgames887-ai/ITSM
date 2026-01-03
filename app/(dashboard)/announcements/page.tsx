@@ -19,6 +19,12 @@ export default function AnnouncementsPage() {
   const updateAnnouncement = useMutation(api.announcements.update);
   const removeAnnouncement = useMutation(api.announcements.remove);
   const toggleActive = useMutation(api.announcements.toggleActive);
+  const generateUploadUrl = useMutation(api.announcements.generateUploadUrl);
+  // Get image URL for preview when editing
+  const previewImageUrl = useQuery(
+    api.announcements.getImageUrl,
+    formData.imageId ? { storageId: formData.imageId } : "skip"
+  );
   
   const { success, error: showError } = useToastContext();
   
@@ -29,10 +35,13 @@ export default function AnnouncementsPage() {
     content: "",
     buttonText: "",
     buttonLink: "",
+    imageId: null as Id<"_storage"> | null,
     isActive: true,
     priority: 1,
     expiresAt: "",
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   const currentUser = useQuery(
@@ -72,6 +81,7 @@ export default function AnnouncementsPage() {
         content: formData.content.trim(),
         buttonText: formData.buttonText.trim() || undefined,
         buttonLink: formData.buttonLink.trim() || undefined,
+        imageId: formData.imageId || undefined,
         isActive: formData.isActive,
         priority: formData.priority,
         expiresAt: formData.expiresAt ? new Date(formData.expiresAt).getTime() : undefined,
@@ -123,12 +133,20 @@ export default function AnnouncementsPage() {
       content: announcement.content,
       buttonText: announcement.buttonText || "",
       buttonLink: announcement.buttonLink || "",
+      imageId: announcement.imageId || null,
       isActive: announcement.isActive,
       priority: announcement.priority,
       expiresAt: announcement.expiresAt 
         ? new Date(announcement.expiresAt).toISOString().split("T")[0] 
         : "",
     });
+    // Set preview if image exists
+    if (announcement.imageId) {
+      // We'll fetch the URL in the component
+      setImagePreview(null); // Will be set by the query
+    } else {
+      setImagePreview(null);
+    }
     setShowForm(true);
   };
 
@@ -238,6 +256,56 @@ export default function AnnouncementsPage() {
               rows={3}
             />
             
+            {/* Image Upload */}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                Photo (Optional)
+              </label>
+              <div className="space-y-3">
+                {(imagePreview || previewImageUrl) && (
+                  <div className="relative inline-block">
+                    <img
+                      src={imagePreview || previewImageUrl || ""}
+                      alt="Preview"
+                      className="h-32 w-auto rounded-lg border border-slate-200 object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleRemoveImage}
+                      className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors"
+                      title="Remove image"
+                    >
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                )}
+                <div className="flex items-center gap-2">
+                  <label className="cursor-pointer">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      disabled={uploadingImage}
+                      className="hidden"
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      disabled={uploadingImage}
+                      className="cursor-pointer"
+                    >
+                      {uploadingImage ? "Uploading..." : imagePreview || previewImageUrl ? "Change Photo" : "Upload Photo"}
+                    </Button>
+                  </label>
+                  {formData.imageId && !imagePreview && !previewImageUrl && (
+                    <span className="text-xs text-slate-500">Image uploaded</span>
+                  )}
+                </div>
+              </div>
+            </div>
+            
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Input
                 label="Button Text (optional)"
@@ -292,6 +360,16 @@ export default function AnnouncementsPage() {
             <div className="mt-4 p-4 bg-white rounded-lg border border-slate-200">
               <label className="block text-xs font-medium text-slate-600 mb-2">Preview</label>
               <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-xl p-4 relative overflow-hidden">
+                {/* Image if available */}
+                {(imagePreview || previewImageUrl) && (
+                  <div className="mb-3 rounded-lg overflow-hidden">
+                    <img
+                      src={imagePreview || previewImageUrl || ""}
+                      alt="Announcement"
+                      className="w-full h-48 object-cover"
+                    />
+                  </div>
+                )}
                 <div className="relative z-10">
                   <span className="text-xs text-teal-200 font-medium">Announcement</span>
                   <h3 className="text-lg font-bold text-white mt-1 mb-2">
@@ -306,9 +384,11 @@ export default function AnnouncementsPage() {
                     </button>
                   )}
                 </div>
-                <div className="absolute right-0 bottom-0 w-20 h-20 opacity-20">
-                  <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full transform translate-x-6 translate-y-6"></div>
-                </div>
+                {!(imagePreview || previewImageUrl) && (
+                  <div className="absolute right-0 bottom-0 w-20 h-20 opacity-20">
+                    <div className="w-full h-full bg-gradient-to-br from-yellow-300 to-orange-400 rounded-full transform translate-x-6 translate-y-6"></div>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -345,23 +425,42 @@ export default function AnnouncementsPage() {
                   
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <h4 className="font-semibold text-slate-900">{announcement.title}</h4>
-                      <span className={`px-2 py-0.5 text-xs rounded-full ${
-                        isExpired 
-                          ? "bg-amber-100 text-amber-700"
-                          : announcement.isActive 
-                            ? "bg-green-100 text-green-700" 
-                            : "bg-slate-100 text-slate-500"
-                      }`}>
-                        {isExpired ? "Expired" : announcement.isActive ? "Active" : "Inactive"}
-                      </span>
-                      <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
-                        Priority: {announcement.priority}
-                      </span>
+                    <div className="flex items-start gap-3">
+                      {/* Image thumbnail if available */}
+                      {announcement.imageUrl && (
+                        <div className="flex-shrink-0">
+                          <img
+                            src={announcement.imageUrl}
+                            alt={announcement.title}
+                            className="w-20 h-20 rounded-lg object-cover border border-slate-200"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="font-semibold text-slate-900">{announcement.title}</h4>
+                          <span className={`px-2 py-0.5 text-xs rounded-full ${
+                            isExpired 
+                              ? "bg-amber-100 text-amber-700"
+                              : announcement.isActive 
+                                ? "bg-green-100 text-green-700" 
+                                : "bg-slate-100 text-slate-500"
+                          }`}>
+                            {isExpired ? "Expired" : announcement.isActive ? "Active" : "Inactive"}
+                          </span>
+                          <span className="px-2 py-0.5 text-xs bg-blue-100 text-blue-700 rounded-full">
+                            Priority: {announcement.priority}
+                          </span>
+                          {announcement.imageUrl && (
+                            <span className="px-2 py-0.5 text-xs bg-purple-100 text-purple-700 rounded-full">
+                              📷 Has Photo
+                            </span>
+                          )}
+                        </div>
+                        
+                        <p className="text-sm text-slate-600 mt-1 line-clamp-2">{announcement.content}</p>
+                      </div>
                     </div>
-                    
-                    <p className="text-sm text-slate-600 mt-1 line-clamp-2">{announcement.content}</p>
                     
                     <div className="flex items-center gap-4 mt-2 text-xs text-slate-400">
                       <span>By {announcement.creatorName}</span>

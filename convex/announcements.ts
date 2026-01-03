@@ -10,13 +10,22 @@ export const list = query({
       .query("announcements")
       .collect();
     
-    // Enrich with creator info
+    // Enrich with creator info and image URLs
     const enriched = await Promise.all(
       announcements.map(async (announcement) => {
         const creator = await ctx.db.get(announcement.createdBy);
+        let imageUrl = null;
+        if (announcement.imageId) {
+          try {
+            imageUrl = await ctx.storage.getUrl(announcement.imageId);
+          } catch (error) {
+            console.error("Error getting image URL:", error);
+          }
+        }
         return {
           ...announcement,
           creatorName: creator?.name || "Unknown",
+          imageUrl,
         };
       })
     );
@@ -42,8 +51,26 @@ export const getActive = query({
       return true;
     });
     
+    // Enrich with image URLs
+    const enriched = await Promise.all(
+      active.map(async (announcement) => {
+        let imageUrl = null;
+        if (announcement.imageId) {
+          try {
+            imageUrl = await ctx.storage.getUrl(announcement.imageId);
+          } catch (error) {
+            console.error("Error getting image URL:", error);
+          }
+        }
+        return {
+          ...announcement,
+          imageUrl,
+        };
+      })
+    );
+    
     // Sort by priority (highest first)
-    return active.sort((a, b) => b.priority - a.priority);
+    return enriched.sort((a, b) => b.priority - a.priority);
   },
 });
 
@@ -82,6 +109,7 @@ export const create = mutation({
     content: v.string(),
     buttonText: v.optional(v.string()),
     buttonLink: v.optional(v.string()),
+    imageId: v.optional(v.union(v.id("_storage"), v.null())),
     isActive: v.boolean(),
     priority: v.number(),
     expiresAt: v.optional(v.number()),
@@ -95,6 +123,7 @@ export const create = mutation({
       content: args.content,
       buttonText: args.buttonText,
       buttonLink: args.buttonLink,
+      imageId: args.imageId || undefined,
       isActive: args.isActive,
       priority: args.priority,
       expiresAt: args.expiresAt,
@@ -193,5 +222,59 @@ export const getStats = query({
       expired: expired.length,
       inactive: inactive.length,
     };
+  },
+});
+
+// Get storage URL for announcement image
+export const getImageUrl = query({
+  args: {
+    storageId: v.union(v.id("_storage"), v.null(), v.string()),
+  },
+  handler: async (ctx, args) => {
+    if (!args.storageId) return null;
+    
+    // Handle case where storageId might be a JSON string
+    let actualStorageId: Id<"_storage"> | null = null;
+    if (typeof args.storageId === "string") {
+      try {
+        // Try to parse if it's a JSON string
+        const parsed = JSON.parse(args.storageId);
+        if (typeof parsed === "object" && parsed.storageId) {
+          actualStorageId = parsed.storageId as Id<"_storage">;
+        } else if (typeof parsed === "string") {
+          actualStorageId = parsed as Id<"_storage">;
+        } else {
+          actualStorageId = args.storageId as Id<"_storage">;
+        }
+      } catch {
+        // If not JSON, treat as direct storage ID string
+        actualStorageId = args.storageId as Id<"_storage">;
+      }
+    } else {
+      actualStorageId = args.storageId;
+    }
+    
+    if (!actualStorageId) return null;
+    
+    try {
+      return await ctx.storage.getUrl(actualStorageId);
+    } catch (error) {
+      // If storage file doesn't exist or is invalid, return null
+      console.error("Error getting storage URL:", error);
+      return null;
+    }
+  },
+});
+
+// Generate upload URL for announcement image
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    try {
+      return await ctx.storage.generateUploadUrl();
+    } catch (error: any) {
+      console.error("Error generating upload URL:", error);
+      throw new Error(`Failed to generate upload URL: ${error.message || "Unknown error"}`);
+    }
   },
 });

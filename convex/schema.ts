@@ -226,6 +226,7 @@ export default defineSchema({
     content: v.string(),
     buttonText: v.optional(v.string()),
     buttonLink: v.optional(v.string()),
+    imageId: v.optional(v.union(v.id("_storage"), v.null())), // Optional image for announcement
     isActive: v.boolean(),
     priority: v.number(), // Higher = shown first
     expiresAt: v.optional(v.number()), // Optional expiration date
