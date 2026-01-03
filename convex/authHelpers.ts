@@ -155,7 +155,8 @@ export const signIn = mutation({
         userId: user._id, 
         email: user.email, 
         name: user.name,
-        role: user.role 
+        role: user.role,
+        onboardingCompleted: user.onboardingCompleted
       };
     } catch (error: any) {
       console.error("Sign in error:", error);

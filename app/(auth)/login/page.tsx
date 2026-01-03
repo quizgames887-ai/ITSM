@@ -29,7 +29,13 @@ export default function LoginPage() {
       localStorage.setItem("userEmail", result.email);
       localStorage.setItem("userName", result.name);
       localStorage.setItem("userRole", result.role || "user");
-      router.push("/dashboard");
+      
+      // Redirect to onboarding if user hasn't completed it, otherwise to dashboard
+      if (result.onboardingCompleted === false) {
+        router.push("/onboarding");
+      } else {
+        router.push("/dashboard");
+      }
     } catch (err: any) {
       setError(err.message || "Failed to sign in");
     } finally {

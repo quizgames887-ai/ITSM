@@ -187,6 +187,12 @@ export default function DashboardPage() {
   // Fetch all users to get assignee names
   const users = useQuery(api.users.list, {});
   
+  // Fetch current user to check onboarding status
+  const currentUser = useQuery(
+    api.users.get,
+    userId ? { id: userId as Id<"users"> } : "skip"
+  );
+  
   // Fetch SLA policies for SLA status display
   const slaPolicies = useQuery(api.sla.list, {});
   
@@ -282,8 +288,29 @@ export default function DashboardPage() {
     ticketIds.length > 0 ? { ticketIds } : "skip"
   );
 
+  // Redirect to onboarding if user hasn't completed it
+  useEffect(() => {
+    if (currentUser && !currentUser.onboardingCompleted && userId) {
+      router.push("/onboarding");
+    }
+  }, [currentUser, userId, router]);
+  
   // Early return check - must be after ALL hooks
+  // Show loading if essential data is still loading
+  if (!userId || !userRole) {
+    return <LoadingSkeleton />;
+  }
+  
   if (tickets === undefined || escalatedTicketIds === undefined || services === undefined) {
+    return <LoadingSkeleton />;
+  }
+  
+  // If user hasn't completed onboarding, show loading while redirect happens
+  if (currentUser === undefined) {
+    return <LoadingSkeleton />;
+  }
+  
+  if (currentUser && !currentUser.onboardingCompleted) {
     return <LoadingSkeleton />;
   }
   
