@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -12,6 +13,7 @@ interface SidebarProps {
 export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<string | null>(null);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const role = localStorage.getItem("userRole");
@@ -26,7 +28,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const navItems = [
     {
       href: "/dashboard",
-      label: "Workspace",
+      label: t("nav.dashboard", "Dashboard"),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z" />
@@ -35,7 +37,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     {
       href: "/tickets",
-      label: "My Tickets",
+      label: t("nav.tickets", "Tickets"),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 5v2m0 4v2m0 4v2M5 5a2 2 0 00-2 2v3a2 2 0 110 4v3a2 2 0 002 2h14a2 2 0 002-2v-3a2 2 0 110-4V7a2 2 0 00-2-2H5z" />
@@ -56,7 +58,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     {
       href: "/users",
-      label: "Users",
+      label: t("nav.users", "Users"),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
@@ -74,7 +76,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     {
       href: "/notifications",
-      label: "Notifications",
+      label: t("nav.notifications", "Notification Management"),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
@@ -92,7 +94,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     {
       href: "/sla",
-      label: "SLA & Escalation",
+      label: t("nav.sla", "SLA & Escalation"),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -110,7 +112,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     {
       href: "/events",
-      label: "Event Management",
+      label: t("nav.events", "Event Management"),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -119,7 +121,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     {
       href: "/voting",
-      label: "Voting",
+      label: t("nav.voting", "Voting"),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
@@ -128,7 +130,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     {
       href: "/suggestions",
-      label: "Suggestions",
+      label: t("nav.suggestions", "Suggestions"),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 8h10M7 12h4m1 8l-4-4H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-3l-4 4z" />
@@ -137,7 +139,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
     },
     {
       href: "/translations",
-      label: "Translations",
+      label: t("nav.translations", "Translations"),
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
@@ -251,8 +253,8 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Footer */}
         <div className="p-3 lg:p-4 border-t border-slate-100">
           <div className="px-3 lg:px-4 py-2.5 lg:py-3 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl">
-            <p className="text-xs font-medium text-blue-900">Need Help?</p>
-            <p className="text-xs text-blue-600 mt-0.5">Contact support</p>
+            <p className="text-xs font-medium text-blue-900">{t("common.needHelp", "Need Help?")}</p>
+            <p className="text-xs text-blue-600 mt-0.5">{t("common.contactSupport", "Contact support")}</p>
           </div>
         </div>
       </aside>

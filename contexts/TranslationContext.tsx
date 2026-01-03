@@ -54,6 +54,9 @@ const defaultTranslations: Record<string, string> = {
   "profile.accountDetails": "Account Details",
   "profile.languagePreference": "Language Preference",
   "profile.languageDescription": "The interface will be displayed from {direction}",
+  "profile.updateDetails": "Update your profile details",
+  "profile.namePlaceholder": "Your name",
+  "profile.changePasswordDescription": "Change your account password",
   
   // Navigation
   "nav.dashboard": "Dashboard",
@@ -69,6 +72,7 @@ const defaultTranslations: Record<string, string> = {
   "nav.voting": "Voting",
   "nav.suggestions": "Suggestions",
   "nav.profile": "Profile",
+  "nav.translations": "Translations",
   
   // Buttons
   "button.create": "Create",
@@ -92,6 +96,33 @@ const defaultTranslations: Record<string, string> = {
   "message.success": "Operation completed successfully",
   "message.error": "An error occurred",
   "message.confirmDelete": "Are you sure you want to delete this item?",
+  
+  // Common UI
+  "common.needHelp": "Need Help?",
+  "common.contactSupport": "Contact support",
+  "common.find": "Find...",
+  "common.searchPlaceholder": "Search...",
+  "common.searchResults": "Search Results",
+  "common.noResults": "No results found",
+  "common.trySearching": "Try searching for tickets, services, or knowledge articles",
+  "common.loggedIn": "Logged in",
+  "common.viewingAs": "Viewing as",
+  "common.loggedInAs": "Logged in as:",
+  "common.exitImpersonation": "Exit Impersonation",
+  "common.viewProfile": "View Profile",
+  "common.profileSettings": "Profile Settings",
+  "common.logout": "Logout",
+  "common.notifications": "Notifications",
+  "common.markAllRead": "Mark all read",
+  "common.noNotifications": "No notifications yet",
+  "common.notificationUpdates": "You'll see updates about your tickets here",
+  "common.viewAllNotifications": "View all notifications",
+  "common.results": "Results",
+  "common.saving": "Saving...",
+  
+  // Additional keys
+  "tickets.ticketDetails": "Ticket Details",
+  "forms.designer": "Form Designer",
 };
 
 // Error boundary component to catch Convex function errors

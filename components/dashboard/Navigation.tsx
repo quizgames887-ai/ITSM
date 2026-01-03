@@ -8,10 +8,12 @@ import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 export function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
+  const { t } = useTranslation();
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -114,12 +116,12 @@ export function Navigation() {
     icon: string;
     adminOnly?: boolean;
   }> = [
-    { href: "/dashboard", label: "Dashboard", icon: "📊" },
-    { href: "/tickets", label: "Tickets", icon: "🎫" },
-    { href: "/forms", label: "Forms", icon: "📝", adminOnly: true },
-    { href: "/users", label: "Users", icon: "👥", adminOnly: true },
-    { href: "/events", label: "Events", icon: "📅", adminOnly: true },
-    { href: "/profile", label: "Profile", icon: "👤" },
+    { href: "/dashboard", label: t("nav.dashboard", "Dashboard"), icon: "📊" },
+    { href: "/tickets", label: t("nav.tickets", "Tickets"), icon: "🎫" },
+    { href: "/forms", label: t("nav.forms", "Forms"), icon: "📝", adminOnly: true },
+    { href: "/users", label: t("nav.users", "Users"), icon: "👥", adminOnly: true },
+    { href: "/events", label: t("nav.events", "Event Management"), icon: "📅", adminOnly: true },
+    { href: "/profile", label: t("nav.profile", "Profile"), icon: "👤" },
   ];
 
   const getInitials = (name: string) => {
@@ -156,11 +158,11 @@ export function Navigation() {
                 </div>
                 <div>
                   <p className="text-xs font-semibold text-amber-900">
-                    Viewing as {userName}
+                    {t("common.viewingAs", "Viewing as")} {userName}
                   </p>
                   {originalAdminName && (
                     <p className="text-xs text-amber-700">
-                      Logged in as: {originalAdminName}
+                      {t("common.loggedInAs", "Logged in as:")} {originalAdminName}
                     </p>
                   )}
                 </div>
@@ -182,7 +184,7 @@ export function Navigation() {
                     d="M6 18L18 6M6 6l12 12"
                   />
                 </svg>
-                Exit Impersonation
+                {t("common.exitImpersonation", "Exit Impersonation")}
               </button>
             </div>
           </div>
@@ -333,7 +335,7 @@ export function Navigation() {
             )}
             {!userName && (
               <Button variant="outline" onClick={handleLogout} size="sm" className="text-xs sm:text-sm">
-                Logout
+                {t("common.logout", "Logout")}
               </Button>
             )}
           </div>

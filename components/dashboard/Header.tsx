@@ -7,6 +7,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 interface HeaderProps {
   title?: string;
@@ -254,7 +255,9 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
         </button>
         
         {/* Page Title */}
-        <h1 className="text-base lg:text-xl font-semibold text-slate-900 truncate">{title}</h1>
+        <h1 className="text-base lg:text-xl font-semibold text-slate-900 truncate">
+          {title === "My Workspace" ? t("dashboard.title", "My Workspace") : title}
+        </h1>
       </div>
 
       {/* Right Section */}
@@ -273,7 +276,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
                 setShowSearchResults(true);
               }
             }}
-            placeholder="Find..."
+            placeholder={t("common.find", "Find...")}
             className="w-40 lg:w-64 pl-10 pr-4 py-2 bg-slate-50/80 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
           />
           <svg
@@ -357,9 +360,9 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
                 ) : (
                   <div className="px-4 py-8 text-center">
                     <span className="text-3xl mb-2 block">🔍</span>
-                    <p className="text-sm text-slate-600">No results found</p>
+                    <p className="text-sm text-slate-600">{t("common.noResults", "No results found")}</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      Try searching for tickets, services, or knowledge articles
+                      {t("common.trySearching", "Try searching for tickets, services, or knowledge articles")}
                     </p>
                   </div>
                 )}
@@ -451,9 +454,9 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
                 ) : (
                   <div className="px-4 py-8 text-center">
                     <span className="text-3xl mb-2 block">🔔</span>
-                    <p className="text-sm text-slate-600">No notifications yet</p>
+                    <p className="text-sm text-slate-600">{t("common.noNotifications", "No notifications yet")}</p>
                     <p className="text-xs text-slate-400 mt-1">
-                      You'll see updates about your tickets here
+                      {t("common.notificationUpdates", "You'll see updates about your tickets here")}
                     </p>
                   </div>
                 )}
@@ -492,7 +495,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             <div className="absolute right-0 mt-2 w-48 bg-white rounded-xl shadow-xl border border-slate-200 py-2 animate-fade-in z-50">
               <div className="px-4 py-2 border-b border-slate-100">
                 <p className="text-sm font-medium text-slate-900 truncate">{userName || "User"}</p>
-                <p className="text-xs text-slate-500">Logged in</p>
+                <p className="text-xs text-slate-500">{t("common.loggedIn", "Logged in")}</p>
               </div>
               <Link
                 href="/profile"
@@ -502,7 +505,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                 </svg>
-                Profile Settings
+                {t("common.profileSettings", "Profile Settings")}
               </Link>
               <button
                 onClick={handleLogout}
@@ -511,7 +514,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
                 </svg>
-                Logout
+                {t("common.logout", "Logout")}
               </button>
             </div>
           )}
@@ -534,7 +537,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
                   setShowSearchResults(true);
                 }
               }}
-              placeholder="Search..."
+              placeholder={t("common.searchPlaceholder", "Search...")}
               autoFocus
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
@@ -604,7 +607,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
                   })
                 ) : (
                   <div className="px-4 py-8 text-center">
-                    <p className="text-sm text-slate-600">No results found</p>
+                    <p className="text-sm text-slate-600">{t("common.noResults", "No results found")}</p>
                   </div>
                 )}
               </div>

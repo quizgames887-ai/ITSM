@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Header } from "@/components/dashboard/Header";
 import { usePathname } from "next/navigation";
+import { useTranslation } from "@/contexts/TranslationContext";
 
 export default function DashboardLayout({
   children,
@@ -11,39 +12,59 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const { t } = useTranslation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   
-  // Apply language preference on mount
+  // Apply language preference on mount and listen for changes
   useEffect(() => {
     const savedLanguage = localStorage.getItem("userLanguage") || "en";
     const direction = savedLanguage === "ar" ? "rtl" : "ltr";
     document.documentElement.setAttribute("dir", direction);
     document.documentElement.setAttribute("lang", savedLanguage);
+    
+    // Listen for language changes
+    const handleLanguageChange = () => {
+      const newLanguage = localStorage.getItem("userLanguage") || "en";
+      const newDirection = newLanguage === "ar" ? "rtl" : "ltr";
+      document.documentElement.setAttribute("dir", newDirection);
+      document.documentElement.setAttribute("lang", newLanguage);
+    };
+    
+    window.addEventListener("languageChanged", handleLanguageChange);
+    window.addEventListener("storage", (e) => {
+      if (e.key === "userLanguage") {
+        handleLanguageChange();
+      }
+    });
+    
+    return () => {
+      window.removeEventListener("languageChanged", handleLanguageChange);
+    };
   }, []);
   
   const handleCloseSidebar = useCallback(() => {
     setSidebarOpen(false);
   }, []);
 
-  // Determine page title based on pathname
+  // Determine page title based on pathname with translations
   const getPageTitle = () => {
-    if (pathname === "/dashboard") return "My Workspace";
-    if (pathname === "/tickets") return "Service Catalog";
-    if (pathname === "/tickets/new") return "New Request";
-    if (pathname.startsWith("/tickets/")) return "Ticket Details";
-    if (pathname === "/forms") return "Forms Management";
-    if (pathname.startsWith("/forms/")) return "Form Designer";
-    if (pathname === "/users") return "User Management";
-    if (pathname === "/notifications") return "Notification Management";
-    if (pathname === "/announcements") return "Announcements";
-    if (pathname === "/roles") return "Auto-Assignment Rules";
-    if (pathname === "/sla") return "SLA & Escalation";
-    if (pathname === "/service-catalog") return "Service Catalog";
-    if (pathname === "/events") return "Event Management";
-    if (pathname === "/voting") return "Voting Management";
-    if (pathname === "/suggestions") return "Suggestions Management";
-    if (pathname === "/translations") return "Translation Management";
-    if (pathname === "/profile") return "Profile Settings";
+    if (pathname === "/dashboard") return t("dashboard.title", "My Workspace");
+    if (pathname === "/tickets") return t("tickets.title", "Tickets");
+    if (pathname === "/tickets/new") return t("tickets.createTicket", "Create Ticket");
+    if (pathname.startsWith("/tickets/")) return t("tickets.ticketDetails", "Ticket Details");
+    if (pathname === "/forms") return t("nav.forms", "Forms");
+    if (pathname.startsWith("/forms/")) return t("forms.designer", "Form Designer");
+    if (pathname === "/users") return t("users.title", "User Management");
+    if (pathname === "/notifications") return t("nav.notifications", "Notification Management");
+    if (pathname === "/announcements") return t("nav.announcements", "Announcements");
+    if (pathname === "/roles") return t("nav.roles", "Auto-Assignment Rules");
+    if (pathname === "/sla") return t("nav.sla", "SLA & Escalation");
+    if (pathname === "/service-catalog") return t("nav.serviceCatalog", "Service Catalog");
+    if (pathname === "/events") return t("nav.events", "Event Management");
+    if (pathname === "/voting") return t("voting.title", "Voting Management");
+    if (pathname === "/suggestions") return t("suggestions.title", "Suggestions Management");
+    if (pathname === "/translations") return t("nav.translations", "Translations");
+    if (pathname === "/profile") return t("profile.title", "Profile");
     return "Palmware";
   };
 

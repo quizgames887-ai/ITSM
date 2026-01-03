@@ -455,9 +455,9 @@ function ProfilePageContent() {
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-8 pb-6 border-b border-slate-200">
               <div>
                 <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
-                  Personal Information
+                  {t("profile.personalInformation", "Personal Information")}
                 </h2>
-                <p className="text-sm sm:text-base text-slate-500">Update your profile details</p>
+                <p className="text-sm sm:text-base text-slate-500">{t("profile.updateDetails", "Update your profile details")}</p>
               </div>
               {!isEditing && !isImpersonating && (
                 <Button
@@ -468,7 +468,7 @@ function ProfilePageContent() {
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                   </svg>
-                  Edit Profile
+                  {t("profile.editProfile", "Edit Profile")}
                 </Button>
               )}
               {isImpersonating && (
@@ -648,7 +648,7 @@ function ProfilePageContent() {
                 {/* Role Information */}
                 <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
                   <label className="block text-sm font-semibold text-slate-700 mb-3">
-                    Account Role
+                    {t("profile.role", "Role")}
                   </label>
                   <div className="flex items-center gap-2 mb-2">
                     <span
@@ -680,10 +680,10 @@ function ProfilePageContent() {
                     loading={loading}
                     className="px-6"
                   >
-                    {loading ? "Saving..." : "💾 Save Changes"}
+                    {loading ? t("common.saving", "Saving...") : `💾 ${t("common.save", "Save")}`}
                   </Button>
                   <Button variant="outline" onClick={handleCancel} className="px-6">
-                    Cancel
+                    {t("common.cancel", "Cancel")}
                   </Button>
                 </div>
               )}
@@ -853,7 +853,7 @@ function ProfilePageContent() {
                   d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
                 />
               </svg>
-              Account Details
+              {t("profile.accountDetails", "Account Details")}
             </h2>
             <div className="space-y-5">
               <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
@@ -862,7 +862,7 @@ function ProfilePageContent() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                   </svg>
                   <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
-                    Account Created
+                    {t("profile.accountCreated", "Account Created")}
                   </p>
                 </div>
                 <p className="text-slate-900 font-bold text-base">
@@ -898,7 +898,7 @@ function ProfilePageContent() {
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
                   <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
-                    Onboarding Status
+                    {t("profile.onboardingStatus", "Onboarding Status")}
                   </p>
                 </div>
                 <p className="text-slate-900 font-bold text-base">
@@ -917,7 +917,7 @@ function ProfilePageContent() {
                           d="M5 13l4 4L19 7"
                         />
                       </svg>
-                      Completed
+                      {t("profile.completed", "Completed")}
                     </span>
                   ) : (
                     <span className="inline-flex items-center gap-2 text-yellow-600">
@@ -934,7 +934,7 @@ function ProfilePageContent() {
                           d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
                         />
                       </svg>
-                      Pending
+                      {t("profile.pending", "Pending")}
                     </span>
                   )}
                 </p>
