@@ -534,16 +534,23 @@ export default function DashboardPage() {
     }
   };
 
-  const getTodoStatusColor = (status: string) => {
-    switch (status) {
-      case "completed":
+  const getTodoPriorityColor = (priority: string, status: string) => {
+    // If completed, show green
+    if (status === "completed") {
+      return "bg-green-500";
+    }
+    // If overdue, show red regardless of priority
+    if (status === "overdue") {
+      return "bg-red-500";
+    }
+    // Otherwise, use priority-based colors
+    switch (priority) {
+      case "low":
         return "bg-green-500";
-      case "overdue":
-        return "bg-red-500";
-      case "in_progress":
-        return "bg-orange-500";
-      case "pending":
+      case "medium":
         return "bg-amber-500";
+      case "high":
+        return "bg-orange-500";
       default:
         return "bg-slate-300";
     }
@@ -1758,9 +1765,9 @@ export default function DashboardPage() {
                   key={todo._id}
                   className="flex items-start gap-3 p-3 hover:bg-slate-50 rounded-lg transition-colors group relative"
                 >
-                  {/* Status indicator bar - vertical colored bar on the left */}
+                  {/* Priority indicator bar - vertical colored bar on the left */}
                   <div 
-                    className={`w-[3px] h-full min-h-[48px] ${getTodoStatusColor(todo.status)} rounded-full flex-shrink-0`}
+                    className={`w-[3px] h-full min-h-[48px] ${getTodoPriorityColor(todo.priority, todo.status)} rounded-full flex-shrink-0`}
                   ></div>
                   
                   {/* Task content */}
