@@ -24,6 +24,7 @@ export const createUser = mutation({
     email: v.string(),
     name: v.string(),
     role: v.union(v.literal("user"), v.literal("admin"), v.literal("agent")),
+    workplace: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // For now, allow user creation without auth check
@@ -45,6 +46,7 @@ export const createUser = mutation({
       onboardingCompleted: false,
       profilePictureId: null,
       language: undefined,
+      workplace: args.workplace || undefined,
       createdAt: now,
       updatedAt: now,
     });

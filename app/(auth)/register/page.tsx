@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -17,8 +17,20 @@ export default function RegisterPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [isMobile, setIsMobile] = useState(false);
 
   const signUp = useMutation(api.authHelpers.signUp);
+
+  // Detect if user is on mobile device
+  useEffect(() => {
+    const checkMobile = () => {
+      const userAgent = navigator.userAgent || navigator.vendor || (window as any).opera;
+      const mobileRegex = /android|webos|iphone|ipad|ipod|blackberry|iemobile|opera mini/i;
+      setIsMobile(mobileRegex.test(userAgent.toLowerCase()));
+    };
+    
+    checkMobile();
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -37,7 +49,9 @@ export default function RegisterPage() {
     setLoading(true);
 
     try {
-      await signUp({ email, password, name });
+      // Set default workplace for mobile users
+      const workplace = isMobile ? "Abir Azaim Titaab" : undefined;
+      await signUp({ email, password, name, workplace });
       router.push("/login?registered=true");
     } catch (err: any) {
       setError(err.message || "Failed to create account");

@@ -61,11 +61,13 @@ export const signUp = mutation({
     email: v.string(),
     password: v.string(),
     name: v.string(),
+    workplace: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     // Validate and sanitize inputs
     const sanitizedEmail = args.email.trim().toLowerCase();
     const sanitizedName = args.name.trim();
+    const sanitizedWorkplace = args.workplace?.trim();
     
     // Email validation
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -104,6 +106,7 @@ export const signUp = mutation({
       onboardingCompleted: false,
       profilePictureId: null,
       language: undefined,
+      workplace: sanitizedWorkplace || undefined,
       createdAt: now,
       updatedAt: now,
     });

@@ -9,6 +9,7 @@ export default defineSchema({
     onboardingCompleted: v.boolean(),
     profilePictureId: v.optional(v.union(v.id("_storage"), v.null())),
     language: v.optional(v.union(v.literal("en"), v.literal("ar"))), // Language preference: en (English) or ar (Arabic)
+    workplace: v.optional(v.string()), // Workplace/organization name
     createdAt: v.number(),
     updatedAt: v.number(),
   })
