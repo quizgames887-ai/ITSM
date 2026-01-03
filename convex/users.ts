@@ -104,6 +104,7 @@ export const listAll = query({
 export const update = mutation({
   args: {
     id: v.id("users"),
+    currentUserId: v.id("users"), // User making the update
     name: v.optional(v.string()),
     email: v.optional(v.string()),
     role: v.optional(
@@ -112,46 +113,75 @@ export const update = mutation({
     onboardingCompleted: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
-    const { id, ...updates } = args;
+    const { id, currentUserId, ...updates } = args;
     
-    // Verify the user exists
+    // Verify the current user exists and is authenticated
+    const currentUser = await ctx.db.get(currentUserId);
+    if (!currentUser) {
+      throw new Error("Authentication required");
+    }
+    
+    // Verify the target user exists
     const user = await ctx.db.get(id);
     if (!user) {
       throw new Error("User not found");
     }
     
-    // If email is being updated, check if it's already taken
-    if (updates.email) {
-      const existingUser = await ctx.db
-        .query("users")
-        .withIndex("by_email", (q) => q.eq("email", updates.email!))
-        .first();
-      
-      if (existingUser && existingUser._id !== id) {
-        throw new Error("Email already in use");
-      }
+    // Users can only update their own profile (except admins)
+    if (currentUser.role !== "admin" && currentUserId !== id) {
+      throw new Error("You can only update your own profile");
     }
-
-    // Only allow updating name and email, not role (role changes should be admin-only)
+    
+    // Validate and sanitize inputs
     const allowedUpdates: any = {
       updatedAt: Date.now(),
     };
     
     if (updates.name !== undefined) {
-      allowedUpdates.name = updates.name;
+      const sanitizedName = updates.name.trim();
+      if (sanitizedName.length === 0) {
+        throw new Error("Name cannot be empty");
+      }
+      if (sanitizedName.length > 100) {
+        throw new Error("Name must be less than 100 characters");
+      }
+      allowedUpdates.name = sanitizedName;
     }
     
     if (updates.email !== undefined) {
-      allowedUpdates.email = updates.email;
+      const sanitizedEmail = updates.email.trim().toLowerCase();
+      // Basic email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(sanitizedEmail) || sanitizedEmail.length > 254) {
+        throw new Error("Invalid email address");
+      }
+      
+      // Check if email is already taken
+      const existingUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", sanitizedEmail))
+        .first();
+      
+      if (existingUser && existingUser._id !== id) {
+        throw new Error("Email already in use");
+      }
+      
+      allowedUpdates.email = sanitizedEmail;
     }
     
-    // Role can only be updated by admins (for now, we'll allow it but this should be restricted)
+    // Role can only be updated by admins
     if (updates.role !== undefined) {
+      if (currentUser.role !== "admin") {
+        throw new Error("Only admins can change user roles");
+      }
       allowedUpdates.role = updates.role;
     }
     
-    // Allow updating onboarding status
+    // Onboarding status can only be updated by admins or the user themselves
     if (updates.onboardingCompleted !== undefined) {
+      if (currentUser.role !== "admin" && currentUserId !== id) {
+        throw new Error("You can only update your own onboarding status");
+      }
       allowedUpdates.onboardingCompleted = updates.onboardingCompleted;
     }
 
@@ -393,13 +423,25 @@ export const getProfilePictureUrl = query({
 export const updateProfilePicture = mutation({
   args: {
     userId: v.id("users"),
+    currentUserId: v.id("users"), // User making the update
     storageId: v.id("_storage"),
   },
   handler: async (ctx, args) => {
-    // Verify the user exists
+    // Verify the current user exists
+    const currentUser = await ctx.db.get(args.currentUserId);
+    if (!currentUser) {
+      throw new Error("Authentication required");
+    }
+    
+    // Verify the target user exists
     const user = await ctx.db.get(args.userId);
     if (!user) {
       throw new Error("User not found");
+    }
+    
+    // Users can only update their own profile picture (except admins)
+    if (currentUser.role !== "admin" && args.currentUserId !== args.userId) {
+      throw new Error("You can only update your own profile picture");
     }
 
     // Delete old profile picture if it exists
@@ -429,12 +471,24 @@ export const updateProfilePicture = mutation({
 export const removeProfilePicture = mutation({
   args: {
     userId: v.id("users"),
+    currentUserId: v.id("users"), // User making the update
   },
   handler: async (ctx, args) => {
-    // Verify the user exists
+    // Verify the current user exists
+    const currentUser = await ctx.db.get(args.currentUserId);
+    if (!currentUser) {
+      throw new Error("Authentication required");
+    }
+    
+    // Verify the target user exists
     const user = await ctx.db.get(args.userId);
     if (!user) {
       throw new Error("User not found");
+    }
+    
+    // Users can only remove their own profile picture (except admins)
+    if (currentUser.role !== "admin" && args.currentUserId !== args.userId) {
+      throw new Error("You can only remove your own profile picture");
     }
 
     // Delete profile picture if it exists
