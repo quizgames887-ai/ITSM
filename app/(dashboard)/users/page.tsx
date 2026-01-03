@@ -199,6 +199,25 @@ export default function UsersPage() {
     setEditValues({});
   };
 
+  const handleToggleStatus = async (userId: Id<"users">, currentStatus: boolean) => {
+    if (!isAdmin) {
+      showError("Only admins can change user status");
+      return;
+    }
+
+    try {
+      await updateUser({
+        id: userId,
+        currentUserId: currentUserId as Id<"users">,
+        onboardingCompleted: !currentStatus,
+      });
+
+      success(`User status changed to ${!currentStatus ? "Active" : "Pending"}!`);
+    } catch (err: any) {
+      showError(err.message || "Failed to update user status");
+    }
+  };
+
   const handleImpersonate = (userId: Id<"users">, userName: string, userEmail: string) => {
     if (!isAdmin) {
       showError("Only admins can impersonate users");
@@ -634,6 +653,17 @@ export default function UsersPage() {
                           <div className="flex items-center justify-end gap-1">
                             {!isCurrentUser && (
                               <>
+                                {!user.onboardingCompleted && (
+                                  <button
+                                    onClick={() => handleToggleStatus(user._id, user.onboardingCompleted)}
+                                    className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
+                                    title="Activate user (Change status from Pending to Active)"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                    </svg>
+                                  </button>
+                                )}
                                 <button
                                   onClick={() => handleEdit(user, "role")}
                                   className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
