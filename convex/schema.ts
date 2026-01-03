@@ -350,6 +350,7 @@ export default defineSchema({
   // Todos
   todos: defineTable({
     title: v.string(),
+    description: v.optional(v.string()),
     dueDate: v.number(), // Timestamp for due date
     status: v.union(
       v.literal("pending"),

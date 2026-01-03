@@ -97,6 +97,7 @@ export default function DashboardPage() {
   const [editingTodo, setEditingTodo] = useState<any>(null);
   const [todoForm, setTodoForm] = useState({
     title: "",
+    description: "",
     dueDate: "",
     priority: "medium" as "low" | "medium" | "high",
   });
@@ -431,6 +432,7 @@ export default function DashboardPage() {
     tomorrow.setDate(tomorrow.getDate() + 2);
     setTodoForm({
       title: "",
+      description: "",
       dueDate: tomorrow.toISOString().split("T")[0],
       priority: "medium",
     });
@@ -442,6 +444,7 @@ export default function DashboardPage() {
     const dueDate = new Date(todo.dueDate);
     setTodoForm({
       title: todo.title,
+      description: todo.description || "",
       dueDate: dueDate.toISOString().split("T")[0],
       priority: todo.priority,
     });
@@ -1845,6 +1848,7 @@ export default function DashboardPage() {
               setEditingTodo(null);
               setTodoForm({
                 title: "",
+                description: "",
                 dueDate: "",
                 priority: "medium",
               });
@@ -1867,6 +1871,7 @@ export default function DashboardPage() {
                     setEditingTodo(null);
                     setTodoForm({
                       title: "",
+                      description: "",
                       dueDate: "",
                       priority: "medium",
                     });
@@ -1889,6 +1894,18 @@ export default function DashboardPage() {
                     placeholder="Enter todo title"
                     required
                   />
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Description
+                    </label>
+                    <Textarea
+                      value={todoForm.description}
+                      onChange={(e) => setTodoForm({ ...todoForm, description: e.target.value })}
+                      placeholder="Enter todo description (optional)"
+                      rows={3}
+                    />
+                  </div>
 
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -1929,6 +1946,7 @@ export default function DashboardPage() {
                     setEditingTodo(null);
                     setTodoForm({
                       title: "",
+                      description: "",
                       dueDate: "",
                       priority: "medium",
                     });

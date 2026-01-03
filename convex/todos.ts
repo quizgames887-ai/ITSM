@@ -73,6 +73,7 @@ export const get = query({
 export const create = mutation({
   args: {
     title: v.string(),
+    description: v.optional(v.string()),
     dueDate: v.number(), // Timestamp
     priority: v.union(v.literal("low"), v.literal("medium"), v.literal("high")),
     createdBy: v.id("users"),
@@ -87,6 +88,7 @@ export const create = mutation({
 
     return await ctx.db.insert("todos", {
       title: args.title.trim(),
+      description: args.description?.trim() || undefined,
       dueDate: args.dueDate,
       status,
       priority: args.priority,
@@ -103,6 +105,7 @@ export const update = mutation({
   args: {
     id: v.id("todos"),
     title: v.optional(v.string()),
+    description: v.optional(v.string()),
     dueDate: v.optional(v.number()),
     status: v.optional(
       v.union(
@@ -131,6 +134,7 @@ export const update = mutation({
     };
 
     if (args.title !== undefined) updates.title = args.title.trim();
+    if (args.description !== undefined) updates.description = args.description?.trim() || undefined;
     if (args.dueDate !== undefined) {
       updates.dueDate = args.dueDate;
       // Recalculate status based on due date
