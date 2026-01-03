@@ -167,6 +167,20 @@ export default function VotingPage() {
     });
   };
 
+  const formatVoteDate = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const dateStr = date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "long",
+      day: "numeric",
+    });
+    const timeStr = date.toLocaleTimeString("en-US", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+    return `${dateStr} at ${timeStr}`;
+  };
+
   if (votes === undefined || (currentUserId && currentUser === undefined)) {
     return (
       <div className="animate-pulse space-y-4">
