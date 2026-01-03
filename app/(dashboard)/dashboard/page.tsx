@@ -232,8 +232,13 @@ export default function DashboardPage() {
   
   // Set default selected vote (first active vote)
   useEffect(() => {
-    if (activeVotes && activeVotes.length > 0 && !selectedVoteId) {
-      setSelectedVoteId(activeVotes[0]._id);
+    if (activeVotes && activeVotes.length > 0) {
+      // If no vote is selected, or selected vote is no longer active, select the first one
+      if (!selectedVoteId || !activeVotes.find(v => v._id === selectedVoteId)) {
+        setSelectedVoteId(activeVotes[0]._id);
+      }
+    } else {
+      setSelectedVoteId(null);
     }
   }, [activeVotes, selectedVoteId]);
   
@@ -1994,6 +1999,28 @@ export default function DashboardPage() {
           </div>
           {activeVote ? (
             <>
+              {/* Multiple active votes selector */}
+              {activeVotes && activeVotes.length > 1 && (
+                <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <label className="block text-xs font-semibold text-slate-700 mb-2">
+                    Switch Between Active Votes ({activeVotes.length} active)
+                  </label>
+                  <select
+                    value={selectedVoteId || ""}
+                    onChange={(e) => setSelectedVoteId(e.target.value as Id<"votes">)}
+                    className="w-full py-2.5 px-3 rounded-lg border-2 border-blue-300 text-xs lg:text-sm text-slate-700 font-medium focus:outline-none focus:ring-2 focus:ring-blue-500/30 focus:border-blue-500 bg-white shadow-sm"
+                  >
+                    {activeVotes.map((vote, index) => (
+                      <option key={vote._id} value={vote._id}>
+                        Vote {index + 1}: {vote.question.length > 60 ? `${vote.question.substring(0, 60)}...` : vote.question}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-slate-500 mt-2">
+                    You can switch between {activeVotes.length} active voting polls
+                  </p>
+                </div>
+              )}
               <p className="text-xs lg:text-sm text-slate-600 mb-4">{activeVote.question}</p>
               {userVote ? (
                 // Show results after voting
