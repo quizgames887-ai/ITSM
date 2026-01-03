@@ -13,50 +13,65 @@ interface TranslationContextType {
 const TranslationContext = createContext<TranslationContextType | undefined>(undefined);
 
 // Default English translations (fallback)
+// Organized by application pages for better management
 const defaultTranslations: Record<string, string> = {
-  // Common
-  "common.save": "Save",
-  "common.cancel": "Cancel",
-  "common.delete": "Delete",
-  "common.edit": "Edit",
-  "common.close": "Close",
-  "common.submit": "Submit",
-  "common.search": "Search",
-  "common.loading": "Loading...",
-  "common.error": "Error",
-  "common.success": "Success",
-  "common.confirm": "Confirm",
-  "common.yes": "Yes",
-  "common.no": "No",
-  
-  // Dashboard
-  "dashboard.title": "My Workspace",
-  "dashboard.welcome": "Welcome",
-  "dashboard.mostServicesRequest": "Most Services Request",
-  "dashboard.showMore": "Show More",
-  "dashboard.manage": "Manage",
-  "dashboard.lastUpdate": "Last update",
-  "dashboard.calendarEvents": "Calendar Events",
-  "dashboard.voting": "Voting",
-  "dashboard.suggesting": "Suggesting",
-  "dashboard.todo": "Todo",
-  "dashboard.myFavorites": "My Favorites",
-  
-  // Profile
-  "profile.title": "Profile",
-  "profile.personalInformation": "Personal Information",
-  "profile.editProfile": "Edit Profile",
-  "profile.name": "Name",
-  "profile.email": "Email",
-  "profile.role": "Role",
-  "profile.passwordReset": "Password Reset",
-  "profile.changePassword": "Change Password",
-  "profile.accountDetails": "Account Details",
-  "profile.languagePreference": "Language Preference",
-  "profile.languageDescription": "The interface will be displayed from {direction}",
-  "profile.updateDetails": "Update your profile details",
-  "profile.namePlaceholder": "Your name",
-  "profile.changePasswordDescription": "Change your account password",
+  // ============================================
+  // SHARED / COMMON (Used across multiple pages)
+  // ============================================
+  "shared.save": "Save",
+  "shared.cancel": "Cancel",
+  "shared.delete": "Delete",
+  "shared.edit": "Edit",
+  "shared.close": "Close",
+  "shared.submit": "Submit",
+  "shared.search": "Search",
+  "shared.loading": "Loading...",
+  "shared.error": "Error",
+  "shared.success": "Success",
+  "shared.confirm": "Confirm",
+  "shared.yes": "Yes",
+  "shared.no": "No",
+  "shared.create": "Create",
+  "shared.update": "Update",
+  "shared.view": "View",
+  "shared.back": "Back",
+  "shared.required": "Required",
+  "shared.optional": "Optional",
+  "shared.all": "All",
+  "shared.none": "None",
+  "shared.active": "Active",
+  "shared.inactive": "Inactive",
+  "shared.enabled": "Enabled",
+  "shared.disabled": "Disabled",
+  "shared.name": "Name",
+  "shared.email": "Email",
+  "shared.title": "Title",
+  "shared.description": "Description",
+  "shared.type": "Type",
+  "shared.priority": "Priority",
+  "shared.status": "Status",
+  "shared.category": "Category",
+  "shared.date": "Date",
+  "shared.time": "Time",
+  "shared.actions": "Actions",
+  "shared.createdAt": "Created At",
+  "shared.updatedAt": "Updated At",
+  "shared.saving": "Saving...",
+  "shared.results": "Results",
+  "shared.noResults": "No results found",
+  "shared.searchPlaceholder": "Search...",
+  "shared.confirmDelete": "Are you sure you want to delete this item?",
+  "shared.operationSuccess": "Operation completed successfully",
+  "shared.operationError": "An error occurred",
+  "shared.mustBeLoggedIn": "You must be logged in",
+  "shared.failedToCreate": "Failed to create {item}",
+  "shared.failedToUpdate": "Failed to update {item}",
+  "shared.failedToDelete": "Failed to delete {item}",
+  "shared.failedToSave": "Failed to save {item}",
+  "shared.createdSuccess": "{item} created successfully",
+  "shared.updatedSuccess": "{item} updated successfully",
+  "shared.deletedSuccess": "{item} deleted successfully",
+  "shared.savedSuccess": "{item} saved successfully",
   
   // Navigation
   "nav.dashboard": "Dashboard",
@@ -74,161 +89,26 @@ const defaultTranslations: Record<string, string> = {
   "nav.profile": "Profile",
   "nav.translations": "Translations",
   
-  // Buttons
-  "button.create": "Create",
-  "button.update": "Update",
-  "button.save": "Save",
-  "button.cancel": "Cancel",
-  "button.delete": "Delete",
-  "button.edit": "Edit",
-  "button.view": "View",
-  "button.close": "Close",
-  "button.submit": "Submit",
-  "button.back": "Back",
+  // Common UI Elements (Header, Sidebar, etc.)
+  "ui.needHelp": "Need Help?",
+  "ui.contactSupport": "Contact support",
+  "ui.find": "Find...",
+  "ui.searchResults": "Search Results",
+  "ui.trySearching": "Try searching for tickets, services, or knowledge articles",
+  "ui.loggedIn": "Logged in",
+  "ui.viewingAs": "Viewing as",
+  "ui.loggedInAs": "Logged in as:",
+  "ui.exitImpersonation": "Exit Impersonation",
+  "ui.viewProfile": "View Profile",
+  "ui.profileSettings": "Profile Settings",
+  "ui.logout": "Logout",
+  "ui.notifications": "Notifications",
+  "ui.markAllRead": "Mark all read",
+  "ui.noNotifications": "No notifications yet",
+  "ui.notificationUpdates": "You'll see updates about your tickets here",
+  "ui.viewAllNotifications": "View all notifications",
   
-  // Forms
-  "form.required": "Required",
-  "form.invalid": "Invalid",
-  "form.submit": "Submit",
-  "form.cancel": "Cancel",
-  
-  // Messages
-  "message.success": "Operation completed successfully",
-  "message.error": "An error occurred",
-  "message.confirmDelete": "Are you sure you want to delete this item?",
-  
-  // Common UI
-  "common.needHelp": "Need Help?",
-  "common.contactSupport": "Contact support",
-  "common.find": "Find...",
-  "common.searchPlaceholder": "Search...",
-  "common.searchResults": "Search Results",
-  "common.noResults": "No results found",
-  "common.trySearching": "Try searching for tickets, services, or knowledge articles",
-  "common.loggedIn": "Logged in",
-  "common.viewingAs": "Viewing as",
-  "common.loggedInAs": "Logged in as:",
-  "common.exitImpersonation": "Exit Impersonation",
-  "common.viewProfile": "View Profile",
-  "common.profileSettings": "Profile Settings",
-  "common.logout": "Logout",
-  "common.notifications": "Notifications",
-  "common.markAllRead": "Mark all read",
-  "common.noNotifications": "No notifications yet",
-  "common.notificationUpdates": "You'll see updates about your tickets here",
-  "common.viewAllNotifications": "View all notifications",
-  "common.results": "Results",
-  "common.saving": "Saving...",
-  
-  // Additional keys
-  "tickets.ticketDetails": "Ticket Details",
-  "forms.designer": "Form Designer",
-  
-  // Dashboard - Events
-  "dashboard.addEvent": "Add Event",
-  "dashboard.editEvent": "Edit Event",
-  "dashboard.deleteEvent": "Delete Event",
-  "dashboard.eventTitle": "Event Title",
-  "dashboard.eventDescription": "Description",
-  "dashboard.eventDate": "Date",
-  "dashboard.eventStartTime": "Start Time",
-  "dashboard.eventEndTime": "End Time",
-  "dashboard.noEvents": "No events for this date",
-  "dashboard.addFirstEvent": "Add your first event",
-  "dashboard.eventCreated": "Event created successfully",
-  "dashboard.eventUpdated": "Event updated successfully",
-  "dashboard.eventDeleted": "Event deleted successfully",
-  "dashboard.eventTitleRequired": "Event title is required",
-  "dashboard.eventTimeRequired": "Start time and end time are required",
-  "dashboard.eventDateRequired": "Date is required",
-  "dashboard.confirmDeleteEvent": "Are you sure you want to delete this event?",
-  
-  // Dashboard - Todos
-  "dashboard.addTodo": "Add Todo",
-  "dashboard.editTodo": "Edit Todo",
-  "dashboard.deleteTodo": "Delete Todo",
-  "dashboard.todoTitle": "Todo Title",
-  "dashboard.todoDescription": "Description",
-  "dashboard.todoDueDate": "Due Date",
-  "dashboard.todoPriority": "Priority",
-  "dashboard.todoCreated": "Todo created successfully",
-  "dashboard.todoUpdated": "Todo updated successfully",
-  "dashboard.todoDeleted": "Todo deleted successfully",
-  "dashboard.todoTitleRequired": "Todo title is required",
-  "dashboard.todoDueDateRequired": "Due date is required",
-  "dashboard.confirmDeleteTodo": "Are you sure you want to delete this todo?",
-  "dashboard.dueToday": "Due today",
-  "dashboard.dueInDays": "Due in {days} days",
-  "dashboard.overdue": "Overdue {days} day",
-  "dashboard.overdueDays": "Overdue {days} days",
-  "dashboard.showAllTodos": "Show All Todos",
-  "dashboard.allTodos": "All Todos",
-  
-  // Dashboard - Voting
-  "dashboard.vote": "Vote",
-  "dashboard.undoVote": "Undo Vote",
-  "dashboard.noActiveVote": "No active vote",
-  "dashboard.createVote": "Create a vote",
-  "dashboard.voteSubmitted": "Vote submitted successfully",
-  "dashboard.voteUndone": "Vote undone successfully",
-  
-  // Dashboard - Suggestions
-  "dashboard.submitSuggestion": "Submit Suggestion",
-  "dashboard.suggestionCategory": "Category",
-  "dashboard.suggestionText": "Your Suggestion",
-  "dashboard.suggestionSubmitted": "Thanks for your suggestion",
-  "dashboard.suggestionSuccess": "Suggestion submitted successfully",
-  
-  // Dashboard - Services
-  "dashboard.requestService": "Request Service",
-  "dashboard.serviceRequest": "Service Request",
-  "dashboard.formTitle": "Title",
-  "dashboard.formDescription": "Description",
-  "dashboard.formType": "Type",
-  "dashboard.formPriority": "Priority",
-  "dashboard.formUrgency": "Urgency",
-  "dashboard.serviceRequestCreated": "Service request created successfully",
-  "dashboard.titleRequired": "Title is required",
-  "dashboard.descriptionRequired": "Description is required",
-  "dashboard.noServices": "No services available",
-  "dashboard.createFirstService": "Create your first service",
-  "dashboard.getHelpSupport": "Get Help & Support",
-  "dashboard.myRequests": "My Requests / All Requests",
-  "dashboard.knowledgeBase": "Knowledge Base",
-  "dashboard.servicesUserGuide": "Services User Guide",
-  
-  // Dashboard - Favorites
-  "dashboard.showAllFavorites": "Show All Favorites",
-  "dashboard.addToFavorites": "Add to Favorites",
-  "dashboard.removeFromFavorites": "Remove from Favorites",
-  
-  // Tickets
-  "tickets.title": "Tickets",
-  "tickets.manageTickets": "Manage and track all your support tickets",
-  "tickets.createTicket": "Create Ticket",
-  "tickets.myTickets": "My Tickets",
-  "tickets.assignedToMe": "Assigned to Me",
-  "tickets.allTickets": "All Tickets",
-  "tickets.status": "Status",
-  "tickets.priority": "Priority",
-  "tickets.category": "Category",
-  "tickets.assignedTo": "Assigned To",
-  "tickets.createdBy": "Created By",
-  "tickets.createdAt": "Created At",
-  "tickets.updatedAt": "Updated At",
-  "tickets.ticketTitle": "Ticket Title",
-  "tickets.ticketDescription": "Description",
-  "tickets.ticketType": "Type",
-  "tickets.ticketCreated": "Ticket created successfully",
-  "tickets.ticketTitleRequired": "Ticket title is required",
-  "tickets.ticketDescriptionRequired": "Ticket description is required",
-  "tickets.filterAll": "All",
-  "tickets.filterStatus": "Status",
-  "tickets.filterPriority": "Priority",
-  "tickets.noTickets": "No tickets found",
-  "tickets.createFirstTicket": "Create your first ticket",
-  
-  // Ticket Status
+  // Status Labels (Used across pages)
   "status.new": "New",
   "status.inProgress": "In Progress",
   "status.onHold": "On Hold",
@@ -238,113 +118,36 @@ const defaultTranslations: Record<string, string> = {
   "status.completed": "Completed",
   "status.overdue": "Overdue",
   
-  // Priority
+  // Priority Labels (Used across pages)
   "priority.low": "Low",
   "priority.medium": "Medium",
   "priority.high": "High",
   "priority.critical": "Critical",
+  
+  // Urgency Labels
+  "urgency.low": "Low",
+  "urgency.medium": "Medium",
+  "urgency.high": "High",
   
   // Ticket Types
   "ticketType.incident": "Incident",
   "ticketType.serviceRequest": "Service Request",
   "ticketType.inquiry": "Inquiry",
   
-  // Urgency
-  "urgency.low": "Low",
-  "urgency.medium": "Medium",
-  "urgency.high": "High",
+  // Roles
+  "role.admin": "Admin",
+  "role.agent": "Agent",
+  "role.user": "User",
   
-  // Users
-  "users.title": "Users",
-  "users.teams": "Teams",
-  "users.manageUsers": "Manage users and teams",
-  "users.searchUsers": "Search users...",
-  "users.filterByRole": "Filter by Role",
-  "users.sortBy": "Sort By",
-  "users.name": "Name",
-  "users.email": "Email",
-  "users.role": "Role",
-  "users.createdAt": "Created At",
-  "users.onboardingStatus": "Onboarding Status",
-  "users.actions": "Actions",
-  "users.editUser": "Edit User",
-  "users.resetPassword": "Reset Password",
-  "users.impersonate": "Impersonate",
-  "users.newPassword": "New Password",
-  "users.confirmPassword": "Confirm Password",
-  "users.passwordReset": "Password reset successfully",
-  "users.passwordRequired": "Please enter and confirm the new password",
-  "users.passwordMinLength": "Password must be at least 8 characters long",
-  "users.passwordMismatch": "Passwords do not match",
-  "users.nameRequired": "Name cannot be empty",
-  "users.emailRequired": "Please enter a valid email address",
-  "users.userUpdated": "User updated successfully",
-  "users.nowViewingAs": "Now viewing as {name}",
-  "users.accessDenied": "Access Denied",
-  "users.needAdminPrivileges": "You need admin privileges to access this page",
-  "users.onlyAdminsCanEdit": "Only admins can edit user details",
-  "users.onlyAdminsCanReset": "Only admins can reset passwords",
-  "users.onlyAdminsCanUpdate": "Only admins can update users",
-  "users.onlyAdminsCanImpersonate": "Only admins can impersonate users",
-  "users.unableToImpersonate": "Unable to impersonate: No admin session found",
-  "users.backToDashboard": "Back to Dashboard",
-  "users.stats": "Statistics",
-  "users.totalUsers": "Total Users",
-  "users.admins": "Admins",
-  "users.agents": "Agents",
-  "users.regularUsers": "Users",
-  "users.totalTeams": "Teams",
+  // Categories
+  "category.itSupport": "IT Support",
+  "category.hr": "HR",
+  "category.finance": "Finance",
+  "category.facilities": "Facilities",
+  "category.security": "Security",
+  "category.other": "Other",
   
-  // Teams
-  "teams.createTeam": "Create Team",
-  "teams.teamName": "Team Name",
-  "teams.teamDescription": "Description",
-  "teams.teamColor": "Color",
-  "teams.addMember": "Add Member",
-  "teams.removeMember": "Remove Member",
-  "teams.deleteTeam": "Delete Team",
-  "teams.teamCreated": "Team created successfully",
-  "teams.teamDeleted": "Team deleted successfully",
-  "teams.memberAdded": "Member added to team",
-  "teams.memberRemoved": "Member removed from team",
-  "teams.teamNameRequired": "Team name is required",
-  "teams.confirmDeleteTeam": "Are you sure you want to delete this team? All members will be removed",
-  "teams.noTeams": "No teams yet",
-  "teams.createFirstTeam": "Create your first team",
-  
-  // Forms
-  "forms.title": "Forms",
-  "forms.manageForms": "Manage and design your custom forms",
-  "forms.createNewForm": "Create New Form",
-  "forms.newForm": "New Form",
-  "forms.noForms": "No forms yet",
-  "forms.createFirstForm": "Create your first form",
-  "forms.formDescription": "Create custom forms to collect data, gather feedback, or build surveys. Design forms with drag-and-drop fields.",
-  "forms.active": "Active",
-  "forms.inactive": "Inactive",
-  "forms.deleteForm": "Delete Form",
-  "forms.confirmDeleteForm": "Are you sure you want to delete this form?",
-  "forms.formDeleted": "Form deleted successfully",
-  
-  // Common Error Messages
-  "error.mustBeLoggedIn": "You must be logged in",
-  "error.mustBeLoggedInToCreate": "You must be logged in to create {item}",
-  "error.mustBeLoggedInToUpdate": "You must be logged in to update {item}",
-  "error.mustBeLoggedInToDelete": "You must be logged in to delete {item}",
-  "error.failedToCreate": "Failed to create {item}",
-  "error.failedToUpdate": "Failed to update {item}",
-  "error.failedToDelete": "Failed to delete {item}",
-  "error.failedToSave": "Failed to save {item}",
-  "error.operationFailed": "Operation failed",
-  
-  // Common Success Messages
-  "success.created": "{item} created successfully",
-  "success.updated": "{item} updated successfully",
-  "success.deleted": "{item} deleted successfully",
-  "success.saved": "{item} saved successfully",
-  "success.operationCompleted": "Operation completed successfully",
-  
-  // Time
+  // Time Formatting
   "time.justNow": "Just now",
   "time.minutesAgo": "{minutes}m ago",
   "time.hoursAgo": "{hours}h ago",
@@ -356,43 +159,20 @@ const defaultTranslations: Record<string, string> = {
   "time.leftHours": "{hours}h left",
   "time.leftDays": "{days}d left",
   
-  // SLA
+  // SLA Status
   "sla.overdue": "Overdue",
   "sla.urgent": "Urgent",
   "sla.onTime": "On Time",
   
-  // Common Labels
+  // Labels
   "label.unassigned": "Unassigned",
   "label.unknown": "Unknown",
-  "label.all": "All",
-  "label.none": "None",
-  "label.optional": "Optional",
-  "label.required": "Required",
-  "label.active": "Active",
-  "label.inactive": "Inactive",
-  "label.enabled": "Enabled",
-  "label.disabled": "Disabled",
-  "label.yes": "Yes",
-  "label.no": "No",
   
   // Account Status
   "account.created": "Account Created",
   "account.lastUpdated": "Last Updated",
   "account.onboardingCompleted": "Completed",
   "account.onboardingPending": "Pending",
-  
-  // Categories
-  "category.itSupport": "IT Support",
-  "category.hr": "HR",
-  "category.finance": "Finance",
-  "category.facilities": "Facilities",
-  "category.security": "Security",
-  "category.other": "Other",
-  
-  // Roles
-  "role.admin": "Admin",
-  "role.agent": "Agent",
-  "role.user": "User",
   
   // KPI Metrics
   "kpi.total": "Total",
@@ -409,6 +189,272 @@ const defaultTranslations: Record<string, string> = {
   "kpi.avgResolutionTime": "Avg Resolution Time",
   "kpi.days": "days",
   "kpi.unassigned": "Unassigned",
+  
+  // ============================================
+  // PAGE: DASHBOARD (/dashboard)
+  // ============================================
+  "pages.dashboard.title": "My Workspace",
+  "pages.dashboard.welcome": "Welcome",
+  "pages.dashboard.mostServicesRequest": "Most Services Request",
+  "pages.dashboard.showMore": "Show More",
+  "pages.dashboard.manage": "Manage",
+  "pages.dashboard.lastUpdate": "Last update",
+  "pages.dashboard.calendarEvents": "Calendar Events",
+  "pages.dashboard.voting": "Voting",
+  "pages.dashboard.suggesting": "Suggesting",
+  "pages.dashboard.todo": "Todo",
+  "pages.dashboard.myFavorites": "My Favorites",
+  
+  // Dashboard - Events
+  "pages.dashboard.events.add": "Add Event",
+  "pages.dashboard.events.edit": "Edit Event",
+  "pages.dashboard.events.delete": "Delete Event",
+  "pages.dashboard.events.title": "Event Title",
+  "pages.dashboard.events.description": "Description",
+  "pages.dashboard.events.date": "Date",
+  "pages.dashboard.events.startTime": "Start Time",
+  "pages.dashboard.events.endTime": "End Time",
+  "pages.dashboard.events.noEvents": "No events for this date",
+  "pages.dashboard.events.addFirst": "Add your first event",
+  "pages.dashboard.events.created": "Event created successfully",
+  "pages.dashboard.events.updated": "Event updated successfully",
+  "pages.dashboard.events.deleted": "Event deleted successfully",
+  "pages.dashboard.events.titleRequired": "Event title is required",
+  "pages.dashboard.events.timeRequired": "Start time and end time are required",
+  "pages.dashboard.events.dateRequired": "Date is required",
+  "pages.dashboard.events.confirmDelete": "Are you sure you want to delete this event?",
+  
+  // Dashboard - Todos
+  "pages.dashboard.todos.add": "Add Todo",
+  "pages.dashboard.todos.edit": "Edit Todo",
+  "pages.dashboard.todos.delete": "Delete Todo",
+  "pages.dashboard.todos.title": "Todo Title",
+  "pages.dashboard.todos.description": "Description",
+  "pages.dashboard.todos.dueDate": "Due Date",
+  "pages.dashboard.todos.priority": "Priority",
+  "pages.dashboard.todos.created": "Todo created successfully",
+  "pages.dashboard.todos.updated": "Todo updated successfully",
+  "pages.dashboard.todos.deleted": "Todo deleted successfully",
+  "pages.dashboard.todos.titleRequired": "Todo title is required",
+  "pages.dashboard.todos.dueDateRequired": "Due date is required",
+  "pages.dashboard.todos.confirmDelete": "Are you sure you want to delete this todo?",
+  "pages.dashboard.todos.dueToday": "Due today",
+  "pages.dashboard.todos.dueInDays": "Due in {days} days",
+  "pages.dashboard.todos.overdue": "Overdue {days} day",
+  "pages.dashboard.todos.overdueDays": "Overdue {days} days",
+  "pages.dashboard.todos.showAll": "Show All Todos",
+  "pages.dashboard.todos.all": "All Todos",
+  
+  // Dashboard - Voting
+  "pages.dashboard.voting.vote": "Vote",
+  "pages.dashboard.voting.undoVote": "Undo Vote",
+  "pages.dashboard.voting.noActiveVote": "No active vote",
+  "pages.dashboard.voting.createVote": "Create a vote",
+  "pages.dashboard.voting.submitted": "Vote submitted successfully",
+  "pages.dashboard.voting.undone": "Vote undone successfully",
+  
+  // Dashboard - Suggestions
+  "pages.dashboard.suggestions.submit": "Submit Suggestion",
+  "pages.dashboard.suggestions.category": "Category",
+  "pages.dashboard.suggestions.text": "Your Suggestion",
+  "pages.dashboard.suggestions.submitted": "Thanks for your suggestion",
+  "pages.dashboard.suggestions.success": "Suggestion submitted successfully",
+  
+  // Dashboard - Services
+  "pages.dashboard.services.request": "Request Service",
+  "pages.dashboard.services.serviceRequest": "Service Request",
+  "pages.dashboard.services.formTitle": "Title",
+  "pages.dashboard.services.formDescription": "Description",
+  "pages.dashboard.services.formType": "Type",
+  "pages.dashboard.services.formPriority": "Priority",
+  "pages.dashboard.services.formUrgency": "Urgency",
+  "pages.dashboard.services.created": "Service request created successfully",
+  "pages.dashboard.services.titleRequired": "Title is required",
+  "pages.dashboard.services.descriptionRequired": "Description is required",
+  "pages.dashboard.services.noServices": "No services available",
+  "pages.dashboard.services.createFirst": "Create your first service",
+  "pages.dashboard.services.getHelpSupport": "Get Help & Support",
+  "pages.dashboard.services.myRequests": "My Requests / All Requests",
+  "pages.dashboard.services.knowledgeBase": "Knowledge Base",
+  "pages.dashboard.services.userGuide": "Services User Guide",
+  
+  // Dashboard - Favorites
+  "pages.dashboard.favorites.showAll": "Show All Favorites",
+  "pages.dashboard.favorites.add": "Add to Favorites",
+  "pages.dashboard.favorites.remove": "Remove from Favorites",
+  
+  // ============================================
+  // PAGE: TICKETS (/tickets)
+  // ============================================
+  "pages.tickets.title": "Tickets",
+  "pages.tickets.manageTickets": "Manage and track all your support tickets",
+  "pages.tickets.create": "Create Ticket",
+  "pages.tickets.myTickets": "My Tickets",
+  "pages.tickets.assignedToMe": "Assigned to Me",
+  "pages.tickets.allTickets": "All Tickets",
+  "pages.tickets.assignedTo": "Assigned To",
+  "pages.tickets.createdBy": "Created By",
+  "pages.tickets.ticketTitle": "Ticket Title",
+  "pages.tickets.ticketDescription": "Description",
+  "pages.tickets.ticketType": "Type",
+  "pages.tickets.created": "Ticket created successfully",
+  "pages.tickets.titleRequired": "Ticket title is required",
+  "pages.tickets.descriptionRequired": "Ticket description is required",
+  "pages.tickets.filterAll": "All",
+  "pages.tickets.filterStatus": "Status",
+  "pages.tickets.filterPriority": "Priority",
+  "pages.tickets.noTickets": "No tickets found",
+  "pages.tickets.createFirst": "Create your first ticket",
+  "pages.tickets.ticketDetails": "Ticket Details",
+  
+  // ============================================
+  // PAGE: USERS (/users)
+  // ============================================
+  "pages.users.title": "Users",
+  "pages.users.teams": "Teams",
+  "pages.users.manageUsers": "Manage users and teams",
+  "pages.users.searchUsers": "Search users...",
+  "pages.users.filterByRole": "Filter by Role",
+  "pages.users.sortBy": "Sort By",
+  "pages.users.role": "Role",
+  "pages.users.onboardingStatus": "Onboarding Status",
+  "pages.users.editUser": "Edit User",
+  "pages.users.resetPassword": "Reset Password",
+  "pages.users.impersonate": "Impersonate",
+  "pages.users.newPassword": "New Password",
+  "pages.users.confirmPassword": "Confirm Password",
+  "pages.users.passwordReset": "Password reset successfully",
+  "pages.users.passwordRequired": "Please enter and confirm the new password",
+  "pages.users.passwordMinLength": "Password must be at least 8 characters long",
+  "pages.users.passwordMismatch": "Passwords do not match",
+  "pages.users.nameRequired": "Name cannot be empty",
+  "pages.users.emailRequired": "Please enter a valid email address",
+  "pages.users.userUpdated": "User updated successfully",
+  "pages.users.nowViewingAs": "Now viewing as {name}",
+  "pages.users.accessDenied": "Access Denied",
+  "pages.users.needAdminPrivileges": "You need admin privileges to access this page",
+  "pages.users.onlyAdminsCanEdit": "Only admins can edit user details",
+  "pages.users.onlyAdminsCanReset": "Only admins can reset passwords",
+  "pages.users.onlyAdminsCanUpdate": "Only admins can update users",
+  "pages.users.onlyAdminsCanImpersonate": "Only admins can impersonate users",
+  "pages.users.unableToImpersonate": "Unable to impersonate: No admin session found",
+  "pages.users.backToDashboard": "Back to Dashboard",
+  "pages.users.stats": "Statistics",
+  "pages.users.totalUsers": "Total Users",
+  "pages.users.admins": "Admins",
+  "pages.users.agents": "Agents",
+  "pages.users.regularUsers": "Users",
+  "pages.users.totalTeams": "Teams",
+  
+  // Users - Teams
+  "pages.users.teams.create": "Create Team",
+  "pages.users.teams.teamName": "Team Name",
+  "pages.users.teams.teamDescription": "Description",
+  "pages.users.teams.teamColor": "Color",
+  "pages.users.teams.addMember": "Add Member",
+  "pages.users.teams.removeMember": "Remove Member",
+  "pages.users.teams.deleteTeam": "Delete Team",
+  "pages.users.teams.teamCreated": "Team created successfully",
+  "pages.users.teams.teamDeleted": "Team deleted successfully",
+  "pages.users.teams.memberAdded": "Member added to team",
+  "pages.users.teams.memberRemoved": "Member removed from team",
+  "pages.users.teams.teamNameRequired": "Team name is required",
+  "pages.users.teams.confirmDelete": "Are you sure you want to delete this team? All members will be removed",
+  "pages.users.teams.noTeams": "No teams yet",
+  "pages.users.teams.createFirst": "Create your first team",
+  
+  // ============================================
+  // PAGE: FORMS (/forms)
+  // ============================================
+  "pages.forms.title": "Forms",
+  "pages.forms.manageForms": "Manage and design your custom forms",
+  "pages.forms.createNew": "Create New Form",
+  "pages.forms.newForm": "New Form",
+  "pages.forms.noForms": "No forms yet",
+  "pages.forms.createFirst": "Create your first form",
+  "pages.forms.formDescription": "Create custom forms to collect data, gather feedback, or build surveys. Design forms with drag-and-drop fields.",
+  "pages.forms.deleteForm": "Delete Form",
+  "pages.forms.confirmDelete": "Are you sure you want to delete this form?",
+  "pages.forms.formDeleted": "Form deleted successfully",
+  "pages.forms.designer": "Form Designer",
+  
+  // ============================================
+  // PAGE: PROFILE (/profile)
+  // ============================================
+  "pages.profile.title": "Profile",
+  "pages.profile.personalInformation": "Personal Information",
+  "pages.profile.editProfile": "Edit Profile",
+  "pages.profile.passwordReset": "Password Reset",
+  "pages.profile.changePassword": "Change Password",
+  "pages.profile.accountDetails": "Account Details",
+  "pages.profile.languagePreference": "Language Preference",
+  "pages.profile.languageDescription": "The interface will be displayed from {direction}",
+  "pages.profile.updateDetails": "Update your profile details",
+  "pages.profile.namePlaceholder": "Your name",
+  "pages.profile.changePasswordDescription": "Change your account password",
+  
+  // ============================================
+  // PAGE: TRANSLATIONS (/translations)
+  // ============================================
+  "pages.translations.title": "Translations",
+  "pages.translations.manage": "Manage translations",
+  "pages.translations.add": "Add Translation",
+  "pages.translations.edit": "Edit Translation",
+  "pages.translations.delete": "Delete Translation",
+  "pages.translations.key": "Key",
+  "pages.translations.english": "English",
+  "pages.translations.arabic": "Arabic",
+  "pages.translations.category": "Category",
+  "pages.translations.bulkImport": "Bulk Import",
+  "pages.translations.noTranslations": "No translations yet",
+  
+  // ============================================
+  // PAGE: EVENTS (/events)
+  // ============================================
+  "pages.events.title": "Event Management",
+  "pages.events.manage": "Manage events",
+  
+  // ============================================
+  // PAGE: VOTING (/voting)
+  // ============================================
+  "pages.voting.title": "Voting",
+  "pages.voting.manage": "Manage votes",
+  
+  // ============================================
+  // PAGE: SUGGESTIONS (/suggestions)
+  // ============================================
+  "pages.suggestions.title": "Suggestions",
+  "pages.suggestions.manage": "Manage suggestions",
+  
+  // ============================================
+  // PAGE: ANNOUNCEMENTS (/announcements)
+  // ============================================
+  "pages.announcements.title": "Announcements",
+  "pages.announcements.manage": "Manage announcements",
+  
+  // ============================================
+  // PAGE: NOTIFICATIONS (/notifications)
+  // ============================================
+  "pages.notifications.title": "Notification Management",
+  "pages.notifications.manage": "Manage notifications",
+  
+  // ============================================
+  // PAGE: SERVICE CATALOG (/service-catalog)
+  // ============================================
+  "pages.serviceCatalog.title": "Service Catalog",
+  "pages.serviceCatalog.manage": "Manage service catalog",
+  
+  // ============================================
+  // PAGE: ROLES (/roles)
+  // ============================================
+  "pages.roles.title": "Auto-Assignment Rules",
+  "pages.roles.manage": "Manage assignment rules",
+  
+  // ============================================
+  // PAGE: SLA (/sla)
+  // ============================================
+  "pages.sla.title": "SLA & Escalation",
+  "pages.sla.manage": "Manage SLA policies",
 };
 
 // Error boundary component to catch Convex function errors
