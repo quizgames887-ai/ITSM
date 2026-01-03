@@ -1021,31 +1021,74 @@ export default function DashboardPage() {
               <div className="flex-1 overflow-y-auto p-6">
                 {services && services.length > 0 ? (
                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4">
-                    {services.map((service) => (
-                      <div
-                        key={service._id}
-                        onClick={() => {
-                          handleServiceClick(service);
-                          setShowAllServices(false);
-                        }}
-                        className="flex flex-col items-center p-4 rounded-xl hover:bg-slate-50 transition-colors cursor-pointer group border border-slate-200"
-                      >
-                        <div className={`w-16 h-16 ${service.color} rounded-xl flex items-center justify-center text-2xl mb-3 group-hover:scale-110 transition-transform`}>
-                          {service.icon}
+                    {services.map((service) => {
+                      // Calculate duration (days since creation or use a default)
+                      const daysSinceCreation = Math.floor((Date.now() - service.createdAt) / (1000 * 60 * 60 * 24));
+                      const duration = daysSinceCreation > 0 ? `${daysSinceCreation} day${daysSinceCreation !== 1 ? 's' : ''}` : '1 day';
+                      
+                      return (
+                        <div
+                          key={service._id}
+                          onClick={() => {
+                            handleServiceClick(service);
+                            setShowAllServices(false);
+                          }}
+                          className="relative bg-white border border-slate-200 rounded-xl p-4 hover:shadow-lg hover:border-slate-300 hover:-translate-y-0.5 transition-all duration-200 cursor-pointer group"
+                        >
+                          {/* Heart/Favorite icon in top-right */}
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleToggleFavorite(service._id, e);
+                            }}
+                            className={`absolute top-3 right-3 p-1.5 rounded-full transition-all z-10 ${
+                              isServiceFavorite(service._id)
+                                ? "text-blue-600 bg-blue-50 hover:bg-blue-100"
+                                : "text-slate-400 hover:text-blue-600 hover:bg-slate-50"
+                            }`}
+                            title={isServiceFavorite(service._id) ? "Remove from favorites" : "Add to favorites"}
+                          >
+                            <svg className="w-4 h-4" fill={isServiceFavorite(service._id) ? "currentColor" : "none"} stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                            </svg>
+                          </button>
+                          
+                          {/* Service Icon - Centered */}
+                          <div className="flex justify-center mb-3">
+                            <ServiceLogoDisplay service={service} size="small" />
+                          </div>
+                          
+                          {/* Service Name - Centered */}
+                          <p className="text-sm font-semibold text-slate-900 text-center mb-4 line-clamp-1 group-hover:text-blue-600 transition-colors">{service.name}</p>
+                          
+                          {/* Bottom row: Duration and Rating */}
+                          <div className="flex items-center justify-between text-xs pt-2 border-t border-slate-100">
+                            {/* Duration in bottom-left */}
+                            <div className="flex items-center gap-1.5 text-slate-600">
+                              <svg className="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                              <span className="font-medium">{duration}</span>
+                            </div>
+                            
+                            {/* Rating in bottom-right */}
+                            <div className="flex items-center gap-1 text-slate-600">
+                              <svg className="w-3.5 h-3.5 text-yellow-500 fill-current" viewBox="0 0 20 20">
+                                <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z" />
+                              </svg>
+                              <span className="font-semibold">{service.rating.toFixed(1)}</span>
+                            </div>
+                          </div>
+                          
+                          {/* Request Count (if available) */}
+                          {service.requestCount > 0 && (
+                            <div className="mt-2 pt-2 border-t border-slate-100">
+                              <p className="text-xs text-slate-500 text-center">{service.requestCount} {service.requestCount === 1 ? 'request' : 'requests'}</p>
+                            </div>
+                          )}
                         </div>
-                        <p className="text-sm font-medium text-slate-700 text-center mb-1">{service.name}</p>
-                        <div className="flex items-center gap-1">
-                          <span className="text-yellow-500 text-xs">⭐</span>
-                          <span className="text-xs text-slate-500">{service.rating}</span>
-                        </div>
-                        {service.description && (
-                          <p className="text-xs text-slate-500 text-center mt-2 line-clamp-2">{service.description}</p>
-                        )}
-                        {service.requestCount > 0 && (
-                          <p className="text-xs text-slate-400 mt-1">{service.requestCount} requests</p>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 ) : (
                   <div className="text-center py-12 text-slate-500">
