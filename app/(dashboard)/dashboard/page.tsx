@@ -301,16 +301,24 @@ export default function DashboardPage() {
     return <LoadingSkeleton />;
   }
   
-  if (tickets === undefined || escalatedTicketIds === undefined || services === undefined) {
-    return <LoadingSkeleton />;
-  }
-  
   // If user hasn't completed onboarding, show loading while redirect happens
   if (currentUser === undefined) {
     return <LoadingSkeleton />;
   }
   
   if (currentUser && !currentUser.onboardingCompleted) {
+    return <LoadingSkeleton />;
+  }
+  
+  // Check if essential data is still loading
+  // Note: escalatedTicketIds can be undefined when there are no tickets (query is skipped), which is fine
+  if (tickets === undefined || services === undefined) {
+    return <LoadingSkeleton />;
+  }
+  
+  // escalatedTicketIds is undefined when there are no tickets (query skipped), which is expected
+  // Only show loading if we have tickets but escalatedTicketIds is still loading
+  if (ticketIds.length > 0 && escalatedTicketIds === undefined) {
     return <LoadingSkeleton />;
   }
   
