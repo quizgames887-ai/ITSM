@@ -48,6 +48,8 @@ function ProfilePageContent() {
     setOriginalAdminName(adminName);
   }, []);
 
+  const { t } = useTranslation();
+  
   const user = useQuery(
     api.users.get,
     userId ? { id: userId as Id<"users"> } : "skip"
