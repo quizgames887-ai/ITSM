@@ -102,7 +102,7 @@ export default function DashboardPage() {
     priority: "medium" as "low" | "medium" | "high",
   });
   const [showTodoOptions, setShowTodoOptions] = useState<string | null>(null);
-  const [showAllTodos, setShowAllTodos] = useState(false);
+  const [showAllTodosModal, setShowAllTodosModal] = useState(false);
   const [todoFilter, setTodoFilter] = useState<"all" | "completed" | "pending">("all");
   const [showAllServices, setShowAllServices] = useState(false);
   const [showRequestForm, setShowRequestForm] = useState(false);
@@ -216,17 +216,23 @@ export default function DashboardPage() {
     userId ? { userId: userId as Id<"users"> } : "skip"
   ) as string | null | undefined;
 
-  // Fetch todos for current user
-  const allTodos = useQuery(
+  // Fetch todos for current user (limited to 5 for dashboard)
+  const todos = useQuery(
     (api as any).todos?.list,
     userId ? { 
       userId: userId as Id<"users">,
-      limit: showAllTodos ? undefined : 5
+      limit: 5
     } : "skip"
   ) as any[] | undefined;
   
-  // Use all todos directly (no filtering needed for simplified design)
-  const todos = allTodos;
+  // Fetch all todos for the modal
+  const allTodosForModal = useQuery(
+    (api as any).todos?.list,
+    userId && showAllTodosModal ? { 
+      userId: userId as Id<"users">,
+      limit: undefined
+    } : "skip"
+  ) as any[] | undefined;
   
   // Fetch storage URL for selected service logo
   const normalizedSelectedLogoId = selectedService?.logoId 
@@ -570,6 +576,42 @@ export default function DashboardPage() {
     } else {
       return `Due in ${days} days`;
     }
+  };
+
+  const getPriorityBadge = (priority: string) => {
+    const styles = {
+      low: "bg-green-100 text-green-700 border-green-200",
+      medium: "bg-amber-100 text-amber-700 border-amber-200",
+      high: "bg-orange-100 text-orange-700 border-orange-200",
+    };
+    const labels = {
+      low: "Low",
+      medium: "Medium",
+      high: "High",
+    };
+    return {
+      className: styles[priority as keyof typeof styles] || styles.medium,
+      label: labels[priority as keyof typeof labels] || priority,
+    };
+  };
+
+  const getStatusBadge = (status: string) => {
+    const styles = {
+      pending: "bg-slate-100 text-slate-700 border-slate-200",
+      in_progress: "bg-blue-100 text-blue-700 border-blue-200",
+      completed: "bg-green-100 text-green-700 border-green-200",
+      overdue: "bg-red-100 text-red-700 border-red-200",
+    };
+    const labels = {
+      pending: "Pending",
+      in_progress: "In Progress",
+      completed: "Completed",
+      overdue: "Overdue",
+    };
+    return {
+      className: styles[status as keyof typeof styles] || styles.pending,
+      label: labels[status as keyof typeof labels] || status,
+    };
   };
 
   const handleRequestSubmit = async () => {
@@ -1741,7 +1783,7 @@ export default function DashboardPage() {
             <div className="flex items-center gap-2">
               <div className="relative">
                 <button
-                  onClick={() => setShowAllTodos(!showAllTodos)}
+                  onClick={() => setShowAllTodosModal(true)}
                   className="px-3 py-1.5 text-xs lg:text-sm text-slate-600 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg font-medium transition-colors"
                 >
                   Show More
@@ -1964,6 +2006,174 @@ export default function DashboardPage() {
                 </Button>
                 <Button variant="gradient" onClick={handleTodoSubmit}>
                   {editingTodo ? "Update Todo" : "Create Todo"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* All Todos Modal */}
+        {showAllTodosModal && (
+          <div 
+            className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
+            onClick={() => setShowAllTodosModal(false)}
+          >
+            <div 
+              className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-slate-200">
+                <div>
+                  <h2 className="text-xl font-bold text-slate-900">All Todos</h2>
+                  <p className="text-sm text-slate-600 mt-1">
+                    {allTodosForModal?.length || 0} {allTodosForModal?.length === 1 ? 'todo' : 'todos'} total
+                  </p>
+                </div>
+                <button
+                  onClick={() => setShowAllTodosModal(false)}
+                  className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* Modal Content */}
+              <div className="flex-1 overflow-y-auto p-6">
+                {allTodosForModal && allTodosForModal.length > 0 ? (
+                  <div className="space-y-3">
+                    {allTodosForModal.map((todo) => {
+                      const priorityBadge = getPriorityBadge(todo.priority);
+                      const statusBadge = getStatusBadge(todo.status);
+                      return (
+                        <div
+                          key={todo._id}
+                          className="flex items-start gap-3 p-4 border border-slate-200 rounded-lg hover:bg-slate-50 transition-colors group relative"
+                        >
+                          {/* Priority indicator bar */}
+                          <div 
+                            className={`w-[3px] h-full min-h-[60px] ${getTodoPriorityColor(todo.priority, todo.status)} rounded-full flex-shrink-0`}
+                          ></div>
+                          
+                          {/* Todo content */}
+                          <div className="min-w-0 flex-1">
+                            <div className="flex items-start justify-between gap-3 mb-2">
+                              <div className="min-w-0 flex-1">
+                                <h3 className={`text-base font-semibold text-slate-900 mb-1 ${
+                                  todo.status === "completed" ? "line-through text-slate-400" : ""
+                                }`}>
+                                  {todo.title}
+                                </h3>
+                                {todo.description && (
+                                  <p className="text-sm text-slate-600 mb-2 line-clamp-2">
+                                    {todo.description}
+                                  </p>
+                                )}
+                              </div>
+                              
+                              {/* Options icon */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setShowTodoOptions(showTodoOptions === todo._id ? null : todo._id);
+                                }}
+                                className="opacity-60 hover:opacity-100 transition-opacity p-1.5 hover:bg-slate-100 rounded flex-shrink-0"
+                                title="Options"
+                              >
+                                <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 5v.01M12 12v.01M12 19v.01M12 6a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2zm0 7a1 1 0 110-2 1 1 0 010 2z" />
+                                </svg>
+                              </button>
+                            </div>
+                            
+                            {/* Badges and due date */}
+                            <div className="flex items-center gap-2 flex-wrap">
+                              <span className={`px-2 py-1 text-xs font-medium rounded border ${priorityBadge.className}`}>
+                                {priorityBadge.label}
+                              </span>
+                              <span className={`px-2 py-1 text-xs font-medium rounded border ${statusBadge.className}`}>
+                                {statusBadge.label}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {formatDueDate(todo.dueDate)}
+                              </span>
+                            </div>
+                            
+                            {/* Options menu */}
+                            {showTodoOptions === todo._id && (
+                              <div className="absolute right-4 top-12 bg-white border border-slate-200 rounded-lg shadow-lg z-20 min-w-[120px]">
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleToggleTodoComplete(todo);
+                                    setShowTodoOptions(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50 rounded-t-lg"
+                                >
+                                  {todo.status === "completed" ? "Mark Incomplete" : "Mark Complete"}
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleEditTodo(todo);
+                                    setShowTodoOptions(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs text-slate-700 hover:bg-slate-50"
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteTodo(todo._id);
+                                    setShowTodoOptions(null);
+                                  }}
+                                  className="w-full text-left px-3 py-2 text-xs text-red-600 hover:bg-red-50 rounded-b-lg"
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <div className="text-center py-12 text-slate-500">
+                    <span className="text-4xl mb-3 block">📝</span>
+                    <p className="text-sm">No todos found</p>
+                    <button
+                      onClick={() => {
+                        setShowAllTodosModal(false);
+                        handleAddTodo();
+                      }}
+                      className="text-xs text-blue-600 hover:text-blue-700 mt-2"
+                    >
+                      Create your first todo
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-4 border-t border-slate-200 flex justify-end gap-2">
+                <Button 
+                  variant="outline" 
+                  onClick={() => setShowAllTodosModal(false)}
+                >
+                  Close
+                </Button>
+                <Button 
+                  variant="gradient" 
+                  onClick={() => {
+                    setShowAllTodosModal(false);
+                    handleAddTodo();
+                  }}
+                >
+                  Add New Todo
                 </Button>
               </div>
             </div>
