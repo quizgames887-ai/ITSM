@@ -6,7 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
@@ -37,6 +37,7 @@ export default function AnnouncementsPage() {
   });
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Get image URL for preview when editing (must be after formData is declared)
   const previewImageUrl = useQuery(
@@ -98,6 +99,10 @@ export default function AnnouncementsPage() {
 
       // Generate upload URL
       const uploadUrl = await generateUploadUrl();
+      
+      if (!uploadUrl || typeof uploadUrl !== "string") {
+        throw new Error("Failed to generate upload URL: Invalid response");
+      }
 
       // Upload file to Convex storage
       const uploadResult = await fetch(uploadUrl, {
@@ -107,22 +112,47 @@ export default function AnnouncementsPage() {
       });
 
       if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        throw new Error(`Failed to upload image: ${errorText || uploadResult.statusText}`);
+        let errorText = "";
+        try {
+          errorText = await uploadResult.text();
+        } catch {
+          errorText = uploadResult.statusText;
+        }
+        throw new Error(`Failed to upload image (${uploadResult.status}): ${errorText || uploadResult.statusText}`);
       }
 
       // Get storage ID from the response (Convex returns JSON with storageId)
-      const { storageId } = await uploadResult.json();
+      let responseData;
+      try {
+        responseData = await uploadResult.json();
+      } catch (parseError) {
+        const textResponse = await uploadResult.text();
+        throw new Error(`Invalid response format: ${textResponse}`);
+      }
+      
+      const storageId = responseData?.storageId;
       
       if (!storageId) {
-        throw new Error("Failed to get storage ID from upload response");
+        console.error("Upload response:", responseData);
+        throw new Error("Failed to get storage ID from upload response. Response: " + JSON.stringify(responseData));
       }
 
       setFormData({ ...formData, imageId: storageId });
       success("Image uploaded successfully!");
+      
+      // Clear the file input so the same file can be uploaded again if needed
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } catch (err: any) {
+      console.error("Image upload error:", err);
       showError(err.message || "Failed to upload image");
       setImagePreview(null);
+      
+      // Clear the file input on error
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
     } finally {
       setUploadingImage(false);
     }
