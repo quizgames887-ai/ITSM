@@ -182,11 +182,11 @@ const defaultTranslations: Record<string, string> = {
   // Dashboard - Services
   "dashboard.requestService": "Request Service",
   "dashboard.serviceRequest": "Service Request",
-  "dashboard.title": "Title",
-  "dashboard.description": "Description",
-  "dashboard.type": "Type",
-  "dashboard.priority": "Priority",
-  "dashboard.urgency": "Urgency",
+  "dashboard.formTitle": "Title",
+  "dashboard.formDescription": "Description",
+  "dashboard.formType": "Type",
+  "dashboard.formPriority": "Priority",
+  "dashboard.formUrgency": "Urgency",
   "dashboard.serviceRequestCreated": "Service request created successfully",
   "dashboard.titleRequired": "Title is required",
   "dashboard.descriptionRequired": "Description is required",
@@ -198,7 +198,6 @@ const defaultTranslations: Record<string, string> = {
   "dashboard.servicesUserGuide": "Services User Guide",
   
   // Dashboard - Favorites
-  "dashboard.myFavorites": "My Favorites",
   "dashboard.showAllFavorites": "Show All Favorites",
   "dashboard.addToFavorites": "Add to Favorites",
   "dashboard.removeFromFavorites": "Remove from Favorites",
