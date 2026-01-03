@@ -145,7 +145,9 @@ export default function DashboardPage() {
   // Close todo options menu when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (showTodoOptions) {
+      const target = event.target as HTMLElement;
+      // Don't close if clicking inside the options menu or the button that opens it
+      if (showTodoOptions && !target.closest('.todo-options-menu') && !target.closest('.todo-options-button')) {
         setShowTodoOptions(null);
       }
     };
@@ -456,6 +458,8 @@ export default function DashboardPage() {
     });
     setEditingTodo(todo);
     setShowTodoForm(true);
+    // Close the all todos modal if it's open
+    setShowAllTodosModal(false);
   };
 
   const handleDeleteTodo = async (todoId: Id<"todos">) => {
@@ -487,6 +491,8 @@ export default function DashboardPage() {
         id: todo._id,
         userId: userId as Id<"users">,
       });
+      // Close options menu after toggle
+      setShowTodoOptions(null);
     } catch (err: any) {
       showError(err.message || "Failed to update todo");
     }
@@ -1829,7 +1835,7 @@ export default function DashboardPage() {
                         e.stopPropagation();
                         setShowTodoOptions(showTodoOptions === todo._id ? null : todo._id);
                       }}
-                      className="opacity-60 hover:opacity-100 transition-opacity p-1.5 hover:bg-slate-100 rounded flex-shrink-0"
+                      className="todo-options-button opacity-60 hover:opacity-100 transition-opacity p-1.5 hover:bg-slate-100 rounded flex-shrink-0"
                       title="Options"
                     >
                       <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2016,7 +2022,13 @@ export default function DashboardPage() {
         {showAllTodosModal && (
           <div 
             className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            onClick={() => setShowAllTodosModal(false)}
+            onClick={(e) => {
+              // Only close if clicking the backdrop, not the modal content
+              if (e.target === e.currentTarget) {
+                setShowAllTodosModal(false);
+                setShowTodoOptions(null);
+              }
+            }}
           >
             <div 
               className="bg-white rounded-xl shadow-xl max-w-4xl w-full max-h-[90vh] overflow-hidden flex flex-col"
@@ -2079,7 +2091,7 @@ export default function DashboardPage() {
                                   e.stopPropagation();
                                   setShowTodoOptions(showTodoOptions === todo._id ? null : todo._id);
                                 }}
-                                className="opacity-60 hover:opacity-100 transition-opacity p-1.5 hover:bg-slate-100 rounded flex-shrink-0"
+                                className="todo-options-button opacity-60 hover:opacity-100 transition-opacity p-1.5 hover:bg-slate-100 rounded flex-shrink-0"
                                 title="Options"
                               >
                                 <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -2103,7 +2115,7 @@ export default function DashboardPage() {
                             
                             {/* Options menu */}
                             {showTodoOptions === todo._id && (
-                              <div className="absolute right-4 top-12 bg-white border border-slate-200 rounded-lg shadow-lg z-20 min-w-[120px]">
+                              <div className="todo-options-menu absolute right-4 top-12 bg-white border border-slate-200 rounded-lg shadow-lg z-30 min-w-[120px]">
                                 <button
                                   onClick={(e) => {
                                     e.stopPropagation();
