@@ -55,6 +55,17 @@ export default function TranslationsPage() {
 
   const isAdmin = currentUser?.role === "admin";
 
+  // Debug info (remove in production) - MUST be before any early returns
+  useEffect(() => {
+    console.log("Translations Page Debug:", {
+      currentUserId,
+      isAdmin,
+      currentUser: currentUser ? { id: currentUser._id, role: currentUser.role, email: currentUser.email } : null,
+      showAddForm,
+      translationsCount: translations?.length || 0,
+    });
+  }, [currentUserId, isAdmin, currentUser, showAddForm, translations]);
+
   // Filter translations
   const filteredTranslations = translations?.filter((t) => {
     if (categoryFilter !== "all" && t.category !== categoryFilter) return false;
@@ -415,17 +426,6 @@ export default function TranslationsPage() {
       </Card>
     );
   }
-
-  // Debug info (remove in production)
-  useEffect(() => {
-    console.log("Translations Page Debug:", {
-      currentUserId,
-      isAdmin,
-      currentUser: currentUser ? { id: currentUser._id, role: currentUser.role, email: currentUser.email } : null,
-      showAddForm,
-      translationsCount: translations?.length || 0,
-    });
-  }, [currentUserId, isAdmin, currentUser, showAddForm, translations]);
 
   return (
     <div className="space-y-6">
