@@ -76,16 +76,16 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
   if (announcements.length === 0) {
     return (
       <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-hidden min-h-[200px]">
-        <div className="relative z-10">
+        <div className="relative z-10 h-full flex flex-col">
           <span className="text-xs text-teal-200 font-medium">Announcement</span>
-          <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-2">
+          <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-3">
             Welcome to Palmware
           </h3>
-          <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3">
+          <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3 flex-1">
             Your centralized IT Service Management platform for efficient ticket handling and support.
           </p>
           <Link href="/tickets">
-            <button className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors">
+            <button className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors self-start mt-2">
               View Tickets
             </button>
           </Link>
@@ -106,18 +106,18 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
     const announcement = announcements[0];
     return (
       <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-hidden min-h-[200px]">
-        <div className="relative z-10">
+        <div className="relative z-10 h-full flex flex-col">
           <span className="text-xs text-teal-200 font-medium">Announcement</span>
-          <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-2">
+          <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-3">
             {announcement.title}
           </h3>
-          <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3">
+          <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3 flex-1">
             {announcement.content}
           </p>
           {announcement.buttonText && (
             <button 
               onClick={() => handleButtonClick(announcement)}
-              className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+              className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors self-start mt-2"
             >
               {announcement.buttonText}
             </button>
@@ -142,7 +142,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
       {/* Navigation Arrows */}
       <button
         onClick={goToPrevious}
-        className="absolute left-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
+        className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
         aria-label="Previous announcement"
       >
         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -151,7 +151,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
       </button>
       <button
         onClick={goToNext}
-        className="absolute right-2 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
+        className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-8 h-8 bg-white/20 hover:bg-white/30 rounded-full flex items-center justify-center transition-all backdrop-blur-sm"
         aria-label="Next announcement"
       >
         <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -160,9 +160,9 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
       </button>
 
       {/* Slide Content */}
-      <div className="relative z-10 h-full flex flex-col">
+      <div className="relative z-10 h-full flex flex-col pl-10 pr-10">
         <span className="text-xs text-teal-200 font-medium">Announcement</span>
-        <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-2">
+        <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-3">
           {currentAnnouncement.title}
         </h3>
         <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3 flex-1">
@@ -171,7 +171,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
         {currentAnnouncement.buttonText && (
           <button 
             onClick={() => handleButtonClick(currentAnnouncement)}
-            className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors self-start"
+            className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors self-start mt-2"
           >
             {currentAnnouncement.buttonText}
           </button>
