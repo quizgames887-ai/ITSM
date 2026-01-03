@@ -58,94 +58,12 @@ export default function AnnouncementsPage() {
       content: "",
       buttonText: "",
       buttonLink: "",
-      imageId: null,
       isActive: true,
       priority: 1,
       expiresAt: "",
     });
-    setImagePreview(null);
     setEditingId(null);
     setShowForm(false);
-  };
-
-  const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (!event.target.files || event.target.files.length === 0) return;
-
-    const file = event.target.files[0];
-    
-    // Validate file type
-    if (!file.type.startsWith("image/")) {
-      showError("Please select an image file");
-      return;
-    }
-
-    // Validate file size (max 5MB)
-    if (file.size > 5 * 1024 * 1024) {
-      showError("Image size must be less than 5MB");
-      return;
-    }
-
-    setUploadingImage(true);
-    setImagePreview(null);
-
-    try {
-      // Create preview
-      const reader = new FileReader();
-      reader.onloadend = () => {
-        setImagePreview(reader.result as string);
-      };
-      reader.readAsDataURL(file);
-
-      // Generate upload URL
-      const uploadUrl = await generateUploadUrl();
-
-      // Upload file to Convex storage
-      const uploadResult = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!uploadResult.ok) {
-        throw new Error("Failed to upload image");
-      }
-
-      // Get storage ID from the response
-      let storageIdText = await uploadResult.text();
-      
-      // Handle case where response might be a JSON string
-      let storageId: Id<"_storage">;
-      try {
-        const parsed = JSON.parse(storageIdText);
-        if (typeof parsed === "object" && parsed.storageId) {
-          storageId = parsed.storageId as Id<"_storage">;
-        } else if (typeof parsed === "string") {
-          storageId = parsed as Id<"_storage">;
-        } else {
-          storageId = storageIdText as Id<"_storage">;
-        }
-      } catch {
-        // If not JSON, treat as direct storage ID
-        storageId = storageIdText as Id<"_storage">;
-      }
-      
-      if (!storageId) {
-        throw new Error("Failed to get storage ID from upload");
-      }
-
-      setFormData({ ...formData, imageId: storageId });
-      success("Image uploaded successfully!");
-    } catch (err: any) {
-      showError(err.message || "Failed to upload image");
-      setImagePreview(null);
-    } finally {
-      setUploadingImage(false);
-    }
-  };
-
-  const handleRemoveImage = () => {
-    setFormData({ ...formData, imageId: null });
-    setImagePreview(null);
   };
 
   const handleCreate = async () => {
@@ -197,6 +115,7 @@ export default function AnnouncementsPage() {
         content: formData.content.trim(),
         buttonText: formData.buttonText.trim() || null,
         buttonLink: formData.buttonLink.trim() || null,
+        imageId: formData.imageId || null,
         isActive: formData.isActive,
         priority: formData.priority,
         expiresAt: formData.expiresAt ? new Date(formData.expiresAt).getTime() : null,
