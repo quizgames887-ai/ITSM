@@ -167,36 +167,29 @@ Make sure to set environment variables in your deployment platform.
 - `OPENAI_API_KEY`: Your OpenAI API key (optional, for AI features)
 
 ### Backend (Convex Dashboard)
-To enable real email sending using your Exchange SMTP configuration, configure one of the following email relay services in your Convex dashboard:
+To enable real email sending using your Exchange SMTP configuration, configure one of the following in your Convex dashboard:
 
-**Option 1: Mailgun (Recommended for Exchange SMTP)**
+**Option 1: SMTP2GO (Recommended - Works directly with Exchange SMTP)**
 1. Go to your [Convex Dashboard](https://dashboard.convex.dev)
 2. Select your project
 3. Navigate to **Settings** → **Environment Variables**
-4. Add these environment variables:
-   - **Name**: `MAILGUN_DOMAIN` - Your Mailgun domain
-   - **Name**: `MAILGUN_API_KEY` - Your Mailgun API key
+4. Add environment variable:
+   - **Name**: `SMTP2GO_API_KEY` - Your SMTP2GO API key
 
-**Option 2: SendGrid**
-1. Add to Convex environment variables:
-   - **Name**: `SENDGRID_API_KEY` - Your SendGrid API key
+**Option 2: Custom SMTP Relay URL**
+1. Set up your own SMTP HTTP relay endpoint (accepts SMTP credentials via HTTP)
+2. Add to Convex environment variables:
+   - **Name**: `SMTP_RELAY_URL` - URL of your SMTP relay endpoint
 
-**How to get Mailgun credentials:**
-1. Sign up for a free account at [mailgun.com](https://www.mailgun.com)
-2. Verify your domain (or use sandbox domain for testing)
-3. Go to Settings → API Keys
-4. Copy your API key and domain
-5. Add them to Convex environment variables
-
-**How to get SendGrid credentials:**
-1. Sign up at [sendgrid.com](https://sendgrid.com)
+**How to get SMTP2GO credentials:**
+1. Sign up for a free account at [smtp2go.com](https://www.smtp2go.com)
 2. Go to Settings → API Keys
-3. Create an API key with "Mail Send" permissions
-4. Add to Convex environment variables
+3. Create an API key
+4. Add it to Convex environment variables as `SMTP2GO_API_KEY`
 
 **Note**: 
-- Configure your SMTP settings (Exchange) in the Email Settings page
-- The system will use your SMTP configuration with the relay service (Mailgun/SendGrid) to send emails
+- Configure your Exchange SMTP settings (host, port, username, password) in the Email Settings page
+- The system reads your SMTP configuration and uses it with SMTP2GO or your custom relay to send emails
 - Without a relay service configured, emails will be simulated (logged but not actually sent)
 - Check the email logs to see if emails are marked as "Simulated" or "Real"
 

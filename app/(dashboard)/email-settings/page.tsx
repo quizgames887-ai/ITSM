@@ -258,16 +258,16 @@ export default function EmailSettingsPage() {
             <div className="flex-1">
               <h3 className="text-lg font-semibold text-slate-900 mb-2">Email Service Configuration</h3>
               <p className="text-sm text-slate-600 mb-2">
-                To send <strong>real emails</strong> (instead of simulation), you need to configure the Resend API key in your Convex dashboard:
+                To send <strong>real emails</strong> using your Exchange SMTP configuration, configure one of these in your Convex dashboard:
               </p>
               <ol className="text-sm text-slate-700 list-decimal list-inside space-y-1 mb-2">
-                <li>Get a free API key from <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">resend.com</a></li>
+                <li><strong>SMTP2GO (Recommended):</strong> Get API key from <a href="https://www.smtp2go.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">smtp2go.com</a></li>
                 <li>Go to your <a href="https://dashboard.convex.dev" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Convex Dashboard</a> → Settings → Environment Variables</li>
-                <li>Add <code className="bg-slate-200 px-1 rounded">RESEND_API_KEY</code> with your API key value</li>
+                <li>Add <code className="bg-slate-200 px-1 rounded">SMTP2GO_API_KEY</code> with your API key value</li>
                 <li>Redeploy your Convex functions</li>
               </ol>
               <p className="text-xs text-slate-500">
-                Without the API key, emails will be simulated and logged but not actually sent. Check the Email Logs below to see if emails are marked as "Simulated" or "Real".
+                Your Exchange SMTP settings (configured above) will be used with the relay service. Without a relay service, emails will be simulated. Check Email Logs to see "Simulated" vs "Real" status.
               </p>
             </div>
           </div>

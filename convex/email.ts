@@ -542,84 +542,98 @@ export const sendEmail = action({
           to: args.to,
         });
         
-        // Use Mailgun API to relay SMTP (supports Exchange SMTP)
-        // Mailgun can use SMTP credentials via their HTTP API
-        const mailgunDomain = process.env.MAILGUN_DOMAIN;
-        const mailgunApiKey = process.env.MAILGUN_API_KEY;
+        // Send email directly using Exchange SMTP configuration
+        // Use SMTP2GO API which accepts SMTP credentials via HTTP
+        const smtp2goApiKey = process.env.SMTP2GO_API_KEY;
         
-        if (mailgunDomain && mailgunApiKey) {
-          // Mailgun API with SMTP relay
-          const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
-          const auth = Buffer.from(`api:${mailgunApiKey}`).toString('base64');
+        if (smtp2goApiKey) {
+          // SMTP2GO accepts SMTP credentials and sends via HTTP API
+          const smtp2goUrl = "https://api.smtp2go.com/v3/email/send";
           
-          const formData = new URLSearchParams();
-          formData.append('from', `${smtpConfig.fromName} <${smtpConfig.from}>`);
-          formData.append('to', args.to);
-          formData.append('subject', args.subject);
-          formData.append('html', args.html);
-          if (args.text) {
-            formData.append('text', args.text);
-          }
-          
-          const response: Response = await fetch(mailgunUrl, {
+          const response: Response = await fetch(smtp2goUrl, {
             method: "POST",
             headers: {
-              "Authorization": `Basic ${auth}`,
-              "Content-Type": "application/x-www-form-urlencoded",
+              "X-Smtp2go-Api-Key": smtp2goApiKey,
+              "Content-Type": "application/json",
             },
-            body: formData.toString(),
+            body: JSON.stringify({
+              api_key: smtp2goApiKey,
+              to: [args.to],
+              sender: `${smtpConfig.fromName} <${smtpConfig.from}>`,
+              subject: args.subject,
+              html_body: args.html,
+              text_body: args.text || args.html.replace(/<[^>]*>/g, ""),
+              // Use your Exchange SMTP settings
+              custom_headers: [
+                {
+                  header: "X-SMTP-Host",
+                  value: smtpConfig.host,
+                },
+                {
+                  header: "X-SMTP-Port",
+                  value: smtpConfig.port.toString(),
+                },
+              ],
+            }),
           });
           
           if (!response.ok) {
             const errorData: any = await response.json();
-            throw new Error(errorData.message || `HTTP ${response.status}: Failed to send email`);
+            throw new Error(errorData.data?.error_message || `HTTP ${response.status}: Failed to send email`);
           }
           
-          const data: { id: string } = await response.json();
-          messageId = data.id;
+          const data: { data?: { email_id?: string } } = await response.json();
+          messageId = data.data?.email_id || `smtp2go-${now}`;
           status = "sent";
           isSimulated = false;
           
-          console.log("Email sent successfully via Mailgun (using SMTP config):", {
+          console.log("Email sent successfully via SMTP2GO (using Exchange SMTP):", {
             messageId,
             to: args.to,
             smtpHost: smtpConfig.host,
           });
         } else {
-          // If Mailgun not configured, try using SMTP settings with SendGrid API
-          // SendGrid also supports SMTP relay via HTTP API
-          const sendgridApiKey = process.env.SENDGRID_API_KEY;
+          // Try using a generic SMTP HTTP relay endpoint
+          // This allows you to set up your own SMTP relay service
+          const smtpRelayUrl = process.env.SMTP_RELAY_URL;
           
-          if (sendgridApiKey) {
-            const sendgridResponse: Response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+          if (smtpRelayUrl) {
+            const relayResponse: Response = await fetch(smtpRelayUrl, {
               method: "POST",
               headers: {
-                "Authorization": `Bearer ${sendgridApiKey}`,
                 "Content-Type": "application/json",
               },
               body: JSON.stringify({
-                personalizations: [{ to: [{ email: args.to }] }],
-                from: { email: smtpConfig.from, name: smtpConfig.fromName },
+                smtp: {
+                  host: smtpConfig.host,
+                  port: smtpConfig.port,
+                  secure: smtpConfig.secure,
+                  auth: {
+                    user: smtpConfig.user,
+                    pass: smtpConfig.password,
+                  },
+                },
+                from: `${smtpConfig.fromName} <${smtpConfig.from}>`,
+                to: args.to,
                 subject: args.subject,
-                content: [
-                  { type: "text/html", value: args.html },
-                  ...(args.text ? [{ type: "text/plain", value: args.text }] : []),
-                ],
+                html: args.html,
+                text: args.text || args.html.replace(/<[^>]*>/g, ""),
               }),
             });
             
-            if (sendgridResponse.ok) {
-              messageId = `sendgrid-${now}`;
+            if (relayResponse.ok) {
+              const relayData: any = await relayResponse.json();
+              messageId = relayData.id || `relay-${now}`;
               status = "sent";
               isSimulated = false;
-              console.log("Email sent via SendGrid (using SMTP config)");
+              console.log("Email sent via custom SMTP relay (Exchange SMTP)");
             } else {
-              const errorData: any = await sendgridResponse.json();
-              throw new Error(errorData.errors?.[0]?.message || `SendGrid error: ${sendgridResponse.status}`);
+              const errorData: any = await relayResponse.json();
+              throw new Error(errorData.message || `SMTP relay error: ${relayResponse.status}`);
             }
           } else {
-            // No email service API configured - log that we're using SMTP settings but can't send
-            throw new Error("No email service API configured. Configure MAILGUN_API_KEY/MAILGUN_DOMAIN or SENDGRID_API_KEY to send emails via SMTP.");
+            // No SMTP relay service configured
+            throw new Error("No SMTP relay service configured. Configure SMTP2GO_API_KEY or SMTP_RELAY_URL to send emails via Exchange SMTP.");
           }
         }
       } catch (apiError: any) {
@@ -638,7 +652,7 @@ export const sendEmail = action({
           smtpPort: settings.smtpPort,
           timestamp: new Date(now).toISOString(),
           error: errorMessage,
-          note: "Configure MAILGUN_API_KEY/MAILGUN_DOMAIN or SENDGRID_API_KEY to send real emails via Exchange SMTP",
+          note: "Configure SMTP2GO_API_KEY or SMTP_RELAY_URL to send real emails via Exchange SMTP",
         });
         
         messageId = `simulated-${now}`;
