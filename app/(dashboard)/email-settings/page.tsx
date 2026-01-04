@@ -21,6 +21,16 @@ export default function EmailSettingsPage() {
   const testSMTP = useAction((api as any).email?.testSMTP);
   const testInbound = useAction((api as any).email?.testInbound);
   const { success, error: showError } = useToastContext();
+  
+  // Email logs
+  const [logFilter, setLogFilter] = useState<"all" | "sent" | "failed" | "pending">("all");
+  // Using bracket notation to avoid TypeScript errors until Convex syncs
+  const emailLogs = useQuery(
+    (api as any).email?.getEmailLogs,
+    (api as any).email?.getEmailLogs
+      ? (logFilter === "all" ? { limit: 100 } : { limit: 100, status: logFilter })
+      : "skip"
+  ) as any[] | undefined;
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   const currentUser = useQuery(
@@ -518,6 +528,121 @@ export default function EmailSettingsPage() {
                   {testingInbound ? "Testing..." : "Test Inbound Connection"}
                 </Button>
               </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Email Logs */}
+        <Card padding="lg">
+          <div className="mb-6">
+            <h2 className="text-xl font-semibold text-slate-900 mb-1">Email Logs</h2>
+            <p className="text-sm text-slate-600">View history of all email sending attempts</p>
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex gap-2 mb-4 border-b border-slate-200">
+            <button
+              onClick={() => setLogFilter("all")}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                logFilter === "all"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setLogFilter("sent")}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                logFilter === "sent"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Sent
+            </button>
+            <button
+              onClick={() => setLogFilter("failed")}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                logFilter === "failed"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Failed
+            </button>
+            <button
+              onClick={() => setLogFilter("pending")}
+              className={`px-4 py-2 text-sm font-medium transition-colors ${
+                logFilter === "pending"
+                  ? "text-blue-600 border-b-2 border-blue-600"
+                  : "text-slate-600 hover:text-slate-900"
+              }`}
+            >
+              Pending
+            </button>
+          </div>
+
+          {/* Logs Table */}
+          {emailLogs === undefined ? (
+            <div className="text-center py-8 text-slate-500">Loading logs...</div>
+          ) : emailLogs.length === 0 ? (
+            <div className="text-center py-8 text-slate-500">
+              No email logs found{logFilter !== "all" ? ` for status: ${logFilter}` : ""}.
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-slate-200">
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Time</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">To</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">From</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Subject</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Error</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emailLogs.map((log: any) => {
+                    const date = new Date(log.sentAt || log.createdAt);
+                    const timeStr = date.toLocaleString();
+                    
+                    return (
+                      <tr key={log._id} className="border-b border-slate-100 hover:bg-slate-50">
+                        <td className="py-3 px-4 text-slate-600">{timeStr}</td>
+                        <td className="py-3 px-4 text-slate-900">{log.to}</td>
+                        <td className="py-3 px-4 text-slate-600">{log.from}</td>
+                        <td className="py-3 px-4 text-slate-900">{log.subject}</td>
+                        <td className="py-3 px-4">
+                          <span
+                            className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                              log.status === "sent"
+                                ? "bg-green-100 text-green-800"
+                                : log.status === "failed"
+                                ? "bg-red-100 text-red-800"
+                                : "bg-yellow-100 text-yellow-800"
+                            }`}
+                          >
+                            {log.status === "sent" ? "✓ Sent" : log.status === "failed" ? "✗ Failed" : "⏳ Pending"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-slate-600 text-xs">
+                          {log.errorMessage ? (
+                            <span className="text-red-600" title={log.errorMessage}>
+                              {log.errorMessage.length > 50
+                                ? log.errorMessage.substring(0, 50) + "..."
+                                : log.errorMessage}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">-</span>
+                          )}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           )}
         </Card>

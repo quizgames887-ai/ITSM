@@ -432,4 +432,24 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_enabled", ["enabled"]),
+
+  // Email Logs - Track all email sending attempts
+  emailLogs: defineTable({
+    to: v.string(), // Recipient email address
+    from: v.string(), // Sender email address
+    subject: v.string(), // Email subject
+    status: v.union(
+      v.literal("sent"), // Successfully sent
+      v.literal("failed"), // Failed to send
+      v.literal("pending") // Queued but not yet sent
+    ),
+    errorMessage: v.optional(v.string()), // Error message if failed
+    messageId: v.optional(v.string()), // External message ID from email service
+    sentAt: v.union(v.number(), v.null()), // Timestamp when email was sent
+    createdAt: v.number(), // Timestamp when log was created
+  })
+    .index("by_to", ["to"])
+    .index("by_status", ["status"])
+    .index("by_createdAt", ["createdAt"])
+    .index("by_sentAt", ["sentAt"]),
 });

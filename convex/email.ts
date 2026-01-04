@@ -137,6 +137,9 @@ export const testSMTP = action({
     // For now, we'll return a mock response
     // In production, you would integrate with a service like Resend, SendGrid, AWS SES, etc.
     
+    const now = Date.now();
+    const testSubject = "Test Email from ITSM";
+    
     try {
       // TODO: Implement actual SMTP test
       // Example with Resend API:
@@ -149,17 +152,55 @@ export const testSMTP = action({
       //   body: JSON.stringify({
       //     from: args.smtpFromEmail,
       //     to: args.testEmail,
-      //     subject: "Test Email from ITSM",
+      //     subject: testSubject,
       //     html: "<p>This is a test email to verify your SMTP configuration.</p>",
       //   }),
       // });
+      // 
+      // if (!response.ok) {
+      //   const error = await response.json();
+      //   throw new Error(error.message || "Failed to send test email");
+      // }
+      // 
+      // const data = await response.json();
+      // 
+      // // Log the test email
+      // await ctx.runMutation(api.email.logEmail, {
+      //   to: args.testEmail,
+      //   from: args.smtpFromEmail,
+      //   subject: testSubject,
+      //   status: "sent",
+      //   messageId: data.id,
+      //   sentAt: now,
+      // });
       
       // For now, simulate success
+      const messageId = "test-" + now;
+      
+      // Log the test email
+      await ctx.runMutation(api.email.logEmail, {
+        to: args.testEmail,
+        from: args.smtpFromEmail,
+        subject: testSubject,
+        status: "sent",
+        messageId,
+        sentAt: now,
+      });
+      
       return {
         success: true,
         message: "SMTP test email sent successfully (simulated)",
       };
     } catch (error: any) {
+      // Log the failure
+      await ctx.runMutation(api.email.logEmail, {
+        to: args.testEmail,
+        from: args.smtpFromEmail,
+        subject: testSubject,
+        status: "failed",
+        errorMessage: error.message || "Failed to send test email",
+      });
+      
       return {
         success: false,
         message: error.message || "Failed to send test email",
@@ -230,8 +271,21 @@ export const sendEmail = action({
     const settings = await ctx.runQuery(api.email.getSettings, {});
     
     if (!settings || !settings.enabled || !settings.smtpEnabled) {
+      // Log the failure
+      await ctx.runMutation(api.email.logEmail, {
+        to: args.to,
+        from: settings?.smtpFromEmail || "system",
+        subject: args.subject,
+        status: "failed",
+        errorMessage: "Email integration is not enabled or configured",
+      });
       throw new Error("Email integration is not enabled or configured");
     }
+    
+    const now = Date.now();
+    let messageId: string | undefined;
+    let status: "sent" | "failed" = "failed";
+    let errorMessage: string | undefined;
     
     try {
       // TODO: Implement actual email sending
@@ -250,20 +304,53 @@ export const sendEmail = action({
       //     text: args.text || args.html.replace(/<[^>]*>/g, ""),
       //   }),
       // });
+      // 
+      // if (!response.ok) {
+      //   const error = await response.json();
+      //   throw new Error(error.message || "Failed to send email");
+      // }
+      // 
+      // const data = await response.json();
+      // messageId = data.id;
+      // status = "sent";
       
-      // For now, log the email (in production, this would actually send)
+      // For now, simulate success
       console.log("Email would be sent:", {
         to: args.to,
         subject: args.subject,
         from: settings.smtpFromEmail,
       });
       
+      messageId = "simulated-" + now;
+      status = "sent";
+      
+      // Log the email
+      await ctx.runMutation(api.email.logEmail, {
+        to: args.to,
+        from: settings.smtpFromEmail,
+        subject: args.subject,
+        status,
+        messageId,
+        sentAt: now,
+      });
+      
       return {
         success: true,
-        messageId: "simulated-" + Date.now(),
+        messageId,
       };
     } catch (error: any) {
-      throw new Error(`Failed to send email: ${error.message}`);
+      errorMessage = error.message || "Failed to send email";
+      
+      // Log the failure
+      await ctx.runMutation(api.email.logEmail, {
+        to: args.to,
+        from: settings.smtpFromEmail,
+        subject: args.subject,
+        status: "failed",
+        errorMessage,
+      });
+      
+      throw new Error(`Failed to send email: ${errorMessage}`);
     }
   },
 });
@@ -319,5 +406,60 @@ export const updateLastChecked = mutation({
     await ctx.db.patch(args.settingsId, {
       lastCheckedAt: args.timestamp,
     });
+  },
+});
+
+// Log email sending attempt
+export const logEmail = mutation({
+  args: {
+    to: v.string(),
+    from: v.string(),
+    subject: v.string(),
+    status: v.union(v.literal("sent"), v.literal("failed"), v.literal("pending")),
+    errorMessage: v.optional(v.string()),
+    messageId: v.optional(v.string()),
+    sentAt: v.optional(v.number()),
+  },
+  handler: async (ctx, args) => {
+    await ctx.db.insert("emailLogs", {
+      to: args.to,
+      from: args.from,
+      subject: args.subject,
+      status: args.status,
+      errorMessage: args.errorMessage ?? undefined,
+      messageId: args.messageId ?? undefined,
+      sentAt: args.sentAt ?? null,
+      createdAt: Date.now(),
+    });
+  },
+});
+
+// Get email logs
+export const getEmailLogs = query({
+  args: {
+    limit: v.optional(v.number()), // Limit number of logs to return (default: 100)
+    status: v.optional(v.union(v.literal("sent"), v.literal("failed"), v.literal("pending"))), // Filter by status
+  },
+  handler: async (ctx, args) => {
+    const limit = args.limit ?? 100;
+    
+    // If status filter is provided, use status index
+    if (args.status) {
+      const status = args.status; // Capture for TypeScript narrowing
+      const logs = await ctx.db
+        .query("emailLogs")
+        .withIndex("by_status", (q) => q.eq("status", status))
+        .order("desc")
+        .take(limit);
+      return logs;
+    } else {
+      // Otherwise, use createdAt index for chronological order
+      const logs = await ctx.db
+        .query("emailLogs")
+        .withIndex("by_createdAt")
+        .order("desc")
+        .take(limit);
+      return logs;
+    }
   },
 });
