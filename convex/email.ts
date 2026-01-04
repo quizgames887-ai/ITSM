@@ -435,6 +435,19 @@ export const sendEmail = action({
         throw new Error(errorMessage);
       }
       
+      // After validation, settings is guaranteed to be non-null
+      if (!settings) {
+        errorMessage = "Email settings validation passed but settings are null";
+        await ctx.runMutation(api.email.logEmail, {
+          to: args.to,
+          from: fromEmail,
+          subject: args.subject,
+          status: "failed",
+          errorMessage,
+        });
+        throw new Error(errorMessage);
+      }
+      
       fromEmail = settings.smtpFromEmail;
       
       // TODO: Implement actual email sending
