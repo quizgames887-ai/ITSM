@@ -54,7 +54,9 @@ export default function TicketDetailPage({
     return users.find((u) => u._id === currentUserId);
   }, [currentUserId, users]);
   
+  // Only show visibility selector to agents and admins, not to regular users
   const isAgentOrAdmin = currentUser?.role === "agent" || currentUser?.role === "admin";
+  const isEndUser = currentUser?.role === "user" || (!currentUser && currentUserId !== null);
   
   // Filter comments client-side based on visibility and user role
   const filteredComments = useMemo(() => {
@@ -665,7 +667,8 @@ export default function TicketDetailPage({
               placeholder="Write a comment..."
               rows={3}
             />
-            {isAgentOrAdmin && (
+            {/* Only show visibility selector to agents and admins - hidden from end users */}
+            {currentUser && isAgentOrAdmin && (
               <div className="flex items-center gap-3">
                 <label className="text-sm font-medium text-slate-700">Visibility:</label>
                 <div className="flex gap-2">
