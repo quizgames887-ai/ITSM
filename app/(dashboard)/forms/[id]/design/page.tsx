@@ -151,6 +151,65 @@ export default function FormDesignerPage({
     }
   };
 
+  const handleEditForm = () => {
+    setFormEditData({
+      name: form.name,
+      description: form.description || "",
+      isActive: form.isActive,
+    });
+    setShowEditForm(true);
+  };
+
+  const handleUpdateForm = async () => {
+    if (!formEditData.name.trim()) {
+      showError("Form name is required");
+      return;
+    }
+
+    try {
+      await updateForm({
+        id: formId,
+        name: formEditData.name.trim(),
+        description: formEditData.description.trim() || undefined,
+        isActive: formEditData.isActive,
+      });
+      success("Form updated successfully!");
+      setShowEditForm(false);
+    } catch (err: any) {
+      showError(err.message || "Failed to update form");
+    }
+  };
+
+  const handleMoveField = async (fieldId: Id<"formFields">, direction: "up" | "down") => {
+    if (!form.fields) return;
+
+    const currentIndex = form.fields.findIndex((f) => f._id === fieldId);
+    if (currentIndex === -1) return;
+
+    const newIndex = direction === "up" ? currentIndex - 1 : currentIndex + 1;
+    if (newIndex < 0 || newIndex >= form.fields.length) return;
+
+    // Create new order array
+    const fieldOrders = form.fields.map((field, index) => {
+      if (index === currentIndex) {
+        return { fieldId: field._id, order: form.fields[newIndex].order };
+      } else if (index === newIndex) {
+        return { fieldId: field._id, order: form.fields[currentIndex].order };
+      }
+      return { fieldId: field._id, order: field.order };
+    });
+
+    try {
+      await reorderFields({
+        formId,
+        fieldOrders,
+      });
+      success("Field order updated successfully!");
+    } catch (err: any) {
+      showError(err.message || "Failed to reorder fields");
+    }
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto animate-fade-in">
