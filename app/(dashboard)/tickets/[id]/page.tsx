@@ -38,11 +38,14 @@ export default function TicketDetailPage({
   }, []);
   
   // Fetch comments with user ID for filtering
+  // Use "skip" if currentUserId is not loaded yet to ensure proper filtering
   const comments = useQuery(
     api.comments.listByTicket, 
-    currentUserId 
-      ? { ticketId, userId: currentUserId as Id<"users"> }
-      : { ticketId }
+    currentUserId === null 
+      ? "skip" // Skip query until userId is loaded
+      : currentUserId 
+        ? { ticketId, userId: currentUserId as Id<"users"> }
+        : { ticketId }
   );
   
   // Get current user object
@@ -100,7 +103,7 @@ export default function TicketDetailPage({
   const [updating, setUpdating] = useState(false);
   const { success, error: showError } = useToastContext();
 
-  if (ticket === undefined || comments === undefined || filteredComments === undefined) {
+  if (ticket === undefined || comments === undefined) {
     return (
       <div className="animate-pulse space-y-6">
         <div className="h-8 bg-slate-200 rounded w-32"></div>
@@ -162,12 +165,26 @@ export default function TicketDetailPage({
       // Regular users can only create external comments
       const visibility = isAgentOrAdmin ? commentVisibility : "external";
       
-      await createComment({
-        ticketId,
-        userId: userId as any,
-        content: commentText,
-        visibility: visibility,
-      });
+      try {
+        await createComment({
+          ticketId,
+          userId: userId as any,
+          content: commentText,
+          visibility: visibility,
+        });
+      } catch (error: any) {
+        // If visibility parameter is rejected (server hasn't synced), try without it
+        if (error.message?.includes("visibility") || error.message?.includes("extra field")) {
+          console.warn("Server doesn't support visibility yet, creating comment without it");
+          await createComment({
+            ticketId,
+            userId: userId as any,
+            content: commentText,
+          } as any);
+        } else {
+          throw error;
+        }
+      }
       
       setCommentText("");
       setCommentVisibility("external"); // Reset to external after posting
@@ -576,13 +593,13 @@ export default function TicketDetailPage({
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
             </svg>
             Comments
-            <span className="text-sm font-normal text-slate-500">({comments.length})</span>
+            <span className="text-sm font-normal text-slate-500">({filteredComments?.length || 0})</span>
           </h2>
         </div>
 
         <div className="px-6 py-6 sm:px-8 sm:py-8">
           <div className="space-y-4 mb-8">
-            {comments.length === 0 ? (
+            {!filteredComments || filteredComments.length === 0 ? (
               <div className="text-center py-8">
                 <span className="text-4xl mb-3 block">💬</span>
                 <p className="text-slate-600 text-sm">No comments yet</p>
