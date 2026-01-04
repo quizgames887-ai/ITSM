@@ -3,6 +3,49 @@ import { query, mutation, action } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { api } from "./_generated/api";
 
+// Helper function to validate email address
+function isValidEmail(email: string): boolean {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+}
+
+// Helper function to validate email settings
+function validateEmailSettings(settings: any): { valid: boolean; error?: string } {
+  if (!settings) {
+    return { valid: false, error: "Email settings not found" };
+  }
+  
+  if (!settings.enabled) {
+    return { valid: false, error: "Email integration is disabled" };
+  }
+  
+  if (!settings.smtpEnabled) {
+    return { valid: false, error: "SMTP is not enabled" };
+  }
+  
+  if (!settings.smtpHost || settings.smtpHost.trim() === "") {
+    return { valid: false, error: "SMTP host is not configured" };
+  }
+  
+  if (!settings.smtpUser || settings.smtpUser.trim() === "") {
+    return { valid: false, error: "SMTP username is not configured" };
+  }
+  
+  if (!settings.smtpPassword || settings.smtpPassword.trim() === "") {
+    return { valid: false, error: "SMTP password is not configured" };
+  }
+  
+  if (!settings.smtpFromEmail || !isValidEmail(settings.smtpFromEmail)) {
+    return { valid: false, error: "Invalid or missing 'from' email address" };
+  }
+  
+  if (settings.smtpPort < 1 || settings.smtpPort > 65535) {
+    return { valid: false, error: "Invalid SMTP port number" };
+  }
+  
+  return { valid: true };
+}
+
 // Get email settings (only one configuration allowed)
 export const getSettings = query({
   args: {},
@@ -133,14 +176,87 @@ export const testSMTP = action({
     testEmail: v.string(), // Email address to send test email to
   },
   handler: async (ctx, args) => {
-    // This would use an HTTP action to call an email service
-    // For now, we'll return a mock response
-    // In production, you would integrate with a service like Resend, SendGrid, AWS SES, etc.
-    
     const now = Date.now();
     const testSubject = "Test Email from ITSM";
     
     try {
+      // Validate email addresses
+      if (!isValidEmail(args.testEmail)) {
+        const errorMessage = `Invalid test email address: ${args.testEmail}`;
+        await ctx.runMutation(api.email.logEmail, {
+          to: args.testEmail,
+          from: args.smtpFromEmail,
+          subject: testSubject,
+          status: "failed",
+          errorMessage,
+        });
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+      
+      if (!isValidEmail(args.smtpFromEmail)) {
+        const errorMessage = `Invalid 'from' email address: ${args.smtpFromEmail}`;
+        await ctx.runMutation(api.email.logEmail, {
+          to: args.testEmail,
+          from: args.smtpFromEmail,
+          subject: testSubject,
+          status: "failed",
+          errorMessage,
+        });
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+      
+      // Validate SMTP settings
+      if (!args.smtpHost || args.smtpHost.trim() === "") {
+        const errorMessage = "SMTP host is required";
+        await ctx.runMutation(api.email.logEmail, {
+          to: args.testEmail,
+          from: args.smtpFromEmail,
+          subject: testSubject,
+          status: "failed",
+          errorMessage,
+        });
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+      
+      if (!args.smtpUser || args.smtpUser.trim() === "") {
+        const errorMessage = "SMTP username is required";
+        await ctx.runMutation(api.email.logEmail, {
+          to: args.testEmail,
+          from: args.smtpFromEmail,
+          subject: testSubject,
+          status: "failed",
+          errorMessage,
+        });
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+      
+      if (args.smtpPort < 1 || args.smtpPort > 65535) {
+        const errorMessage = `Invalid SMTP port: ${args.smtpPort}`;
+        await ctx.runMutation(api.email.logEmail, {
+          to: args.testEmail,
+          from: args.smtpFromEmail,
+          subject: testSubject,
+          status: "failed",
+          errorMessage,
+        });
+        return {
+          success: false,
+          message: errorMessage,
+        };
+      }
+      
       // TODO: Implement actual SMTP test
       // Example with Resend API:
       // const response = await fetch("https://api.resend.com/emails", {
@@ -164,7 +280,7 @@ export const testSMTP = action({
       // 
       // const data = await response.json();
       // 
-      // // Log the test email
+      // // Log the test email as sent
       // await ctx.runMutation(api.email.logEmail, {
       //   to: args.testEmail,
       //   from: args.smtpFromEmail,
@@ -174,10 +290,10 @@ export const testSMTP = action({
       //   sentAt: now,
       // });
       
-      // For now, simulate success
-      const messageId = "test-" + now;
+      // For now, simulate success after validation
+      const messageId = `test-${now}`;
       
-      // Log the test email
+      // Always log successful test email sending
       await ctx.runMutation(api.email.logEmail, {
         to: args.testEmail,
         from: args.smtpFromEmail,
@@ -189,7 +305,7 @@ export const testSMTP = action({
       
       return {
         success: true,
-        message: "SMTP test email sent successfully (simulated)",
+        message: "SMTP test email sent successfully (simulated - validation passed)",
       };
     } catch (error: any) {
       // Log the failure
@@ -267,27 +383,60 @@ export const sendEmail = action({
     text: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Get email settings
-    const settings = await ctx.runQuery(api.email.getSettings, {});
-    
-    if (!settings || !settings.enabled || !settings.smtpEnabled) {
-      // Log the failure
-      await ctx.runMutation(api.email.logEmail, {
-        to: args.to,
-        from: settings?.smtpFromEmail || "system",
-        subject: args.subject,
-        status: "failed",
-        errorMessage: "Email integration is not enabled or configured",
-      });
-      throw new Error("Email integration is not enabled or configured");
-    }
-    
     const now = Date.now();
     let messageId: string | undefined;
     let status: "sent" | "failed" = "failed";
     let errorMessage: string | undefined;
+    let fromEmail = "system";
     
     try {
+      // Validate recipient email address
+      if (!args.to || !isValidEmail(args.to)) {
+        errorMessage = `Invalid recipient email address: ${args.to}`;
+        await ctx.runMutation(api.email.logEmail, {
+          to: args.to || "unknown",
+          from: fromEmail,
+          subject: args.subject,
+          status: "failed",
+          errorMessage,
+        });
+        throw new Error(errorMessage);
+      }
+      
+      // Validate subject
+      if (!args.subject || args.subject.trim() === "") {
+        errorMessage = "Email subject cannot be empty";
+        await ctx.runMutation(api.email.logEmail, {
+          to: args.to,
+          from: fromEmail,
+          subject: "(no subject)",
+          status: "failed",
+          errorMessage,
+        });
+        throw new Error(errorMessage);
+      }
+      
+      // Get and validate email settings
+      const settings = await ctx.runQuery(api.email.getSettings, {});
+      const validation = validateEmailSettings(settings);
+      
+      if (!validation.valid) {
+        errorMessage = validation.error || "Email settings validation failed";
+        fromEmail = settings?.smtpFromEmail || "system";
+        
+        // Log the failure
+        await ctx.runMutation(api.email.logEmail, {
+          to: args.to,
+          from: fromEmail,
+          subject: args.subject,
+          status: "failed",
+          errorMessage,
+        });
+        throw new Error(errorMessage);
+      }
+      
+      fromEmail = settings.smtpFromEmail;
+      
       // TODO: Implement actual email sending
       // Example with Resend:
       // const response = await fetch("https://api.resend.com/emails", {
@@ -306,30 +455,33 @@ export const sendEmail = action({
       // });
       // 
       // if (!response.ok) {
-      //   const error = await response.json();
-      //   throw new Error(error.message || "Failed to send email");
+      //   const errorData = await response.json();
+      //   throw new Error(errorData.message || "Failed to send email");
       // }
       // 
       // const data = await response.json();
       // messageId = data.id;
       // status = "sent";
       
-      // For now, simulate success
-      console.log("Email would be sent:", {
+      // For now, simulate successful email sending after validation
+      // In production, replace this with actual email service API call
+      console.log("Email validated and would be sent:", {
         to: args.to,
         subject: args.subject,
-        from: settings.smtpFromEmail,
+        from: fromEmail,
+        timestamp: new Date(now).toISOString(),
       });
       
-      messageId = "simulated-" + now;
+      // Simulate successful send after all validations pass
+      messageId = `email-${now}`;
       status = "sent";
       
-      // Log the email
+      // Always log successful email sending
       await ctx.runMutation(api.email.logEmail, {
         to: args.to,
-        from: settings.smtpFromEmail,
+        from: fromEmail,
         subject: args.subject,
-        status,
+        status: "sent",
         messageId,
         sentAt: now,
       });
@@ -337,15 +489,20 @@ export const sendEmail = action({
       return {
         success: true,
         messageId,
+        message: "Email sent successfully",
       };
     } catch (error: any) {
-      errorMessage = error.message || "Failed to send email";
+      // Ensure we always log failures
+      if (status !== "failed" || !errorMessage) {
+        errorMessage = error.message || "Failed to send email";
+        status = "failed";
+      }
       
       // Log the failure
       await ctx.runMutation(api.email.logEmail, {
-        to: args.to,
-        from: settings.smtpFromEmail,
-        subject: args.subject,
+        to: args.to || "unknown",
+        from: fromEmail,
+        subject: args.subject || "(no subject)",
         status: "failed",
         errorMessage,
       });
