@@ -61,7 +61,7 @@ export default defineSchema({
     userId: v.id("users"),
     content: v.string(),
     attachmentIds: v.array(v.id("_storage")),
-    visibility: v.union(v.literal("internal"), v.literal("external")), // internal: only agents/admins, external: all users
+    visibility: v.optional(v.union(v.literal("internal"), v.literal("external"))), // internal: only agents/admins, external: all users (optional for backward compatibility)
     createdAt: v.number(),
     updatedAt: v.number(),
   })

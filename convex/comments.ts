@@ -43,13 +43,15 @@ export const listByTicket = query({
     // Filter comments based on visibility and user role
     // Internal comments: only visible to agents and admins
     // External comments: visible to everyone
+    // Comments without visibility field (old comments): treated as external (visible to all)
     const filteredComments = comments.filter((comment) => {
-      // If visibility is not set (backward compatibility), treat as external (visible to all)
-      if (!comment.visibility || comment.visibility === "external") {
+      const visibility = comment.visibility ?? "external"; // Default to external for backward compatibility
+      
+      if (visibility === "external") {
         return true; // External comments visible to all
       }
       // Internal comments only visible to agents and admins
-      if (comment.visibility === "internal") {
+      if (visibility === "internal") {
         return userRole === "agent" || userRole === "admin";
       }
       // Default: hide if visibility is unknown and user is not agent/admin

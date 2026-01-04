@@ -62,16 +62,18 @@ export default function TicketDetailPage({
     const canSeeInternal = userRole === "agent" || userRole === "admin";
     
     return comments.filter((comment: any) => {
+      // Default to external for backward compatibility with old comments
+      const visibility = comment.visibility ?? "external";
+      
       // External comments visible to all
-      if (comment.visibility === "external") {
+      if (visibility === "external") {
         return true;
       }
       // Internal comments only visible to agents and admins
-      if (comment.visibility === "internal") {
+      if (visibility === "internal") {
         return canSeeInternal;
       }
-      // If visibility is not set (backward compatibility), only show to agents/admins
-      // This is safer - old comments without visibility are treated as potentially internal
+      // Default: hide if visibility is unknown and user is not agent/admin
       return canSeeInternal;
     });
   }, [comments, currentUser]);
