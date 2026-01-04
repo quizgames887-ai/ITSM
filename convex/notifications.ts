@@ -106,7 +106,31 @@ export const createBroadcast = mutation({
       //     body: args.message,
       //   });
       // }
-      console.log(`Email notifications would be sent to ${emailRecipients.length} recipients`);
+      
+      // Check if email integration is enabled
+      try {
+        const emailSettings = await ctx.db
+          .query("emailSettings")
+          .collect();
+        
+        const settings = emailSettings.length > 0 
+          ? emailSettings.sort((a, b) => b.updatedAt - a.updatedAt)[0]
+          : null;
+        
+        if (settings && settings.enabled && settings.smtpEnabled) {
+          console.log(`Email notifications would be sent to ${emailRecipients.length} recipients`);
+          // TODO: Implement actual email sending via HTTP action
+          // await ctx.scheduler.runAfter(0, "email:sendBulkEmails", {
+          //   recipients: emailRecipients,
+          //   subject: args.title,
+          //   html: args.message,
+          // });
+        } else {
+          console.log("Email integration not enabled - skipping email notifications");
+        }
+      } catch (error) {
+        console.error("Failed to check email settings:", error);
+      }
     }
     
     return { count: createdIds.length, ids: createdIds };

@@ -391,4 +391,45 @@ export default defineSchema({
     .index("by_status", ["status"])
     .index("by_dueDate", ["dueDate"])
     .index("by_createdBy_status", ["createdBy", "status"]),
+
+  // Email Integration Configuration
+  emailSettings: defineTable({
+    // SMTP Configuration for sending emails
+    smtpEnabled: v.boolean(),
+    smtpHost: v.string(),
+    smtpPort: v.number(),
+    smtpSecure: v.boolean(), // Use TLS/SSL
+    smtpUser: v.string(),
+    smtpPassword: v.string(), // Encrypted in production
+    smtpFromEmail: v.string(), // From email address
+    smtpFromName: v.optional(v.string()), // From name
+    
+    // IMAP/POP3 Configuration for receiving emails
+    inboundEnabled: v.boolean(),
+    inboundType: v.union(v.literal("imap"), v.literal("pop3")),
+    inboundHost: v.string(),
+    inboundPort: v.number(),
+    inboundSecure: v.boolean(), // Use TLS/SSL
+    inboundUser: v.string(),
+    inboundPassword: v.string(), // Encrypted in production
+    inboundMailbox: v.optional(v.string()), // Mailbox/folder to monitor (default: INBOX)
+    
+    // Inbound email processing settings
+    inboundCreateTickets: v.boolean(), // Create tickets from inbound emails
+    inboundTicketCategory: v.optional(v.string()), // Default category for email tickets
+    inboundTicketPriority: v.optional(v.union(
+      v.literal("low"),
+      v.literal("medium"),
+      v.literal("high"),
+      v.literal("critical")
+    )),
+    
+    // General settings
+    enabled: v.boolean(), // Master switch for email integration
+    lastCheckedAt: v.union(v.number(), v.null()), // Last time inbound emails were checked
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_enabled", ["enabled"]),
 });

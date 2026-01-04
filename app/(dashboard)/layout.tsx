@@ -58,6 +58,7 @@ export default function DashboardLayout({
     if (pathname === "/notifications") return t("nav.notifications", "Notification Management");
     if (pathname === "/announcements") return t("nav.announcements", "Announcements");
     if (pathname === "/roles") return t("nav.roles", "Auto-Assignment Rules");
+    if (pathname === "/email-settings") return "Email Integration";
     if (pathname === "/sla") return t("nav.sla", "SLA & Escalation");
     if (pathname === "/service-catalog") return t("nav.serviceCatalog", "Service Catalog");
     if (pathname === "/events") return t("nav.events", "Event Management");
