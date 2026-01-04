@@ -38,11 +38,11 @@ export default function TicketDetailPage({
   }, []);
   
   // Fetch comments with user ID for filtering
-  // Note: Temporarily only passing ticketId until Convex dev server syncs
-  // Once synced, the query will accept optional userId parameter
   const comments = useQuery(
     api.comments.listByTicket, 
-    { ticketId }
+    currentUserId 
+      ? { ticketId, userId: currentUserId as Id<"users"> }
+      : { ticketId }
   );
   
   // Get current user object
@@ -162,15 +162,12 @@ export default function TicketDetailPage({
       // Regular users can only create external comments
       const visibility = isAgentOrAdmin ? commentVisibility : "external";
       
-      // Temporarily not sending visibility until Convex dev server syncs
-      // Once synced, uncomment the visibility parameter below
-      // For now, all comments will default to "external" in the mutation handler
       await createComment({
         ticketId,
         userId: userId as any,
         content: commentText,
-        // visibility: visibility, // Uncomment once server syncs
-      } as any);
+        visibility: visibility,
+      });
       
       setCommentText("");
       setCommentVisibility("external"); // Reset to external after posting
