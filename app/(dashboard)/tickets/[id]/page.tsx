@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TicketAudit } from "@/components/tickets/TicketAudit";
-import { useState, use, useMemo } from "react";
+import { useState, use, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useToastContext } from "@/contexts/ToastContext";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -22,8 +22,54 @@ export default function TicketDetailPage({
   const { id } = use(params);
   const ticketId = id as Id<"tickets">;
   const ticket = useQuery(api.tickets.get, { id: ticketId });
-  const comments = useQuery(api.comments.listByTicket, { ticketId });
   const users = useQuery(api.users.list, {});
+  
+  // Get current user ID and role
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [currentUserRole, setCurrentUserRole] = useState<string | null>(null);
+  
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const userId = localStorage.getItem("userId");
+      const userRole = localStorage.getItem("userRole");
+      setCurrentUserId(userId);
+      setCurrentUserRole(userRole);
+    }
+  }, []);
+  
+  // Fetch comments with user ID for filtering
+  // Note: Temporarily only passing ticketId until Convex dev server syncs
+  // Once synced, the query will accept optional userId parameter
+  const comments = useQuery(
+    api.comments.listByTicket, 
+    { ticketId }
+  );
+  
+  // Get current user object
+  const currentUser = useMemo(() => {
+    if (!currentUserId || !users) return null;
+    return users.find((u) => u._id === currentUserId);
+  }, [currentUserId, users]);
+  
+  const isAgentOrAdmin = currentUser?.role === "agent" || currentUser?.role === "admin";
+  
+  // Filter comments client-side based on visibility and user role
+  const filteredComments = useMemo(() => {
+    if (!comments || !currentUser) return comments || [];
+    
+    return comments.filter((comment: any) => {
+      // External comments visible to all
+      if (comment.visibility === "external") {
+        return true;
+      }
+      // Internal comments only visible to agents and admins
+      if (comment.visibility === "internal") {
+        return currentUser.role === "agent" || currentUser.role === "admin";
+      }
+      // Default to showing if visibility is not set (backward compatibility)
+      return true;
+    });
+  }, [comments, currentUser]);
   const slaPolicies = useQuery(api.sla.list, {});
   const updateTicket = useMutation(api.tickets.update);
   const createComment = useMutation(api.comments.create);
@@ -42,11 +88,12 @@ export default function TicketDetailPage({
   );
 
   const [commentText, setCommentText] = useState("");
+  const [commentVisibility, setCommentVisibility] = useState<"internal" | "external">("external");
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
   const { success, error: showError } = useToastContext();
 
-  if (ticket === undefined || comments === undefined) {
+  if (ticket === undefined || comments === undefined || filteredComments === undefined) {
     return (
       <div className="animate-pulse space-y-6">
         <div className="h-8 bg-slate-200 rounded w-32"></div>
@@ -105,12 +152,21 @@ export default function TicketDetailPage({
       if (!userId) {
         throw new Error("Not authenticated");
       }
+      // Regular users can only create external comments
+      const visibility = isAgentOrAdmin ? commentVisibility : "external";
+      
+      // Temporarily not sending visibility until Convex dev server syncs
+      // Once synced, uncomment the visibility parameter below
+      // For now, all comments will default to "external" in the mutation handler
       await createComment({
         ticketId,
         userId: userId as any,
         content: commentText,
-      });
+        // visibility: visibility, // Uncomment once server syncs
+      } as any);
+      
       setCommentText("");
+      setCommentVisibility("external"); // Reset to external after posting
       success("Comment posted successfully!");
     } catch (error: any) {
       const errorMessage = error.message || "Failed to post comment";
@@ -529,8 +585,7 @@ export default function TicketDetailPage({
                 <p className="text-slate-400 text-xs mt-1">Be the first to add a comment</p>
               </div>
             ) : (
-              comments.map((comment: any, index) => {
-                const currentUserId = localStorage.getItem("userId");
+              filteredComments.map((comment: any, index) => {
                 const isCurrentUser = comment.userId === currentUserId;
 
                 return (
@@ -550,12 +605,19 @@ export default function TicketDetailPage({
                           size="sm"
                         />
                         <div>
-                          <span className="text-sm font-semibold text-slate-900">
-                            {comment.userName || "Unknown User"}
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-semibold text-slate-900">
+                              {comment.userName || "Unknown User"}
+                            </span>
                             {isCurrentUser && (
-                              <span className="ml-2 text-xs text-blue-600 font-normal">(You)</span>
+                              <span className="text-xs text-blue-600 font-normal">(You)</span>
                             )}
-                          </span>
+                            {comment.visibility === "internal" && (
+                              <span className="px-2 py-0.5 text-xs font-medium rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                                Internal
+                              </span>
+                            )}
+                          </div>
                           {comment.userEmail && (
                             <span className="block text-xs text-slate-500">{comment.userEmail}</span>
                           )}
@@ -582,6 +644,40 @@ export default function TicketDetailPage({
               placeholder="Write a comment..."
               rows={3}
             />
+            {isAgentOrAdmin && (
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-slate-700">Visibility:</label>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setCommentVisibility("external")}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
+                      commentVisibility === "external"
+                        ? "bg-blue-50 border-blue-300 text-blue-700"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    External
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setCommentVisibility("internal")}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-lg border transition-colors ${
+                      commentVisibility === "internal"
+                        ? "bg-amber-50 border-amber-300 text-amber-700"
+                        : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    Internal
+                  </button>
+                </div>
+                <span className="text-xs text-slate-500">
+                  {commentVisibility === "internal" 
+                    ? "Only agents and admins can see this"
+                    : "Visible to everyone"}
+                </span>
+              </div>
+            )}
             <div className="flex justify-end">
               <Button
                 type="submit"
