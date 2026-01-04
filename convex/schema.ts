@@ -446,6 +446,7 @@ export default defineSchema({
     errorMessage: v.optional(v.string()), // Error message if failed
     messageId: v.optional(v.string()), // External message ID from email service
     sentAt: v.union(v.number(), v.null()), // Timestamp when email was sent
+    isSimulated: v.optional(v.boolean()), // Whether email was simulated (not actually sent)
     createdAt: v.number(), // Timestamp when log was created
   })
     .index("by_to", ["to"])

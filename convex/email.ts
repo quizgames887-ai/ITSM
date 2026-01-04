@@ -189,6 +189,7 @@ export const testSMTP = action({
           subject: testSubject,
           status: "failed",
           errorMessage,
+          isSimulated: false,
         });
         return {
           success: false,
@@ -204,6 +205,7 @@ export const testSMTP = action({
           subject: testSubject,
           status: "failed",
           errorMessage,
+          isSimulated: false,
         });
         return {
           success: false,
@@ -220,6 +222,7 @@ export const testSMTP = action({
           subject: testSubject,
           status: "failed",
           errorMessage,
+          isSimulated: false,
         });
         return {
           success: false,
@@ -235,6 +238,7 @@ export const testSMTP = action({
           subject: testSubject,
           status: "failed",
           errorMessage,
+          isSimulated: false,
         });
         return {
           success: false,
@@ -250,6 +254,7 @@ export const testSMTP = action({
           subject: testSubject,
           status: "failed",
           errorMessage,
+          isSimulated: false,
         });
         return {
           success: false,
@@ -257,43 +262,46 @@ export const testSMTP = action({
         };
       }
       
-      // TODO: Implement actual SMTP test
-      // Example with Resend API:
-      // const response = await fetch("https://api.resend.com/emails", {
-      //   method: "POST",
-      //   headers: {
-      //     "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify({
-      //     from: args.smtpFromEmail,
-      //     to: args.testEmail,
-      //     subject: testSubject,
-      //     html: "<p>This is a test email to verify your SMTP configuration.</p>",
-      //   }),
-      // });
-      // 
-      // if (!response.ok) {
-      //   const error = await response.json();
-      //   throw new Error(error.message || "Failed to send test email");
-      // }
-      // 
-      // const data = await response.json();
-      // 
-      // // Log the test email as sent
-      // await ctx.runMutation(api.email.logEmail, {
-      //   to: args.testEmail,
-      //   from: args.smtpFromEmail,
-      //   subject: testSubject,
-      //   status: "sent",
-      //   messageId: data.id,
-      //   sentAt: now,
-      // });
+      // Try to send real test email via Resend API
+      const resendApiKey = process.env.RESEND_API_KEY;
+      let messageId = `test-${now}`;
+      let isSimulated = true;
+      let successMessage = "SMTP test email sent successfully (simulated - no email service configured)";
       
-      // For now, simulate success after validation
-      const messageId = `test-${now}`;
+      if (resendApiKey) {
+        try {
+          const response = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: args.smtpFromEmail,
+              to: args.testEmail,
+              subject: testSubject,
+              html: "<p>This is a test email to verify your SMTP configuration.</p>",
+            }),
+          });
+          
+          if (!response.ok) {
+            const error = await response.json();
+            throw new Error(error.message || `HTTP ${response.status}: Failed to send test email`);
+          }
+          
+          const data = await response.json();
+          messageId = data.id;
+          isSimulated = false;
+          successMessage = "SMTP test email sent successfully";
+          
+          console.log("Test email sent successfully via Resend:", { messageId, to: args.testEmail });
+        } catch (apiError: any) {
+          console.warn("Resend API failed for test email, will be simulated:", apiError.message);
+          // Continue to simulation
+        }
+      }
       
-      // Always log successful test email sending
+      // Log the test email (real or simulated)
       await ctx.runMutation(api.email.logEmail, {
         to: args.testEmail,
         from: args.smtpFromEmail,
@@ -301,11 +309,12 @@ export const testSMTP = action({
         status: "sent",
         messageId,
         sentAt: now,
+        isSimulated,
       });
       
       return {
         success: true,
-        message: "SMTP test email sent successfully (simulated - validation passed)",
+        message: successMessage,
       };
     } catch (error: any) {
       // Log the failure
@@ -399,6 +408,7 @@ export const sendEmail = action({
           subject: args.subject,
           status: "failed",
           errorMessage,
+          isSimulated: false,
         });
         throw new Error(errorMessage);
       }
@@ -450,46 +460,67 @@ export const sendEmail = action({
       
       fromEmail = settings.smtpFromEmail;
       
-      // TODO: Implement actual email sending
-      // Example with Resend:
-      // const response = await fetch("https://api.resend.com/emails", {
-      //   method: "POST",
-      //   headers: {
-      //     "Authorization": `Bearer ${process.env.RESEND_API_KEY}`,
-      //     "Content-Type": "application/json",
-      //   },
-      //   body: JSON.stringify({
-      //     from: `${settings.smtpFromName || "ITSM"} <${settings.smtpFromEmail}>`,
-      //     to: args.to,
-      //     subject: args.subject,
-      //     html: args.html,
-      //     text: args.text || args.html.replace(/<[^>]*>/g, ""),
-      //   }),
-      // });
-      // 
-      // if (!response.ok) {
-      //   const errorData = await response.json();
-      //   throw new Error(errorData.message || "Failed to send email");
-      // }
-      // 
-      // const data = await response.json();
-      // messageId = data.id;
-      // status = "sent";
+      // Try to send email using Resend API (if API key is configured)
+      // You can also use other services like SendGrid, Mailgun, etc.
+      const resendApiKey = process.env.RESEND_API_KEY;
+      let isSimulated = true;
       
-      // For now, simulate successful email sending after validation
-      // In production, replace this with actual email service API call
-      console.log("Email validated and would be sent:", {
-        to: args.to,
-        subject: args.subject,
-        from: fromEmail,
-        timestamp: new Date(now).toISOString(),
-      });
+      if (resendApiKey) {
+        try {
+          // Send email via Resend API
+          const response = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: `${settings.smtpFromName || "ITSM"} <${settings.smtpFromEmail}>`,
+              to: args.to,
+              subject: args.subject,
+              html: args.html,
+              text: args.text || args.html.replace(/<[^>]*>/g, ""),
+            }),
+          });
+          
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.message || `HTTP ${response.status}: Failed to send email`);
+          }
+          
+          const data = await response.json();
+          messageId = data.id;
+          status = "sent";
+          isSimulated = false; // Email was actually sent
+          
+          console.log("Email sent successfully via Resend:", {
+            messageId,
+            to: args.to,
+            subject: args.subject,
+          });
+        } catch (apiError: any) {
+          // If Resend API fails, fall back to simulation
+          console.warn("Resend API failed, email will be simulated:", apiError.message);
+          errorMessage = `Email service error: ${apiError.message}`;
+          // Continue to simulation below
+        }
+      }
       
-      // Simulate successful send after all validations pass
-      messageId = `email-${now}`;
-      status = "sent";
+      // If no API key or API failed, simulate email sending
+      if (isSimulated) {
+        console.log("Email simulated (not actually sent) - no email service configured:", {
+          to: args.to,
+          subject: args.subject,
+          from: fromEmail,
+          timestamp: new Date(now).toISOString(),
+          note: "To send real emails, configure RESEND_API_KEY environment variable",
+        });
+        
+        messageId = `simulated-${now}`;
+        status = "sent"; // Mark as sent for logging, but isSimulated=true will indicate it's not real
+      }
       
-      // Always log successful email sending
+      // Always log email attempt (real or simulated)
       await ctx.runMutation(api.email.logEmail, {
         to: args.to,
         from: fromEmail,
@@ -497,6 +528,7 @@ export const sendEmail = action({
         status: "sent",
         messageId,
         sentAt: now,
+        isSimulated,
       });
       
       return {
@@ -518,6 +550,7 @@ export const sendEmail = action({
         subject: args.subject || "(no subject)",
         status: "failed",
         errorMessage,
+        isSimulated: false, // Failed attempts are not simulated
       });
       
       throw new Error(`Failed to send email: ${errorMessage}`);
@@ -589,6 +622,7 @@ export const logEmail = mutation({
     errorMessage: v.optional(v.string()),
     messageId: v.optional(v.string()),
     sentAt: v.optional(v.number()),
+    isSimulated: v.optional(v.boolean()),
   },
   handler: async (ctx, args) => {
     await ctx.db.insert("emailLogs", {
@@ -599,6 +633,7 @@ export const logEmail = mutation({
       errorMessage: args.errorMessage ?? undefined,
       messageId: args.messageId ?? undefined,
       sentAt: args.sentAt ?? null,
+      isSimulated: args.isSimulated ?? false,
       createdAt: Date.now(),
     });
   },

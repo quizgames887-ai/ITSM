@@ -600,6 +600,7 @@ export default function EmailSettingsPage() {
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">From</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Subject</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Status</th>
+                    <th className="text-left py-3 px-4 font-semibold text-slate-700">Type</th>
                     <th className="text-left py-3 px-4 font-semibold text-slate-700">Error</th>
                   </tr>
                 </thead>
@@ -607,6 +608,7 @@ export default function EmailSettingsPage() {
                   {emailLogs.map((log: any) => {
                     const date = new Date(log.sentAt || log.createdAt);
                     const timeStr = date.toLocaleString();
+                    const isSimulated = log.isSimulated === true;
                     
                     return (
                       <tr key={log._id} className="border-b border-slate-100 hover:bg-slate-50">
@@ -626,6 +628,23 @@ export default function EmailSettingsPage() {
                           >
                             {log.status === "sent" ? "✓ Sent" : log.status === "failed" ? "✗ Failed" : "⏳ Pending"}
                           </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          {isSimulated ? (
+                            <span
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-orange-100 text-orange-800"
+                              title="Email was simulated (not actually sent). Configure RESEND_API_KEY to send real emails."
+                            >
+                              🧪 Simulated
+                            </span>
+                          ) : (
+                            <span
+                              className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"
+                              title="Email was actually sent via email service"
+                            >
+                              ✉️ Real
+                            </span>
+                          )}
                         </td>
                         <td className="py-3 px-4 text-slate-600 text-xs">
                           {log.errorMessage ? (
