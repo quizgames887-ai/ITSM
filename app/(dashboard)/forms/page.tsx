@@ -28,8 +28,9 @@ export default function FormsPage() {
     currentUserId ? { id: currentUserId as Id<"users"> } : "skip"
   );
   
-  // Check if current user is admin
+  // Check if current user is admin or agent
   const isAdmin = currentUser?.role === "admin";
+  const isAgentOrAdmin = currentUser?.role === "admin" || currentUser?.role === "agent";
 
   const handleDelete = async (id: Id<"forms">, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -144,13 +145,16 @@ export default function FormsPage() {
             </h1>
             <p className="text-sm sm:text-base text-slate-600">Manage and design your custom forms</p>
           </div>
-          <Link href="/forms/new" className="w-full sm:w-auto">
-            <Button variant="gradient" size="lg" className="w-full sm:w-auto">
-              <span className="mr-2">+</span>
-              <span className="hidden sm:inline">Create New Form</span>
-              <span className="sm:hidden">New Form</span>
-            </Button>
-          </Link>
+          {/* Only show Create New Form button to admins and agents */}
+          {currentUser && isAgentOrAdmin && (
+            <Link href="/forms/new" className="w-full sm:w-auto">
+              <Button variant="gradient" size="lg" className="w-full sm:w-auto">
+                <span className="mr-2">+</span>
+                <span className="hidden sm:inline">Create New Form</span>
+                <span className="sm:hidden">New Form</span>
+              </Button>
+            </Link>
+          )}
         </div>
 
         {forms.length === 0 ? (
@@ -186,31 +190,34 @@ export default function FormsPage() {
                 </Button>
               </div>
             </Card>
-            <Card hover padding="lg">
-              <EmptyState
-                icon={
-                  <svg
-                    className="w-12 h-12 text-slate-400"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                    />
-                  </svg>
-                }
-                title="Or create a custom form"
-                description="Create custom forms to collect data, gather feedback, or build surveys. Design forms with drag-and-drop fields."
-                action={{
-                  label: "Create custom form",
-                  href: "/forms/new",
-                }}
-              />
-            </Card>
+            {/* Only show create custom form option to admins and agents */}
+            {currentUser && isAgentOrAdmin && (
+              <Card hover padding="lg">
+                <EmptyState
+                  icon={
+                    <svg
+                      className="w-12 h-12 text-slate-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                      />
+                    </svg>
+                  }
+                  title="Or create a custom form"
+                  description="Create custom forms to collect data, gather feedback, or build surveys. Design forms with drag-and-drop fields."
+                  action={{
+                    label: "Create custom form",
+                    href: "/forms/new",
+                  }}
+                />
+              </Card>
+            )}
           </div>
         ) : !ticketForm ? (
           <>
