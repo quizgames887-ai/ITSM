@@ -270,7 +270,7 @@ export const testSMTP = action({
       
       if (resendApiKey) {
         try {
-          const response = await fetch("https://api.resend.com/emails", {
+          const response: Response = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${resendApiKey}`,
@@ -285,11 +285,11 @@ export const testSMTP = action({
           });
           
           if (!response.ok) {
-            const error = await response.json();
+            const error: any = await response.json();
             throw new Error(error.message || `HTTP ${response.status}: Failed to send test email`);
           }
           
-          const data = await response.json();
+          const data: { id: string } = await response.json();
           messageId = data.id;
           isSimulated = false;
           successMessage = "SMTP test email sent successfully";
@@ -468,7 +468,7 @@ export const sendEmail = action({
       if (resendApiKey) {
         try {
           // Send email via Resend API
-          const response = await fetch("https://api.resend.com/emails", {
+          const response: Response = await fetch("https://api.resend.com/emails", {
             method: "POST",
             headers: {
               "Authorization": `Bearer ${resendApiKey}`,
@@ -484,11 +484,11 @@ export const sendEmail = action({
           });
           
           if (!response.ok) {
-            const errorData = await response.json();
+            const errorData: any = await response.json();
             throw new Error(errorData.message || `HTTP ${response.status}: Failed to send email`);
           }
           
-          const data = await response.json();
+          const data: { id: string } = await response.json();
           messageId = data.id;
           status = "sent";
           isSimulated = false; // Email was actually sent
