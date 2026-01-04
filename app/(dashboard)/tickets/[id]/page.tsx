@@ -55,7 +55,11 @@ export default function TicketDetailPage({
   
   // Filter comments client-side based on visibility and user role
   const filteredComments = useMemo(() => {
-    if (!comments || !currentUser) return comments || [];
+    if (!comments) return [];
+    
+    // Get user role - default to "user" if not loaded yet (safer to hide internal comments)
+    const userRole = currentUser?.role || null;
+    const canSeeInternal = userRole === "agent" || userRole === "admin";
     
     return comments.filter((comment: any) => {
       // External comments visible to all
@@ -64,10 +68,11 @@ export default function TicketDetailPage({
       }
       // Internal comments only visible to agents and admins
       if (comment.visibility === "internal") {
-        return currentUser.role === "agent" || currentUser.role === "admin";
+        return canSeeInternal;
       }
-      // Default to showing if visibility is not set (backward compatibility)
-      return true;
+      // If visibility is not set (backward compatibility), only show to agents/admins
+      // This is safer - old comments without visibility are treated as potentially internal
+      return canSeeInternal;
     });
   }, [comments, currentUser]);
   const slaPolicies = useQuery(api.sla.list, {});
