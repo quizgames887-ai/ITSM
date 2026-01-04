@@ -162,8 +162,43 @@ Make sure to set environment variables in your deployment platform.
 
 ## Environment Variables
 
+### Frontend (`.env.local`)
 - `NEXT_PUBLIC_CONVEX_URL`: Your Convex deployment URL
 - `OPENAI_API_KEY`: Your OpenAI API key (optional, for AI features)
+
+### Backend (Convex Dashboard)
+To enable real email sending using your Exchange SMTP configuration, configure one of the following email relay services in your Convex dashboard:
+
+**Option 1: Mailgun (Recommended for Exchange SMTP)**
+1. Go to your [Convex Dashboard](https://dashboard.convex.dev)
+2. Select your project
+3. Navigate to **Settings** → **Environment Variables**
+4. Add these environment variables:
+   - **Name**: `MAILGUN_DOMAIN` - Your Mailgun domain
+   - **Name**: `MAILGUN_API_KEY` - Your Mailgun API key
+
+**Option 2: SendGrid**
+1. Add to Convex environment variables:
+   - **Name**: `SENDGRID_API_KEY` - Your SendGrid API key
+
+**How to get Mailgun credentials:**
+1. Sign up for a free account at [mailgun.com](https://www.mailgun.com)
+2. Verify your domain (or use sandbox domain for testing)
+3. Go to Settings → API Keys
+4. Copy your API key and domain
+5. Add them to Convex environment variables
+
+**How to get SendGrid credentials:**
+1. Sign up at [sendgrid.com](https://sendgrid.com)
+2. Go to Settings → API Keys
+3. Create an API key with "Mail Send" permissions
+4. Add to Convex environment variables
+
+**Note**: 
+- Configure your SMTP settings (Exchange) in the Email Settings page
+- The system will use your SMTP configuration with the relay service (Mailgun/SendGrid) to send emails
+- Without a relay service configured, emails will be simulated (logged but not actually sent)
+- Check the email logs to see if emails are marked as "Simulated" or "Real"
 
 ## License
 

@@ -251,6 +251,28 @@ export default function EmailSettingsPage() {
           </div>
         </div>
 
+        {/* Configuration Notice */}
+        <Card padding="lg" className="border-2 border-orange-200 bg-orange-50/30">
+          <div className="flex items-start gap-3">
+            <span className="text-2xl">ℹ️</span>
+            <div className="flex-1">
+              <h3 className="text-lg font-semibold text-slate-900 mb-2">Email Service Configuration</h3>
+              <p className="text-sm text-slate-600 mb-2">
+                To send <strong>real emails</strong> (instead of simulation), you need to configure the Resend API key in your Convex dashboard:
+              </p>
+              <ol className="text-sm text-slate-700 list-decimal list-inside space-y-1 mb-2">
+                <li>Get a free API key from <a href="https://resend.com" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">resend.com</a></li>
+                <li>Go to your <a href="https://dashboard.convex.dev" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Convex Dashboard</a> → Settings → Environment Variables</li>
+                <li>Add <code className="bg-slate-200 px-1 rounded">RESEND_API_KEY</code> with your API key value</li>
+                <li>Redeploy your Convex functions</li>
+              </ol>
+              <p className="text-xs text-slate-500">
+                Without the API key, emails will be simulated and logged but not actually sent. Check the Email Logs below to see if emails are marked as "Simulated" or "Real".
+              </p>
+            </div>
+          </div>
+        </Card>
+
         {/* Master Switch */}
         <Card padding="lg" className="border-2 border-blue-200 bg-blue-50/30">
           <div className="flex items-center justify-between">
