@@ -152,17 +152,73 @@ export default function FormsPage() {
           </Card>
         ) : (
           <>
-            {/* Quick access to Ticket Form */}
+            {/* Quick access to Ticket Form - Administration Section */}
             {ticketForm && (
               <Card
                 padding="lg"
                 className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200"
               >
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
+                <div className="flex flex-col gap-4">
+                  <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg
+                          className="w-5 h-5 text-blue-600"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
+                        >
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          />
+                        </svg>
+                        <h3 className="text-lg font-semibold text-slate-900">
+                          Ticket Form Administration
+                        </h3>
+                        <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                          Active Form
+                        </span>
+                      </div>
+                      <p className="text-sm text-slate-600 mb-3">
+                        {ticketForm.description || "Manage ticket creation fields and settings"}
+                      </p>
+                      <div className="flex flex-wrap gap-2 text-xs text-slate-600">
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+                          </svg>
+                          Add Fields
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                          Remove Fields
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                          </svg>
+                          Change Priority
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <svg className="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                          </svg>
+                          Edit Fields
+                        </span>
+                      </div>
+                    </div>
+                    <Button
+                      variant="gradient"
+                      onClick={() => router.push(`/forms/${ticketForm._id}/design`)}
+                      className="w-full sm:w-auto"
+                    >
                       <svg
-                        className="w-5 h-5 text-blue-600"
+                        className="w-4 h-4 mr-2"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -171,40 +227,12 @@ export default function FormsPage() {
                           strokeLinecap="round"
                           strokeLinejoin="round"
                           strokeWidth={2}
-                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                         />
                       </svg>
-                      <h3 className="text-lg font-semibold text-slate-900">
-                        Ticket Form
-                      </h3>
-                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                        Active Form
-                      </span>
-                    </div>
-                    <p className="text-sm text-slate-600">
-                      {ticketForm.description || "Manage ticket creation fields and settings"}
-                    </p>
+                      Manage Ticket Form
+                    </Button>
                   </div>
-                  <Button
-                    variant="gradient"
-                    onClick={() => router.push(`/forms/${ticketForm._id}/design`)}
-                    className="w-full sm:w-auto"
-                  >
-                    <svg
-                      className="w-4 h-4 mr-2"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
-                      />
-                    </svg>
-                    Update Ticket Form
-                  </Button>
                 </div>
               </Card>
             )}

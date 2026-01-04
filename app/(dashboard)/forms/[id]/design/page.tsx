@@ -210,6 +210,8 @@ export default function FormDesignerPage({
     }
   };
 
+  const isTicketForm = form.name.toLowerCase().includes("ticket");
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
       <div className="max-w-7xl mx-auto animate-fade-in">
@@ -220,6 +222,30 @@ export default function FormDesignerPage({
               <span className="sm:hidden">← Back</span>
             </Button>
           </Link>
+          
+          {/* Administration Info Banner for Ticket Form */}
+          {isTicketForm && (
+            <Card padding="md" className="mb-4 bg-blue-50 border border-blue-200">
+              <div className="flex items-start gap-3">
+                <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-slate-900 mb-1">Ticket Form Administration</h3>
+                  <p className="text-xs text-slate-600 mb-2">
+                    As an administrator, you can manage the ticket form fields:
+                  </p>
+                  <ul className="text-xs text-slate-600 space-y-1 list-disc list-inside">
+                    <li><strong>Add Fields:</strong> Click the "Add Field" button to create new form fields</li>
+                    <li><strong>Remove Fields:</strong> Click "Delete" on any field card to remove it</li>
+                    <li><strong>Change Priority:</strong> Use the up/down arrows to reorder fields (priority determines display order)</li>
+                    <li><strong>Edit Fields:</strong> Click "Edit" on any field to modify its properties</li>
+                  </ul>
+                </div>
+              </div>
+            </Card>
+          )}
+
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
