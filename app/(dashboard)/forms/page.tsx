@@ -44,6 +44,16 @@ export default function FormsPage() {
     }
   };
 
+  const handleEdit = (id: Id<"forms">, e: React.MouseEvent) => {
+    e.stopPropagation();
+    router.push(`/forms/${id}/design`);
+  };
+
+  // Find ticket form (case-insensitive match)
+  const ticketForm = forms?.find(
+    (form) => form.name.toLowerCase().includes("ticket")
+  );
+
   // Wait for both queries to load before checking admin status
   if (forms === undefined || (currentUserId && currentUser === undefined)) {
     return (
@@ -141,34 +151,47 @@ export default function FormsPage() {
             />
           </Card>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
-            {forms.map((form, index) => (
+          <>
+            {/* Quick access to Ticket Form */}
+            {ticketForm && (
               <Card
-                key={form._id}
-                hover
                 padding="lg"
-                className="animate-fade-in cursor-pointer"
-                style={{ animationDelay: `${index * 50}ms` }}
-                onClick={() => router.push(`/forms/${form._id}/design`)}
+                className="mb-6 bg-gradient-to-r from-blue-50 to-indigo-50 border-2 border-blue-200"
               >
-                <div className="flex justify-between items-start mb-4">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
                   <div className="flex-1">
-                    <h3 className="text-xl font-semibold text-slate-900 mb-2">
-                      {form.name}
-                    </h3>
-                    {form.description && (
-                      <p className="text-sm text-slate-600 mb-3">
-                        {form.description}
-                      </p>
-                    )}
+                    <div className="flex items-center gap-2 mb-2">
+                      <svg
+                        className="w-5 h-5 text-blue-600"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth={2}
+                          d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                        />
+                      </svg>
+                      <h3 className="text-lg font-semibold text-slate-900">
+                        Ticket Form
+                      </h3>
+                      <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                        Active Form
+                      </span>
+                    </div>
+                    <p className="text-sm text-slate-600">
+                      {ticketForm.description || "Manage ticket creation fields and settings"}
+                    </p>
                   </div>
-                  <button
-                    onClick={(e) => handleDelete(form._id, e)}
-                    disabled={deletingId === form._id}
-                    className="ml-2 p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                  <Button
+                    variant="gradient"
+                    onClick={() => router.push(`/forms/${ticketForm._id}/design`)}
+                    className="w-full sm:w-auto"
                   >
                     <svg
-                      className="w-5 h-5"
+                      className="w-4 h-4 mr-2"
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
@@ -177,28 +200,108 @@ export default function FormsPage() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth={2}
-                        d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                        d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
                       />
                     </svg>
-                  </button>
-                </div>
-                <div className="flex items-center justify-between text-sm">
-                  <span
-                    className={`px-2 py-1 rounded-full text-xs font-medium ${
-                      form.isActive
-                        ? "bg-green-100 text-green-700"
-                        : "bg-slate-100 text-slate-700"
-                    }`}
-                  >
-                    {form.isActive ? "Active" : "Inactive"}
-                  </span>
-                  <span className="text-slate-500">
-                    {new Date(form.updatedAt).toLocaleDateString()}
-                  </span>
+                    Update Ticket Form
+                  </Button>
                 </div>
               </Card>
-            ))}
-          </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
+              {forms.map((form, index) => {
+                const isTicketForm = form.name.toLowerCase().includes("ticket");
+                return (
+                  <Card
+                    key={form._id}
+                    hover
+                    padding="lg"
+                    className={`animate-fade-in cursor-pointer ${
+                      isTicketForm ? "ring-2 ring-blue-300" : ""
+                    }`}
+                    style={{ animationDelay: `${index * 50}ms` }}
+                    onClick={() => router.push(`/forms/${form._id}/design`)}
+                  >
+                    <div className="flex justify-between items-start mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <h3 className="text-xl font-semibold text-slate-900">
+                            {form.name}
+                          </h3>
+                          {isTicketForm && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                              Ticket
+                            </span>
+                          )}
+                        </div>
+                        {form.description && (
+                          <p className="text-sm text-slate-600 mb-3">
+                            {form.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex gap-1">
+                        <button
+                          onClick={(e) => handleEdit(form._id, e)}
+                          className="p-1 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                          title="Edit form"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"
+                            />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={(e) => handleDelete(form._id, e)}
+                          disabled={deletingId === form._id}
+                          className="p-1 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                          title="Delete form"
+                        >
+                          <svg
+                            className="w-5 h-5"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center justify-between text-sm">
+                      <span
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${
+                          form.isActive
+                            ? "bg-green-100 text-green-700"
+                            : "bg-slate-100 text-slate-700"
+                        }`}
+                      >
+                        {form.isActive ? "Active" : "Inactive"}
+                      </span>
+                      <span className="text-slate-500">
+                        {new Date(form.updatedAt).toLocaleDateString()}
+                      </span>
+                    </div>
+                  </Card>
+                );
+              })}
+            </div>
+          </>
         )}
       </div>
     </div>
