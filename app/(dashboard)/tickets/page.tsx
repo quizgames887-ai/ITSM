@@ -361,6 +361,7 @@ export default function TicketsPage() {
         urgency: ticketData.urgency,
         category: ticketData.category,
         createdBy: currentUserId as Id<"users">,
+        formData: formData, // Pass all form data including custom fields
       });
       
       success("Ticket created successfully!");

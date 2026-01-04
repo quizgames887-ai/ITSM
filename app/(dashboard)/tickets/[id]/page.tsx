@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TicketAudit } from "@/components/tickets/TicketAudit";
-import { useState, use } from "react";
+import { useState, use, useMemo } from "react";
 import Link from "next/link";
 import { useToastContext } from "@/contexts/ToastContext";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -27,6 +27,19 @@ export default function TicketDetailPage({
   const slaPolicies = useQuery(api.sla.list, {});
   const updateTicket = useMutation(api.tickets.update);
   const createComment = useMutation(api.comments.create);
+  
+  // Fetch all forms to find the ticket form
+  const forms = useQuery(api.forms.list, {});
+  const ticketForm = useMemo(() => {
+    if (!forms) return null;
+    return forms.find((form) => form.name.toLowerCase().includes("ticket"));
+  }, [forms]);
+  
+  // Fetch ticket form with fields
+  const ticketFormWithFields = useQuery(
+    api.forms.get,
+    ticketForm ? { id: ticketForm._id } : "skip"
+  );
 
   const [commentText, setCommentText] = useState("");
   const [loading, setLoading] = useState(false);
@@ -206,43 +219,163 @@ export default function TicketDetailPage({
             </p>
           </div>
 
-          {/* Details Grid */}
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-            <div className="bg-slate-50 rounded-xl p-4">
-              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Type</span>
-              <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.type.replace("_", " ")}</p>
-            </div>
-            <div className="bg-slate-50 rounded-xl p-4">
-              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Urgency</span>
-              <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.urgency}</p>
-            </div>
-            <div className="bg-slate-50 rounded-xl p-4">
-              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Assignee</span>
-              <p className="text-sm font-semibold text-slate-900">{getAssigneeName()}</p>
-            </div>
-            <div className="bg-slate-50 rounded-xl p-4">
-              <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Created</span>
-              <p className="text-sm font-semibold text-slate-900">
-                {new Date(ticket.createdAt).toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                  year: "numeric",
+          {/* Form Fields - Dynamic Display */}
+          {ticketFormWithFields && ticketFormWithFields.fields ? (
+            <div className="mb-8">
+              <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+                Form Details
+              </h2>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                {ticketFormWithFields.fields.map((field) => {
+                  const formData = ticket.formData || {};
+                  
+                  // Get value from ticket object for standard fields, otherwise from formData
+                  let fieldValue: any = null;
+                  if (field.name === "title") {
+                    fieldValue = ticket.title;
+                  } else if (field.name === "description") {
+                    fieldValue = ticket.description;
+                  } else if (field.name === "type") {
+                    // Map ticket type to form display value
+                    const typeMap: Record<string, string> = {
+                      "incident": "Incident",
+                      "service_request": "Service Request",
+                      "inquiry": "Inquiry",
+                    };
+                    fieldValue = typeMap[ticket.type] || ticket.type;
+                  } else if (field.name === "priority") {
+                    // Map ticket priority to form display value
+                    const priorityMap: Record<string, string> = {
+                      "low": "Low",
+                      "medium": "Medium",
+                      "high": "High",
+                      "critical": "Critical",
+                    };
+                    fieldValue = priorityMap[ticket.priority] || ticket.priority;
+                  } else if (field.name === "urgency") {
+                    // Map ticket urgency to form display value
+                    const urgencyMap: Record<string, string> = {
+                      "low": "Low",
+                      "medium": "Medium",
+                      "high": "High",
+                    };
+                    fieldValue = urgencyMap[ticket.urgency] || ticket.urgency;
+                  } else if (field.name === "category") {
+                    fieldValue = ticket.category;
+                  } else {
+                    // Custom field - get from formData
+                    fieldValue = formData[field.name];
+                  }
+                  
+                  // Skip if field value is empty and field is not required
+                  if ((fieldValue === null || fieldValue === undefined || fieldValue === "") && !field.required) {
+                    return null;
+                  }
+                  
+                  // Format the value based on field type
+                  let displayValue: string = "";
+                  if (fieldValue === null || fieldValue === undefined || fieldValue === "") {
+                    displayValue = "—";
+                  } else if (field.fieldType === "checkbox") {
+                    displayValue = fieldValue ? "Yes" : "No";
+                  } else if (field.fieldType === "date" && fieldValue) {
+                    try {
+                      displayValue = new Date(fieldValue).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      });
+                    } catch {
+                      displayValue = String(fieldValue);
+                    }
+                  } else {
+                    displayValue = String(fieldValue);
+                  }
+                  
+                  return (
+                    <div key={field._id} className="bg-slate-50 rounded-xl p-4">
+                      <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">
+                        {field.label}
+                        {field.required && <span className="text-red-500 ml-1">*</span>}
+                      </span>
+                      <p className="text-sm font-semibold text-slate-900 break-words">
+                        {displayValue}
+                      </p>
+                    </div>
+                  );
                 })}
-              </p>
+                
+                {/* System Fields */}
+                <div className="bg-slate-50 rounded-xl p-4">
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Assignee</span>
+                  <p className="text-sm font-semibold text-slate-900">{getAssigneeName()}</p>
+                </div>
+                <div className="bg-slate-50 rounded-xl p-4">
+                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Created</span>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {new Date(ticket.createdAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+                {ticket.resolvedAt && (
+                  <div className="bg-green-50 rounded-xl p-4">
+                    <span className="text-xs font-medium text-green-600 uppercase tracking-wide block mb-1">Resolved</span>
+                    <p className="text-sm font-semibold text-green-900">
+                      {new Date(ticket.resolvedAt).toLocaleDateString("en-US", {
+                        month: "short",
+                        day: "numeric",
+                        year: "numeric",
+                      })}
+                    </p>
+                  </div>
+                )}
+              </div>
             </div>
-            {ticket.resolvedAt && (
-              <div className="bg-green-50 rounded-xl p-4 col-span-2 lg:col-span-1">
-                <span className="text-xs font-medium text-green-600 uppercase tracking-wide block mb-1">Resolved</span>
-                <p className="text-sm font-semibold text-green-900">
-                  {new Date(ticket.resolvedAt).toLocaleDateString("en-US", {
+          ) : (
+            /* Fallback to old display if form not found */
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+              <div className="bg-slate-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Type</span>
+                <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.type.replace("_", " ")}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Urgency</span>
+                <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.urgency}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Assignee</span>
+                <p className="text-sm font-semibold text-slate-900">{getAssigneeName()}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Created</span>
+                <p className="text-sm font-semibold text-slate-900">
+                  {new Date(ticket.createdAt).toLocaleDateString("en-US", {
                     month: "short",
                     day: "numeric",
                     year: "numeric",
                   })}
                 </p>
               </div>
-            )}
-          </div>
+              {ticket.resolvedAt && (
+                <div className="bg-green-50 rounded-xl p-4 col-span-2 lg:col-span-1">
+                  <span className="text-xs font-medium text-green-600 uppercase tracking-wide block mb-1">Resolved</span>
+                  <p className="text-sm font-semibold text-green-900">
+                    {new Date(ticket.resolvedAt).toLocaleDateString("en-US", {
+                      month: "short",
+                      day: "numeric",
+                      year: "numeric",
+                    })}
+                  </p>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* SLA Details Section */}
           {ticket.slaDeadline && (() => {

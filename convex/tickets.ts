@@ -242,6 +242,7 @@ export const create = mutation({
     category: v.string(),
     createdBy: v.id("users"),
     assignedTo: v.optional(v.id("users")),
+    formData: v.optional(v.any()), // All form field values including custom fields
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -281,6 +282,7 @@ export const create = mutation({
       resolvedAt: null,
       aiCategorySuggestion: null,
       aiPrioritySuggestion: null,
+      formData: args.formData ?? undefined,
       createdAt: now,
       updatedAt: now,
     });

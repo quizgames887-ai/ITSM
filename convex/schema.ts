@@ -45,6 +45,7 @@ export default defineSchema({
     resolvedAt: v.union(v.number(), v.null()),
     aiCategorySuggestion: v.union(v.string(), v.null()),
     aiPrioritySuggestion: v.union(v.string(), v.null()),
+    formData: v.optional(v.any()), // Store all form field values including custom fields
     createdAt: v.number(),
     updatedAt: v.number(),
   })
