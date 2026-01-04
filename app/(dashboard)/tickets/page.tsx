@@ -4,17 +4,13 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
-import { Textarea } from "@/components/ui/textarea";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatsCard } from "@/components/dashboard/StatsCard";
+import { DynamicForm } from "@/components/forms/DynamicForm";
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
-
-const TICKET_CATEGORIES = ["IT Support", "HR", "Finance", "Facilities", "Security", "Other"];
 
 export default function TicketsPage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -67,6 +63,19 @@ export default function TicketsPage() {
   const slaPolicies = useQuery(api.sla.list, {});
   const createTicket = useMutation(api.tickets.create);
   
+  // Fetch all forms to find the ticket form
+  const forms = useQuery(api.forms.list, {});
+  const ticketForm = useMemo(() => {
+    if (!forms) return null;
+    return forms.find((form) => form.name.toLowerCase().includes("ticket"));
+  }, [forms]);
+  
+  // Fetch ticket form with fields
+  const ticketFormWithFields = useQuery(
+    api.forms.get,
+    ticketForm ? { id: ticketForm._id } : "skip"
+  );
+  
   const { success, error: showError } = useToastContext();
   
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -76,14 +85,49 @@ export default function TicketsPage() {
   // Tab state for agents: "created" (My Tickets) or "assigned" (Assigned to Me)
   const [activeTab, setActiveTab] = useState<"created" | "assigned">("created");
   
-  const [newTicket, setNewTicket] = useState({
-    title: "",
-    description: "",
-    type: "incident" as "incident" | "service_request" | "inquiry",
-    priority: "medium" as "low" | "medium" | "high" | "critical",
-    urgency: "medium" as "low" | "medium" | "high",
-    category: "IT Support",
-  });
+  // Helper function to map form field values to ticket creation format
+  const mapFormDataToTicket = (formData: Record<string, any>) => {
+    // Map type from form value to ticket format
+    const typeMap: Record<string, "incident" | "service_request" | "inquiry"> = {
+      "Incident": "incident",
+      "Service Request": "service_request",
+      "Inquiry": "inquiry",
+      "incident": "incident",
+      "service_request": "service_request",
+      "inquiry": "inquiry",
+    };
+    
+    // Map priority from form value to ticket format
+    const priorityMap: Record<string, "low" | "medium" | "high" | "critical"> = {
+      "Low": "low",
+      "Medium": "medium",
+      "High": "high",
+      "Critical": "critical",
+      "low": "low",
+      "medium": "medium",
+      "high": "high",
+      "critical": "critical",
+    };
+    
+    // Map urgency from form value to ticket format
+    const urgencyMap: Record<string, "low" | "medium" | "high"> = {
+      "Low": "low",
+      "Medium": "medium",
+      "High": "high",
+      "low": "low",
+      "medium": "medium",
+      "high": "high",
+    };
+    
+    return {
+      title: formData.title || "",
+      description: formData.description || "",
+      type: typeMap[formData.type] || "incident",
+      priority: priorityMap[formData.priority] || "medium",
+      urgency: urgencyMap[formData.urgency] || "medium",
+      category: formData.category || "IT Support",
+    };
+  };
 
   const currentUserId = userId;
 
@@ -289,42 +333,38 @@ export default function TicketsPage() {
     };
   };
 
-  const handleCreateTicket = async () => {
-    if (!newTicket.title.trim()) {
+  const handleCreateTicket = async (formData: Record<string, any>) => {
+    if (!currentUserId) {
+      showError("You must be logged in to create a ticket");
+      return;
+    }
+
+    // Map form data to ticket format
+    const ticketData = mapFormDataToTicket(formData);
+    
+    if (!ticketData.title.trim()) {
       showError("Ticket title is required");
       return;
     }
-    if (!newTicket.description.trim()) {
+    if (!ticketData.description.trim()) {
       showError("Ticket description is required");
-      return;
-    }
-    if (!currentUserId) {
-      showError("You must be logged in to create a ticket");
       return;
     }
 
     setIsSubmitting(true);
     try {
       await createTicket({
-        title: newTicket.title.trim(),
-        description: newTicket.description.trim(),
-        type: newTicket.type,
-        priority: newTicket.priority,
-        urgency: newTicket.urgency,
-        category: newTicket.category,
+        title: ticketData.title.trim(),
+        description: ticketData.description.trim(),
+        type: ticketData.type,
+        priority: ticketData.priority,
+        urgency: ticketData.urgency,
+        category: ticketData.category,
         createdBy: currentUserId as Id<"users">,
       });
       
       success("Ticket created successfully!");
       setShowCreateForm(false);
-      setNewTicket({
-        title: "",
-        description: "",
-        type: "incident",
-        priority: "medium",
-        urgency: "medium",
-        category: "IT Support",
-      });
     } catch (err: any) {
       showError(err.message || "Failed to create ticket");
     } finally {
@@ -465,79 +505,37 @@ export default function TicketsPage() {
             </button>
           </div>
           
-          <div className="space-y-4">
-            <Input
-              label="Title"
-              value={newTicket.title}
-              onChange={(e) => setNewTicket({ ...newTicket, title: e.target.value })}
-              placeholder="Brief summary of the issue"
-            />
-            
-            <Textarea
-              label="Description"
-              value={newTicket.description}
-              onChange={(e) => setNewTicket({ ...newTicket, description: e.target.value })}
-              placeholder="Provide detailed information about your request..."
-              rows={4}
-            />
-            
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <Select
-                label="Type"
-                value={newTicket.type}
-                onChange={(e) => setNewTicket({ ...newTicket, type: e.target.value as any })}
-                options={[
-                  { value: "incident", label: "Incident" },
-                  { value: "service_request", label: "Service Request" },
-                  { value: "inquiry", label: "Inquiry" },
-                ]}
-              />
-              
-              <Select
-                label="Priority"
-                value={newTicket.priority}
-                onChange={(e) => setNewTicket({ ...newTicket, priority: e.target.value as any })}
-                options={[
-                  { value: "low", label: "Low" },
-                  { value: "medium", label: "Medium" },
-                  { value: "high", label: "High" },
-                  { value: "critical", label: "Critical" },
-                ]}
-              />
-              
-              <Select
-                label="Urgency"
-                value={newTicket.urgency}
-                onChange={(e) => setNewTicket({ ...newTicket, urgency: e.target.value as any })}
-                options={[
-                  { value: "low", label: "Low" },
-                  { value: "medium", label: "Medium" },
-                  { value: "high", label: "High" },
-                ]}
-              />
-              
-              <Select
-                label="Category"
-                value={newTicket.category}
-                onChange={(e) => setNewTicket({ ...newTicket, category: e.target.value })}
-                options={TICKET_CATEGORIES.map((cat) => ({ value: cat, label: cat }))}
-              />
-            </div>
-            
-            <div className="flex gap-2 pt-2">
-              <Button 
-                variant="gradient" 
-                onClick={handleCreateTicket}
-                disabled={isSubmitting}
+          {ticketFormWithFields && ticketFormWithFields.fields ? (
+            <div className="space-y-4">
+              <DynamicForm
+                fields={ticketFormWithFields.fields}
+                onSubmit={handleCreateTicket}
+                submitLabel={isSubmitting ? "Creating..." : "Create Ticket"}
                 loading={isSubmitting}
-              >
-                {isSubmitting ? "Creating..." : "Create Ticket"}
-              </Button>
-              <Button variant="outline" onClick={() => setShowCreateForm(false)}>
-                Cancel
-              </Button>
+              />
+              <div className="flex justify-end pt-2">
+                <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+                  Cancel
+                </Button>
+              </div>
             </div>
-          </div>
+          ) : ticketFormWithFields === undefined ? (
+            <div className="text-center py-8">
+              <div className="animate-pulse text-slate-500">Loading form...</div>
+            </div>
+          ) : (
+            <div className="text-center py-8">
+              <p className="text-slate-600 mb-4">Ticket form not found. Please create a ticket form first.</p>
+              <div className="flex gap-2 justify-center">
+                <Link href="/forms">
+                  <Button variant="gradient">Go to Forms</Button>
+                </Link>
+                <Button variant="outline" onClick={() => setShowCreateForm(false)}>
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </Card>
       )}
 
