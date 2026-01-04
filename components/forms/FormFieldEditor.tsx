@@ -36,18 +36,21 @@ interface FormField {
     maxLength: number | null;
   } | null;
   helpText: string | null;
+  order: number;
 }
 
 interface FormFieldEditorProps {
   field?: FormField;
   onSave: (data: any) => void;
   onCancel: () => void;
+  maxOrder?: number; // Maximum order value (total fields count)
 }
 
 export function FormFieldEditor({
   field,
   onSave,
   onCancel,
+  maxOrder = 0,
 }: FormFieldEditorProps) {
   const [fieldType, setFieldType] = useState<FieldType>(
     field?.fieldType || "text"
@@ -61,6 +64,9 @@ export function FormFieldEditor({
     field?.options?.join("\n") || ""
   );
   const [helpText, setHelpText] = useState(field?.helpText || "");
+  const [order, setOrder] = useState(
+    field?.order !== undefined ? field.order : maxOrder
+  );
   const [min, setMin] = useState(
     field?.validation?.min?.toString() || ""
   );
@@ -230,6 +236,19 @@ export function FormFieldEditor({
             placeholder="Help text to show below the field"
             rows={2}
           />
+
+          {/* Field Priority/Order - only show when editing existing field */}
+          {field && (
+            <Input
+              label="Field Priority (Order)"
+              type="number"
+              value={order}
+              onChange={(e) => setOrder(parseInt(e.target.value) || 0)}
+              placeholder="Field order/priority"
+              min={0}
+              max={maxOrder}
+            />
+          )}
 
           <div className="border-t border-slate-200 pt-4">
             <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-4">

@@ -6,6 +6,8 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToastContext } from "@/contexts/ToastContext";
 import Link from "next/link";
 import { FormFieldEditor } from "@/components/forms/FormFieldEditor";
@@ -23,6 +25,8 @@ export default function FormDesignerPage({
   const addField = useMutation(api.forms.addField);
   const updateField = useMutation(api.forms.updateField);
   const deleteField = useMutation(api.forms.deleteField);
+  const updateForm = useMutation(api.forms.update);
+  const reorderFields = useMutation(api.forms.reorderFields);
   const { success, error: showError } = useToastContext();
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
@@ -38,6 +42,12 @@ export default function FormDesignerPage({
 
   const [editingField, setEditingField] = useState<Id<"formFields"> | null>(null);
   const [showAddField, setShowAddField] = useState(false);
+  const [showEditForm, setShowEditForm] = useState(false);
+  const [formEditData, setFormEditData] = useState({
+    name: "",
+    description: "",
+    isActive: true,
+  });
 
   // Wait for both queries to load before checking admin status
   if (form === undefined || (currentUserId && currentUser === undefined)) {
@@ -153,21 +163,36 @@ export default function FormDesignerPage({
           </Link>
           <div className="flex flex-col sm:flex-row justify-between items-start gap-4">
             <div className="flex-1">
-              <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent mb-2 break-words">
-                {form.name}
-              </h1>
+              <div className="flex items-center gap-3 mb-2">
+                <h1 className="text-2xl sm:text-3xl lg:text-4xl font-bold bg-gradient-to-r from-slate-900 to-slate-700 bg-clip-text text-transparent break-words">
+                  {form.name}
+                </h1>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleEditForm}
+                  className="flex-shrink-0"
+                  title="Edit form details"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
+                </Button>
+              </div>
               {form.description && (
                 <p className="text-sm sm:text-base text-slate-600 break-words">{form.description}</p>
               )}
             </div>
-            <Button
-              variant="gradient"
-              onClick={() => setShowAddField(true)}
-              className="w-full sm:w-auto"
-            >
-              <span className="mr-2">+</span>
-              Add Field
-            </Button>
+            <div className="flex gap-2 w-full sm:w-auto">
+              <Button
+                variant="outline"
+                onClick={() => setShowAddField(true)}
+                className="w-full sm:w-auto"
+              >
+                <span className="mr-2">+</span>
+                Add Field
+              </Button>
+            </div>
           </div>
         </div>
 
@@ -218,6 +243,9 @@ export default function FormDesignerPage({
                             Required
                           </span>
                         )}
+                        <span className="px-2 py-1 bg-slate-100 text-slate-600 rounded text-xs font-medium">
+                          Priority: {field.order + 1}
+                        </span>
                       </div>
                       <h3 className="text-lg font-semibold text-slate-900 mb-1">
                         {field.label}
@@ -229,6 +257,29 @@ export default function FormDesignerPage({
                       )}
                     </div>
                     <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                      {/* Priority/Order controls */}
+                      <div className="flex gap-1">
+                        <button
+                          onClick={() => handleMoveField(field._id, "up")}
+                          disabled={index === 0}
+                          className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          title="Move up"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleMoveField(field._id, "down")}
+                          disabled={index === form.fields.length - 1}
+                          className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          title="Move down"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                      </div>
                       <Button
                         variant="outline"
                         size="sm"
@@ -292,6 +343,7 @@ export default function FormDesignerPage({
           <FormFieldEditor
             onSave={handleAddField}
             onCancel={() => setShowAddField(false)}
+            maxOrder={form.fields.length}
           />
         )}
 
@@ -300,7 +352,67 @@ export default function FormDesignerPage({
             field={form.fields.find((f) => f._id === editingField)}
             onSave={(data) => handleUpdateField(editingField, data)}
             onCancel={() => setEditingField(null)}
+            maxOrder={form.fields.length - 1}
           />
+        )}
+
+        {/* Edit Form Modal */}
+        {showEditForm && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-slate-200 p-4 sm:p-6 -m-4 sm:-m-6 mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Edit Form</h2>
+              </div>
+
+              <div className="space-y-4">
+                <Input
+                  label="Form Name"
+                  value={formEditData.name}
+                  onChange={(e) => setFormEditData({ ...formEditData, name: e.target.value })}
+                  required
+                  placeholder="Form name"
+                />
+
+                <Textarea
+                  label="Description"
+                  value={formEditData.description}
+                  onChange={(e) => setFormEditData({ ...formEditData, description: e.target.value })}
+                  placeholder="Form description (optional)"
+                  rows={3}
+                />
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isActive"
+                    checked={formEditData.isActive}
+                    onChange={(e) => setFormEditData({ ...formEditData, isActive: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <label htmlFor="isActive" className="text-sm font-medium text-slate-700">
+                    Active (form is available for use)
+                  </label>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t border-slate-200">
+                  <Button
+                    variant="gradient"
+                    onClick={handleUpdateForm}
+                    className="flex-1 sm:flex-none"
+                  >
+                    Update Form
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowEditForm(false)}
+                    className="flex-1 sm:flex-none"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
         )}
       </div>
     </div>
