@@ -1281,12 +1281,8 @@ export default function DashboardPage() {
                     </div>
                   )}
 
-                  {/* Loading state while form is being fetched */}
-                  {selectedService?.formId && serviceForm === undefined ? (
-                    <div className="text-center py-8">
-                      <p className="text-slate-600">Loading form...</p>
-                    </div>
-                  ) : !selectedService?.formId ? (
+                  {/* Check if service has formId first */}
+                  {!selectedService?.formId ? (
                     <div className="text-center py-8">
                       <p className="text-slate-600 mb-2">This service doesn't have a form configured yet.</p>
                       <p className="text-xs text-slate-500 mb-4">Would you like to create a default form for this service?</p>
@@ -1297,13 +1293,19 @@ export default function DashboardPage() {
                           onClick={async () => {
                             if (!userId || !selectedService) return;
                             try {
-                              const formId = await createFormForService({
+                              await createFormForService({
                                 serviceId: selectedService._id as Id<"serviceCatalog">,
                                 createdBy: userId as Id<"users">,
                               });
-                              success("Form created successfully! The form will load in a moment.");
-                              // Force refresh by updating the service
-                              setSelectedService({ ...selectedService, formId });
+                              success("Form created successfully! Refreshing...");
+                              // Close modal - the services query will automatically update (reactive)
+                              // and when user clicks the service again, it will have the formId
+                              setShowRequestForm(false);
+                              setSelectedService(null);
+                              // Show message to click service again
+                              setTimeout(() => {
+                                success("Form created! Please click on the service again to see the form.");
+                              }, 100);
                             } catch (err: any) {
                               showError(err.message || "Failed to create form");
                             }
@@ -1317,6 +1319,10 @@ export default function DashboardPage() {
                           </Button>
                         </Link>
                       </div>
+                    </div>
+                  ) : serviceForm === undefined ? (
+                    <div className="text-center py-8">
+                      <p className="text-slate-600">Loading form...</p>
                     </div>
                   ) : serviceForm === null ? (
                     <div className="text-center py-8">
