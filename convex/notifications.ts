@@ -1,7 +1,6 @@
 import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
-import { api } from "./_generated/api";
 
 export const list = query({
   args: {
@@ -55,7 +54,6 @@ export const createBroadcast = mutation({
     title: v.string(),
     message: v.string(),
     targetUserIds: v.optional(v.array(v.id("users"))), // If empty, send to all users
-    sendEmail: v.optional(v.boolean()), // Whether to send email notification
   },
   handler: async (ctx, args) => {
     const now = Date.now();
@@ -70,7 +68,6 @@ export const createBroadcast = mutation({
     }
     
     const createdIds = [];
-    const emailRecipients: { email: string; name: string }[] = [];
     
     for (const userId of targetUsers) {
       const notificationId = await ctx.db.insert("notifications", {
@@ -83,61 +80,6 @@ export const createBroadcast = mutation({
         createdAt: now,
       });
       createdIds.push(notificationId);
-      
-      // Collect email addresses if email notification is enabled
-      if (args.sendEmail) {
-        const user = await ctx.db.get(userId as Id<"users">);
-        if (user && "email" in user) {
-          emailRecipients.push({
-            email: (user as any).email,
-            name: (user as any).name || "User",
-          });
-        }
-      }
-    }
-    
-    // Send email notifications if enabled
-    if (args.sendEmail && emailRecipients.length > 0) {
-      // Check if email integration is enabled
-      try {
-        const emailSettings = await ctx.db
-          .query("emailSettings")
-          .collect();
-        
-        const settings = emailSettings.length > 0 
-          ? emailSettings.sort((a, b) => b.updatedAt - a.updatedAt)[0]
-          : null;
-        
-        if (settings && settings.enabled && settings.smtpEnabled) {
-          // Schedule email sending for each recipient
-          // Use scheduler to call the email action asynchronously
-          for (const recipient of emailRecipients) {
-            // Format the message as HTML
-            const htmlMessage = `
-              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-                <h2 style="color: #1e293b; margin-bottom: 16px;">${args.title}</h2>
-                <div style="color: #475569; line-height: 1.6; white-space: pre-wrap;">${args.message}</div>
-                <hr style="border: none; border-top: 1px solid #e2e8f0; margin: 24px 0;" />
-                <p style="color: #94a3b8; font-size: 12px;">This is an automated notification from ITSM System.</p>
-              </div>
-            `;
-            
-            // Schedule email to be sent
-            await ctx.scheduler.runAfter(0, api.email.sendEmail, {
-              to: recipient.email,
-              subject: args.title,
-              html: htmlMessage,
-              text: args.message, // Plain text version
-            });
-          }
-          
-          console.log(`Scheduled ${emailRecipients.length} email notifications to be sent`);
-        } else {
-          console.log("Email integration not enabled - skipping email notifications");
-        }
-      } catch (error) {
-        console.error("Failed to send email notifications:", error);
-      }
     }
     
     return { count: createdIds.length, ids: createdIds };
