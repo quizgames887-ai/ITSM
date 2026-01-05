@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, use } from "react";
+import { useState, use, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -8,6 +8,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { Select } from "@/components/ui/select";
 import { useToastContext } from "@/contexts/ToastContext";
 import Link from "next/link";
 import { FormFieldEditor } from "@/components/forms/FormFieldEditor";
@@ -27,7 +28,17 @@ export default function FormDesignerPage({
   const deleteField = useMutation(api.forms.deleteField);
   const updateForm = useMutation(api.forms.update);
   const reorderFields = useMutation(api.forms.reorderFields);
+  const linkFormToService = useMutation(api.serviceCatalog.linkFormToService);
   const { success, error: showError } = useToastContext();
+  
+  // Fetch services to show in the link dropdown
+  const services = useQuery(api.serviceCatalog.list, { activeOnly: false });
+  
+  // Find which service is linked to this form
+  const linkedService = services?.find((service) => service.formId === formId);
+  
+  const [showLinkService, setShowLinkService] = useState(false);
+  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   
@@ -48,6 +59,15 @@ export default function FormDesignerPage({
     description: "",
     isActive: true,
   });
+
+  // Update selectedServiceId when linkedService changes (must be before any conditional returns)
+  useEffect(() => {
+    if (linkedService) {
+      setSelectedServiceId(linkedService._id);
+    } else {
+      setSelectedServiceId("");
+    }
+  }, [linkedService?._id]);
 
   // Wait for both queries to load before checking admin status
   if (form === undefined || (currentUserId && currentUser === undefined)) {
@@ -212,6 +232,19 @@ export default function FormDesignerPage({
 
   const isTicketForm = form.name.toLowerCase().includes("ticket");
   const isServiceRequestForm = form.name.toLowerCase().includes("service request");
+  
+  const handleLinkService = async () => {
+    try {
+      await linkFormToService({
+        formId,
+        serviceId: selectedServiceId ? (selectedServiceId as Id<"serviceCatalog">) : null,
+      });
+      success(selectedServiceId ? "Form linked to service successfully!" : "Form unlinked from service successfully!");
+      setShowLinkService(false);
+    } catch (err: any) {
+      showError(err.message || "Failed to link form to service");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
@@ -443,6 +476,47 @@ export default function FormDesignerPage({
                     {new Date(form.updatedAt).toLocaleString()}
                   </p>
                 </div>
+                
+                {/* Service Link Section - Only for Service Request Forms */}
+                {isServiceRequestForm && (
+                  <div className="pt-4 border-t border-slate-200">
+                    <p className="text-sm text-slate-500 mb-2">Linked Service</p>
+                    {linkedService ? (
+                      <div className="space-y-2">
+                        <div className="p-2 bg-slate-50 rounded-lg border border-slate-200">
+                          <p className="text-sm font-medium text-slate-900">{linkedService.name}</p>
+                          <p className="text-xs text-slate-600 mt-1">{linkedService.description || "No description"}</p>
+                        </div>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedServiceId(linkedService._id);
+                            setShowLinkService(true);
+                          }}
+                          className="w-full"
+                        >
+                          Change Service Link
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="space-y-2">
+                        <p className="text-sm text-slate-600">Not linked to any service</p>
+                        <Button
+                          variant="gradient"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedServiceId("");
+                            setShowLinkService(true);
+                          }}
+                          className="w-full"
+                        >
+                          Link to Service
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
           </div>
@@ -514,6 +588,65 @@ export default function FormDesignerPage({
                   <Button
                     variant="outline"
                     onClick={() => setShowEditForm(false)}
+                    className="flex-1 sm:flex-none"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Link Service Modal */}
+        {showLinkService && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-slate-200 p-4 sm:p-6 -m-4 sm:-m-6 mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">Link Form to Service</h2>
+              </div>
+
+              <div className="space-y-4">
+                <p className="text-sm text-slate-600">
+                  Select a service from the service catalog to link this form to. When users request this service, they will use this form.
+                </p>
+                
+                <Select
+                  label="Service"
+                  value={selectedServiceId}
+                  onChange={(e) => setSelectedServiceId(e.target.value)}
+                  options={
+                    services
+                      ? [
+                          { value: "", label: "None (Unlink)" },
+                          ...services.map((service) => ({
+                            value: service._id,
+                            label: `${service.name}${service.formId && service.formId !== formId ? " (has different form)" : ""}`,
+                          })),
+                        ]
+                      : [{ value: "", label: "Loading services..." }]
+                  }
+                />
+                
+                {selectedServiceId && (
+                  <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-xs text-blue-800">
+                      <strong>Note:</strong> If the selected service already has a different form linked, it will be unlinked and replaced with this form.
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t border-slate-200">
+                  <Button
+                    variant="gradient"
+                    onClick={handleLinkService}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {selectedServiceId ? "Link Service" : "Unlink Service"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowLinkService(false)}
                     className="flex-1 sm:flex-none"
                   >
                     Cancel

@@ -240,6 +240,52 @@ export const update = mutation({
   },
 });
 
+// Link a form to a service (update service's formId)
+export const linkFormToService = mutation({
+  args: {
+    formId: v.id("forms"),
+    serviceId: v.union(v.id("serviceCatalog"), v.null()),
+  },
+  handler: async (ctx, args) => {
+    // If linking to a service, first unlink any other service that has this form
+    if (args.serviceId) {
+      const servicesWithThisForm = await ctx.db
+        .query("serviceCatalog")
+        .withIndex("by_formId", (q) => q.eq("formId", args.formId))
+        .collect();
+      
+      // Unlink all services that currently have this form
+      for (const service of servicesWithThisForm) {
+        if (service._id !== args.serviceId) {
+          await ctx.db.patch(service._id, {
+            formId: undefined,
+            updatedAt: Date.now(),
+          });
+        }
+      }
+      
+      // Link the new service to this form
+      await ctx.db.patch(args.serviceId, {
+        formId: args.formId,
+        updatedAt: Date.now(),
+      });
+    } else {
+      // Unlinking: remove formId from all services that have this form
+      const servicesWithThisForm = await ctx.db
+        .query("serviceCatalog")
+        .withIndex("by_formId", (q) => q.eq("formId", args.formId))
+        .collect();
+      
+      for (const service of servicesWithThisForm) {
+        await ctx.db.patch(service._id, {
+          formId: undefined,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+  },
+});
+
 export const remove = mutation({
   args: {
     id: v.id("serviceCatalog"),
