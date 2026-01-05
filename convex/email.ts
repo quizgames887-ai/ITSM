@@ -542,57 +542,79 @@ export const sendEmail = action({
           to: args.to,
         });
         
-        // Send email directly using Exchange SMTP configuration
-        // Use SMTP2GO API which accepts SMTP credentials via HTTP
-        const smtp2goApiKey = process.env.SMTP2GO_API_KEY;
+        // Try to send email using SMTP configuration via HTTP-based services
+        // First, try Resend API (supports custom SMTP)
+        const resendApiKey = process.env.RESEND_API_KEY;
         
-        if (smtp2goApiKey) {
-          // SMTP2GO accepts SMTP credentials and sends via HTTP API
-          const smtp2goUrl = "https://api.smtp2go.com/v3/email/send";
+        if (resendApiKey) {
+          // Resend supports custom SMTP domains
+          const resendUrl = "https://api.resend.com/emails";
           
-          const response: Response = await fetch(smtp2goUrl, {
+          const response: Response = await fetch(resendUrl, {
             method: "POST",
             headers: {
-              "X-Smtp2go-Api-Key": smtp2goApiKey,
+              "Authorization": `Bearer ${resendApiKey}`,
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              api_key: smtp2goApiKey,
+              from: `${smtpConfig.fromName} <${smtpConfig.from}>`,
               to: [args.to],
-              sender: `${smtpConfig.fromName} <${smtpConfig.from}>`,
               subject: args.subject,
-              html_body: args.html,
-              text_body: args.text || args.html.replace(/<[^>]*>/g, ""),
-              // Use your Exchange SMTP settings
-              custom_headers: [
-                {
-                  header: "X-SMTP-Host",
-                  value: smtpConfig.host,
-                },
-                {
-                  header: "X-SMTP-Port",
-                  value: smtpConfig.port.toString(),
-                },
-              ],
+              html: args.html,
+              text: args.text || args.html.replace(/<[^>]*>/g, ""),
             }),
           });
           
-          if (!response.ok) {
+          if (response.ok) {
+            const data: { id?: string } = await response.json();
+            messageId = data.id || `resend-${now}`;
+            status = "sent";
+            isSimulated = false;
+            console.log("Email sent successfully via Resend:", { messageId, to: args.to });
+          } else {
             const errorData: any = await response.json();
-            throw new Error(errorData.data?.error_message || `HTTP ${response.status}: Failed to send email`);
+            throw new Error(errorData.message || `Resend error: ${response.status}`);
           }
-          
-          const data: { data?: { email_id?: string } } = await response.json();
-          messageId = data.data?.email_id || `smtp2go-${now}`;
-          status = "sent";
-          isSimulated = false;
-          
-          console.log("Email sent successfully via SMTP2GO (using Exchange SMTP):", {
-            messageId,
-            to: args.to,
-            smtpHost: smtpConfig.host,
-          });
         } else {
+          // Try SMTP2GO API which accepts SMTP credentials via HTTP
+          const smtp2goApiKey = process.env.SMTP2GO_API_KEY;
+          
+          if (smtp2goApiKey) {
+            // SMTP2GO accepts SMTP credentials and sends via HTTP API
+            const smtp2goUrl = "https://api.smtp2go.com/v3/email/send";
+            
+            const response: Response = await fetch(smtp2goUrl, {
+              method: "POST",
+              headers: {
+                "X-Smtp2go-Api-Key": smtp2goApiKey,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                api_key: smtp2goApiKey,
+                to: [args.to],
+                sender: `${smtpConfig.fromName} <${smtpConfig.from}>`,
+                subject: args.subject,
+                html_body: args.html,
+                text_body: args.text || args.html.replace(/<[^>]*>/g, ""),
+              }),
+            });
+            
+            if (!response.ok) {
+              const errorData: any = await response.json();
+              throw new Error(errorData.data?.error_message || `HTTP ${response.status}: Failed to send email`);
+            }
+            
+            const data: { data?: { email_id?: string } } = await response.json();
+            messageId = data.data?.email_id || `smtp2go-${now}`;
+            status = "sent";
+            isSimulated = false;
+            
+            console.log("Email sent successfully via SMTP2GO:", {
+              messageId,
+              to: args.to,
+              smtpHost: smtpConfig.host,
+            });
+          } else {
           // Try using a generic SMTP HTTP relay endpoint
           // This allows you to set up your own SMTP relay service
           const smtpRelayUrl = process.env.SMTP_RELAY_URL;
@@ -632,8 +654,44 @@ export const sendEmail = action({
               throw new Error(errorData.message || `SMTP relay error: ${relayResponse.status}`);
             }
           } else {
-            // No SMTP relay service configured
-            throw new Error("No SMTP relay service configured. Configure SMTP2GO_API_KEY or SMTP_RELAY_URL to send emails via Exchange SMTP.");
+            // Try Mailgun API (supports SMTP relay)
+            const mailgunDomain = process.env.MAILGUN_DOMAIN;
+            const mailgunApiKey = process.env.MAILGUN_API_KEY;
+            
+            if (mailgunDomain && mailgunApiKey) {
+              const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
+              const auth = Buffer.from(`api:${mailgunApiKey}`).toString('base64');
+              
+              const formData = new URLSearchParams();
+              formData.append('from', `${smtpConfig.fromName} <${smtpConfig.from}>`);
+              formData.append('to', args.to);
+              formData.append('subject', args.subject);
+              formData.append('html', args.html);
+              formData.append('text', args.text || args.html.replace(/<[^>]*>/g, ""));
+              
+              const response: Response = await fetch(mailgunUrl, {
+                method: "POST",
+                headers: {
+                  "Authorization": `Basic ${auth}`,
+                  "Content-Type": "application/x-www-form-urlencoded",
+                },
+                body: formData.toString(),
+              });
+              
+              if (response.ok) {
+                const data: { id?: string } = await response.json();
+                messageId = data.id || `mailgun-${now}`;
+                status = "sent";
+                isSimulated = false;
+                console.log("Email sent successfully via Mailgun:", { messageId, to: args.to });
+              } else {
+                const errorData: any = await response.json();
+                throw new Error(errorData.message || `Mailgun error: ${response.status}`);
+              }
+            } else {
+              // No SMTP relay service configured
+              throw new Error("No email service configured. Configure RESEND_API_KEY, SMTP2GO_API_KEY, MAILGUN_API_KEY/MAILGUN_DOMAIN, or SMTP_RELAY_URL to send emails using your SMTP configuration.");
+            }
           }
         }
       } catch (apiError: any) {
