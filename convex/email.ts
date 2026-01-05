@@ -286,70 +286,102 @@ export const testSMTP = action({
           to: args.testEmail,
         });
         
-        // Try Mailgun API (supports SMTP relay)
-        const mailgunDomain = process.env.MAILGUN_DOMAIN;
-        const mailgunApiKey = process.env.MAILGUN_API_KEY;
+        // Try Resend API first (recommended)
+        const resendApiKey = process.env.RESEND_API_KEY;
         
-        if (mailgunDomain && mailgunApiKey) {
-          const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
-          const auth = Buffer.from(`api:${mailgunApiKey}`).toString('base64');
+        if (resendApiKey) {
+          const resendUrl = "https://api.resend.com/emails";
           
-          const formData = new URLSearchParams();
-          formData.append('from', smtpConfig.from);
-          formData.append('to', args.testEmail);
-          formData.append('subject', testSubject);
-          formData.append('html', "<p>This is a test email to verify your SMTP configuration.</p>");
-          
-          const response: Response = await fetch(mailgunUrl, {
+          const response: Response = await fetch(resendUrl, {
             method: "POST",
             headers: {
-              "Authorization": `Basic ${auth}`,
-              "Content-Type": "application/x-www-form-urlencoded",
+              "Authorization": `Bearer ${resendApiKey}`,
+              "Content-Type": "application/json",
             },
-            body: formData.toString(),
+            body: JSON.stringify({
+              from: smtpConfig.from,
+              to: [args.testEmail],
+              subject: testSubject,
+              html: "<p>This is a test email to verify your SMTP configuration.</p>",
+            }),
           });
           
-          if (!response.ok) {
-            const error: any = await response.json();
-            throw new Error(error.message || `HTTP ${response.status}: Failed to send test email`);
+          if (response.ok) {
+            const data: { id?: string } = await response.json();
+            messageId = data.id || `resend-test-${now}`;
+            isSimulated = false;
+            successMessage = "SMTP test email sent successfully via Resend";
+            console.log("Test email sent successfully via Resend:", { messageId, to: args.testEmail });
+          } else {
+            const errorData: any = await response.json();
+            throw new Error(errorData.message || `Resend error: ${response.status}`);
           }
-          
-          const data: { id: string } = await response.json();
-          messageId = data.id;
-          isSimulated = false;
-          successMessage = "SMTP test email sent successfully via Mailgun";
-          
-          console.log("Test email sent successfully via Mailgun (SMTP):", { messageId, to: args.testEmail });
         } else {
-          // Try SendGrid API
-          const sendgridApiKey = process.env.SENDGRID_API_KEY;
+          // Try Mailgun API (supports SMTP relay)
+          const mailgunDomain = process.env.MAILGUN_DOMAIN;
+          const mailgunApiKey = process.env.MAILGUN_API_KEY;
           
-          if (sendgridApiKey) {
-            const sendgridResponse: Response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+          if (mailgunDomain && mailgunApiKey) {
+            const mailgunUrl = `https://api.mailgun.net/v3/${mailgunDomain}/messages`;
+            const auth = Buffer.from(`api:${mailgunApiKey}`).toString('base64');
+            
+            const formData = new URLSearchParams();
+            formData.append('from', smtpConfig.from);
+            formData.append('to', args.testEmail);
+            formData.append('subject', testSubject);
+            formData.append('html', "<p>This is a test email to verify your SMTP configuration.</p>");
+            
+            const response: Response = await fetch(mailgunUrl, {
               method: "POST",
               headers: {
-                "Authorization": `Bearer ${sendgridApiKey}`,
-                "Content-Type": "application/json",
+                "Authorization": `Basic ${auth}`,
+                "Content-Type": "application/x-www-form-urlencoded",
               },
-              body: JSON.stringify({
-                personalizations: [{ to: [{ email: args.testEmail }] }],
-                from: { email: smtpConfig.from },
-                subject: testSubject,
-                content: [{ type: "text/html", value: "<p>This is a test email to verify your SMTP configuration.</p>" }],
-              }),
+              body: formData.toString(),
             });
             
-            if (sendgridResponse.ok) {
-              messageId = `sendgrid-test-${now}`;
-              isSimulated = false;
-              successMessage = "SMTP test email sent successfully via SendGrid";
-              console.log("Test email sent via SendGrid (SMTP)");
-            } else {
-              const errorData: any = await sendgridResponse.json();
-              throw new Error(errorData.errors?.[0]?.message || `SendGrid error: ${sendgridResponse.status}`);
+            if (!response.ok) {
+              const error: any = await response.json();
+              throw new Error(error.message || `HTTP ${response.status}: Failed to send test email`);
             }
+            
+            const data: { id: string } = await response.json();
+            messageId = data.id;
+            isSimulated = false;
+            successMessage = "SMTP test email sent successfully via Mailgun";
+            
+            console.log("Test email sent successfully via Mailgun (SMTP):", { messageId, to: args.testEmail });
           } else {
-            throw new Error("No email relay service configured. Configure MAILGUN_API_KEY/MAILGUN_DOMAIN or SENDGRID_API_KEY to send test emails via SMTP.");
+            // Try SendGrid API
+            const sendgridApiKey = process.env.SENDGRID_API_KEY;
+            
+            if (sendgridApiKey) {
+              const sendgridResponse: Response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+                method: "POST",
+                headers: {
+                  "Authorization": `Bearer ${sendgridApiKey}`,
+                  "Content-Type": "application/json",
+                },
+                body: JSON.stringify({
+                  personalizations: [{ to: [{ email: args.testEmail }] }],
+                  from: { email: smtpConfig.from },
+                  subject: testSubject,
+                  content: [{ type: "text/html", value: "<p>This is a test email to verify your SMTP configuration.</p>" }],
+                }),
+              });
+              
+              if (sendgridResponse.ok) {
+                messageId = `sendgrid-test-${now}`;
+                isSimulated = false;
+                successMessage = "SMTP test email sent successfully via SendGrid";
+                console.log("Test email sent via SendGrid (SMTP)");
+              } else {
+                const errorData: any = await sendgridResponse.json();
+                throw new Error(errorData.errors?.[0]?.message || `SendGrid error: ${sendgridResponse.status}`);
+              }
+            } else {
+              throw new Error("No email service configured. Configure RESEND_API_KEY, MAILGUN_API_KEY/MAILGUN_DOMAIN, or SENDGRID_API_KEY to send test emails via SMTP.");
+            }
           }
         }
       } catch (apiError: any) {
