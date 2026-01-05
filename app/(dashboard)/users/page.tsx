@@ -56,6 +56,8 @@ export default function UsersPage() {
   const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "createdAt">("name");
   const [editingUser, setEditingUser] = useState<Id<"users"> | null>(null);
   const [editingField, setEditingField] = useState<EditingField>(null);
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editUserData, setEditUserData] = useState<User | null>(null);
   const [editValues, setEditValues] = useState<{
     name?: string;
     email?: string;
@@ -102,6 +104,80 @@ export default function UsersPage() {
       newPassword: "",
       confirmPassword: "",
     });
+  };
+
+  const handleOpenEditModal = (user: User) => {
+    if (!isAdmin) {
+      showError("Only admins can edit user details");
+      return;
+    }
+    setEditUserData(user);
+    setEditValues({
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      onboardingCompleted: user.onboardingCompleted,
+      newPassword: "",
+      confirmPassword: "",
+    });
+    setShowEditModal(true);
+  };
+
+  const handleCloseEditModal = () => {
+    setShowEditModal(false);
+    setEditUserData(null);
+    setEditValues({});
+  };
+
+  const handleSaveAll = async () => {
+    if (!isAdmin || !editUserData) {
+      showError("Only admins can update users");
+      return;
+    }
+
+    try {
+      const updates: any = {};
+      
+      if (editValues.name !== undefined && editValues.name.trim() !== editUserData.name) {
+        updates.name = editValues.name.trim();
+        if (!updates.name) {
+          showError("Name cannot be empty");
+          return;
+        }
+      }
+      
+      if (editValues.email !== undefined && editValues.email.trim() !== editUserData.email) {
+        updates.email = editValues.email.trim();
+        if (!updates.email || !updates.email.includes("@")) {
+          showError("Please enter a valid email address");
+          return;
+        }
+      }
+      
+      if (editValues.role !== undefined && editValues.role !== editUserData.role) {
+        updates.role = editValues.role;
+      }
+      
+      if (editValues.onboardingCompleted !== undefined && editValues.onboardingCompleted !== editUserData.onboardingCompleted) {
+        updates.onboardingCompleted = editValues.onboardingCompleted;
+      }
+
+      if (Object.keys(updates).length === 0) {
+        showError("No changes to save");
+        return;
+      }
+
+      await updateUser({
+        id: editUserData._id,
+        currentUserId: currentUserId as Id<"users">,
+        ...updates,
+      });
+
+      success("User updated successfully!");
+      handleCloseEditModal();
+    } catch (err: any) {
+      showError(err.message || "Failed to update user");
+    }
   };
 
   const handlePasswordReset = async (userId: Id<"users">) => {
@@ -457,8 +533,82 @@ export default function UsersPage() {
             </div>
           </Card>
 
-          {/* Edit User Modal */}
-          {editingUser && editingField && (
+          {/* Comprehensive Edit User Modal */}
+          {showEditModal && editUserData && (
+            <Card padding="lg" className="border-2 border-blue-200 bg-blue-50/30">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-slate-900 text-lg">Edit User Information</h3>
+                <button
+                  onClick={handleCloseEditModal}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              {/* User Info */}
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-slate-200 mb-4">
+                <UserAvatar
+                  userId={editUserData._id}
+                  name={editUserData.name}
+                  size="md"
+                />
+                <div>
+                  <p className="font-medium text-slate-900">{editUserData.name}</p>
+                  <p className="text-sm text-slate-500">{editUserData.email}</p>
+                </div>
+              </div>
+
+              {/* Edit Form */}
+              <div className="space-y-4">
+                <Input
+                  label="Name"
+                  value={editValues.name || ""}
+                  onChange={(e) => setEditValues({ ...editValues, name: e.target.value })}
+                  placeholder="Enter user name"
+                />
+                <Input
+                  label="Email"
+                  type="email"
+                  value={editValues.email || ""}
+                  onChange={(e) => setEditValues({ ...editValues, email: e.target.value })}
+                  placeholder="Enter email address"
+                />
+                <Select
+                  label="Role"
+                  value={editValues.role || ""}
+                  onChange={(e) => setEditValues({ ...editValues, role: e.target.value })}
+                  options={[
+                    { value: "user", label: "User - Regular user access" },
+                    { value: "agent", label: "Agent - Support agent access" },
+                    { value: "admin", label: "Admin - Full administrative access" },
+                  ]}
+                />
+                <Select
+                  label="Status"
+                  value={editValues.onboardingCompleted ? "active" : "pending"}
+                  onChange={(e) => setEditValues({ ...editValues, onboardingCompleted: e.target.value === "active" })}
+                  options={[
+                    { value: "active", label: "Active" },
+                    { value: "pending", label: "Pending" },
+                  ]}
+                />
+                <div className="flex gap-2 pt-2">
+                  <Button variant="gradient" onClick={handleSaveAll}>
+                    Save Changes
+                  </Button>
+                  <Button variant="outline" onClick={handleCloseEditModal}>
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Field-specific Edit Modal (for role, password, etc.) */}
+          {editingUser && editingField && !showEditModal && (
             <Card padding="lg" className="border-2 border-blue-200 bg-blue-50/30">
               <div className="flex items-center justify-between mb-4">
                 <h3 className="font-semibold text-slate-900 text-lg">
@@ -653,6 +803,15 @@ export default function UsersPage() {
                           <div className="flex items-center justify-end gap-1">
                             {!isCurrentUser && (
                               <>
+                                <button
+                                  onClick={() => handleOpenEditModal(user)}
+                                  className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                                  title="Edit user information"
+                                >
+                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                                  </svg>
+                                </button>
                                 {!user.onboardingCompleted && (
                                   <button
                                     onClick={() => handleToggleStatus(user._id, user.onboardingCompleted)}
@@ -664,15 +823,6 @@ export default function UsersPage() {
                                     </svg>
                                   </button>
                                 )}
-                                <button
-                                  onClick={() => handleEdit(user, "role")}
-                                  className="p-1.5 text-slate-400 hover:text-purple-600 hover:bg-purple-50 rounded-lg"
-                                  title="Change role"
-                                >
-                                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                                  </svg>
-                                </button>
                                 <button
                                   onClick={() => handleEdit(user, "password")}
                                   className="p-1.5 text-slate-400 hover:text-amber-600 hover:bg-amber-50 rounded-lg"
