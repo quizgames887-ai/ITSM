@@ -615,11 +615,11 @@ export const sendEmail = action({
               smtpHost: smtpConfig.host,
             });
           } else {
-          // Try using a generic SMTP HTTP relay endpoint
-          // This allows you to set up your own SMTP relay service
-          const smtpRelayUrl = process.env.SMTP_RELAY_URL;
-          
-          if (smtpRelayUrl) {
+            // Try using a generic SMTP HTTP relay endpoint
+            // This allows you to set up your own SMTP relay service
+            const smtpRelayUrl = process.env.SMTP_RELAY_URL;
+            
+            if (smtpRelayUrl) {
             const relayResponse: Response = await fetch(smtpRelayUrl, {
               method: "POST",
               headers: {
@@ -694,7 +694,8 @@ export const sendEmail = action({
             }
           }
         }
-      } catch (apiError: any) {
+      }
+    } catch (apiError: any) {
         console.warn("Email sending failed with SMTP config:", apiError.message);
         errorMessage = `SMTP email error: ${apiError.message}`;
         // Will be logged as simulated below
