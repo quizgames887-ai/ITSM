@@ -34,11 +34,11 @@ export default function FormDesignerPage({
   // Fetch services to show in the link dropdown
   const services = useQuery(api.serviceCatalog.list, { activeOnly: false });
   
-  // Find which service is linked to this form
-  const linkedService = services?.find((service) => service.formId === formId);
+  // Find all services linked to this form
+  const linkedServices = services?.filter((service) => service.formId === formId) || [];
   
   const [showLinkService, setShowLinkService] = useState(false);
-  const [selectedServiceId, setSelectedServiceId] = useState<string>("");
+  const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   
@@ -60,14 +60,10 @@ export default function FormDesignerPage({
     isActive: true,
   });
 
-  // Update selectedServiceId when linkedService changes (must be before any conditional returns)
+  // Update selectedServiceIds when linkedServices changes (must be before any conditional returns)
   useEffect(() => {
-    if (linkedService) {
-      setSelectedServiceId(linkedService._id);
-    } else {
-      setSelectedServiceId("");
-    }
-  }, [linkedService?._id]);
+    setSelectedServiceIds(linkedServices.map((service) => service._id));
+  }, [linkedServices.map((s) => s._id).join(",")]);
 
   // Wait for both queries to load before checking admin status
   if (form === undefined || (currentUserId && currentUser === undefined)) {
@@ -237,12 +233,16 @@ export default function FormDesignerPage({
     try {
       await linkFormToService({
         formId,
-        serviceId: selectedServiceId ? (selectedServiceId as Id<"serviceCatalog">) : null,
+        serviceIds: selectedServiceIds.map((id) => id as Id<"serviceCatalog">),
       });
-      success(selectedServiceId ? "Form linked to service successfully!" : "Form unlinked from service successfully!");
+      success(
+        selectedServiceIds.length > 0
+          ? `Form linked to ${selectedServiceIds.length} service(s) successfully!`
+          : "Form unlinked from all services successfully!"
+      );
       setShowLinkService(false);
     } catch (err: any) {
-      showError(err.message || "Failed to link form to service");
+      showError(err.message || "Failed to link form to services");
     }
   };
 
@@ -480,23 +480,27 @@ export default function FormDesignerPage({
                 {/* Service Link Section - Only for Service Request Forms */}
                 {isServiceRequestForm && (
                   <div className="pt-4 border-t border-slate-200">
-                    <p className="text-sm text-slate-500 mb-2">Linked Service</p>
-                    {linkedService ? (
+                    <p className="text-sm text-slate-500 mb-2">Linked Services</p>
+                    {linkedServices.length > 0 ? (
                       <div className="space-y-2">
-                        <div className="p-2 bg-slate-50 rounded-lg border border-slate-200">
-                          <p className="text-sm font-medium text-slate-900">{linkedService.name}</p>
-                          <p className="text-xs text-slate-600 mt-1">{linkedService.description || "No description"}</p>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                          {linkedServices.map((service) => (
+                            <div key={service._id} className="p-2 bg-slate-50 rounded-lg border border-slate-200">
+                              <p className="text-sm font-medium text-slate-900">{service.name}</p>
+                              <p className="text-xs text-slate-600 mt-1">{service.description || "No description"}</p>
+                            </div>
+                          ))}
                         </div>
                         <Button
                           variant="outline"
                           size="sm"
                           onClick={() => {
-                            setSelectedServiceId(linkedService._id);
+                            setSelectedServiceIds(linkedServices.map((s) => s._id));
                             setShowLinkService(true);
                           }}
                           className="w-full"
                         >
-                          Change Service Link
+                          Manage Service Links
                         </Button>
                       </div>
                     ) : (
@@ -506,12 +510,12 @@ export default function FormDesignerPage({
                           variant="gradient"
                           size="sm"
                           onClick={() => {
-                            setSelectedServiceId("");
+                            setSelectedServiceIds([]);
                             setShowLinkService(true);
                           }}
                           className="w-full"
                         >
-                          Link to Service
+                          Link to Services
                         </Button>
                       </div>
                     )}
@@ -608,30 +612,63 @@ export default function FormDesignerPage({
 
               <div className="space-y-4">
                 <p className="text-sm text-slate-600">
-                  Select a service from the service catalog to link this form to. When users request this service, they will use this form.
+                  Select one or more services from the service catalog to link this form to. When users request these services, they will use this form.
                 </p>
                 
-                <Select
-                  label="Service"
-                  value={selectedServiceId}
-                  onChange={(e) => setSelectedServiceId(e.target.value)}
-                  options={
-                    services
-                      ? [
-                          { value: "", label: "None (Unlink)" },
-                          ...services.map((service) => ({
-                            value: service._id,
-                            label: `${service.name}${service.formId && service.formId !== formId ? " (has different form)" : ""}`,
-                          })),
-                        ]
-                      : [{ value: "", label: "Loading services..." }]
-                  }
-                />
+                <div className="space-y-2">
+                  <label className="text-sm font-medium text-slate-700">Services</label>
+                  <div className="border border-slate-300 rounded-lg p-3 max-h-64 overflow-y-auto bg-white">
+                    {services ? (
+                      services.length > 0 ? (
+                        <div className="space-y-2">
+                          {services.map((service) => {
+                            const isSelected = selectedServiceIds.includes(service._id);
+                            const hasDifferentForm = service.formId && service.formId !== formId;
+                            return (
+                              <label
+                                key={service._id}
+                                className="flex items-start gap-2 p-2 rounded hover:bg-slate-50 cursor-pointer"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={(e) => {
+                                    if (e.target.checked) {
+                                      setSelectedServiceIds([...selectedServiceIds, service._id]);
+                                    } else {
+                                      setSelectedServiceIds(selectedServiceIds.filter((id) => id !== service._id));
+                                    }
+                                  }}
+                                  className="mt-1 w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                                />
+                                <div className="flex-1">
+                                  <p className="text-sm font-medium text-slate-900">
+                                    {service.name}
+                                    {hasDifferentForm && (
+                                      <span className="ml-2 text-xs text-amber-600">(has different form)</span>
+                                    )}
+                                  </p>
+                                  {service.description && (
+                                    <p className="text-xs text-slate-600 mt-0.5">{service.description}</p>
+                                  )}
+                                </div>
+                              </label>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <p className="text-sm text-slate-500 text-center py-4">No services available</p>
+                      )
+                    ) : (
+                      <p className="text-sm text-slate-500 text-center py-4">Loading services...</p>
+                    )}
+                  </div>
+                </div>
                 
-                {selectedServiceId && (
+                {selectedServiceIds.length > 0 && (
                   <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
                     <p className="text-xs text-blue-800">
-                      <strong>Note:</strong> If the selected service already has a different form linked, it will be unlinked and replaced with this form.
+                      <strong>Note:</strong> If any selected service already has a different form linked, it will be unlinked and replaced with this form.
                     </p>
                   </div>
                 )}
@@ -642,7 +679,9 @@ export default function FormDesignerPage({
                     onClick={handleLinkService}
                     className="flex-1 sm:flex-none"
                   >
-                    {selectedServiceId ? "Link Service" : "Unlink Service"}
+                    {selectedServiceIds.length > 0
+                      ? `Link ${selectedServiceIds.length} Service${selectedServiceIds.length > 1 ? "s" : ""}`
+                      : "Unlink All Services"}
                   </Button>
                   <Button
                     variant="outline"

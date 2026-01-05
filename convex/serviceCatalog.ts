@@ -240,45 +240,35 @@ export const update = mutation({
   },
 });
 
-// Link a form to a service (update service's formId)
+// Link a form to multiple services (update service's formId)
 export const linkFormToService = mutation({
   args: {
     formId: v.id("forms"),
-    serviceId: v.union(v.id("serviceCatalog"), v.null()),
+    serviceIds: v.array(v.id("serviceCatalog")), // Array of service IDs to link
   },
   handler: async (ctx, args) => {
-    // If linking to a service, first unlink any other service that has this form
-    if (args.serviceId) {
-      const servicesWithThisForm = await ctx.db
-        .query("serviceCatalog")
-        .withIndex("by_formId", (q) => q.eq("formId", args.formId))
-        .collect();
-      
-      // Unlink all services that currently have this form
-      for (const service of servicesWithThisForm) {
-        if (service._id !== args.serviceId) {
-          await ctx.db.patch(service._id, {
-            formId: undefined,
-            updatedAt: Date.now(),
-          });
-        }
-      }
-      
-      // Link the new service to this form
-      await ctx.db.patch(args.serviceId, {
-        formId: args.formId,
-        updatedAt: Date.now(),
-      });
-    } else {
-      // Unlinking: remove formId from all services that have this form
-      const servicesWithThisForm = await ctx.db
-        .query("serviceCatalog")
-        .withIndex("by_formId", (q) => q.eq("formId", args.formId))
-        .collect();
-      
-      for (const service of servicesWithThisForm) {
+    // Get all services currently linked to this form
+    const servicesWithThisForm = await ctx.db
+      .query("serviceCatalog")
+      .withIndex("by_formId", (q) => q.eq("formId", args.formId))
+      .collect();
+    
+    // Unlink services that are not in the new list
+    for (const service of servicesWithThisForm) {
+      if (!args.serviceIds.includes(service._id)) {
         await ctx.db.patch(service._id, {
           formId: undefined,
+          updatedAt: Date.now(),
+        });
+      }
+    }
+    
+    // Link services that are in the new list but not currently linked
+    for (const serviceId of args.serviceIds) {
+      const service = await ctx.db.get(serviceId);
+      if (service && service.formId !== args.formId) {
+        await ctx.db.patch(serviceId, {
+          formId: args.formId,
           updatedAt: Date.now(),
         });
       }
