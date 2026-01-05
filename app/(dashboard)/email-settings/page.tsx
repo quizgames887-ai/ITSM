@@ -272,6 +272,17 @@ export default function EmailSettingsPage() {
               <p className="text-xs text-slate-500">
                 Your Exchange SMTP settings (configured above) will be used with the relay service. Without a relay service, emails will be simulated. Check Email Logs to see "Simulated" vs "Real" status.
               </p>
+              <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded">
+                <p className="text-sm font-semibold text-yellow-900 mb-2">🔍 Troubleshooting: Not Receiving Emails?</p>
+                <ul className="text-xs text-yellow-800 list-disc list-inside space-y-1">
+                  <li>Check <strong>Email Logs</strong> below - look for error messages</li>
+                  <li>Verify <code className="bg-yellow-100 px-1 rounded">RESEND_API_KEY</code> is added in Convex Dashboard → Settings → Environment Variables</li>
+                  <li>After adding the API key, run <code className="bg-yellow-100 px-1 rounded">npx convex deploy</code> to redeploy</li>
+                  <li>If you see "domain" errors, verify your domain in Resend dashboard (resend.com/domains) or use "onboarding@resend.dev" for testing</li>
+                  <li>Check spam/junk folder - emails might be filtered</li>
+                  <li>Verify the recipient email address is correct</li>
+                </ul>
+              </div>
             </div>
           </div>
         </Card>
@@ -671,12 +682,17 @@ export default function EmailSettingsPage() {
                             </span>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-slate-600 text-xs">
+                        <td className="py-3 px-4 text-slate-600 text-xs max-w-md">
                           {log.errorMessage ? (
-                            <span className="text-red-600" title={log.errorMessage}>
-                              {log.errorMessage.length > 50
-                                ? log.errorMessage.substring(0, 50) + "..."
-                                : log.errorMessage}
+                            <div className="bg-red-50 border border-red-200 rounded p-2">
+                              <span className="text-red-800 font-medium block mb-1">⚠️ Error:</span>
+                              <span className="text-red-700" title={log.errorMessage}>
+                                {log.errorMessage}
+                              </span>
+                            </div>
+                          ) : log.messageId ? (
+                            <span className="text-slate-500 text-xs" title={`Message ID: ${log.messageId}`}>
+                              ID: {log.messageId.substring(0, 20)}...
                             </span>
                           ) : (
                             <span className="text-slate-400">-</span>

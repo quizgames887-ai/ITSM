@@ -582,6 +582,15 @@ export const sendEmail = action({
           // Resend supports custom SMTP domains
           const resendUrl = "https://api.resend.com/emails";
           
+          // Use Resend's default domain if custom domain might not be verified
+          // Resend allows sending from onboarding@resend.dev without verification
+          let fromEmail = smtpConfig.from;
+          const emailDomain = fromEmail.split('@')[1];
+          
+          // If domain is not likely verified (palmware.co), try Resend's default first
+          // User can verify their domain later in Resend dashboard
+          // For now, we'll try the custom domain first, and if it fails, suggest verification
+          
           const response: Response = await fetch(resendUrl, {
             method: "POST",
             headers: {
@@ -589,7 +598,7 @@ export const sendEmail = action({
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: `${smtpConfig.fromName} <${smtpConfig.from}>`,
+              from: `${smtpConfig.fromName} <${fromEmail}>`,
               to: [args.to],
               subject: args.subject,
               html: args.html,
@@ -604,8 +613,29 @@ export const sendEmail = action({
             isSimulated = false;
             console.log("Email sent successfully via Resend:", { messageId, to: args.to });
           } else {
-            const errorData: any = await response.json();
-            throw new Error(errorData.message || `Resend error: ${response.status}`);
+            const errorData: any = await response.json().catch(() => ({}));
+            const errorMsg = errorData.message || errorData.error?.message || `Resend API error: ${response.status}`;
+            const isDomainError = errorMsg.toLowerCase().includes('domain') || 
+                                  errorMsg.toLowerCase().includes('verify') ||
+                                  errorMsg.toLowerCase().includes('unauthorized');
+            
+            console.error("Resend API error:", {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData,
+              from: smtpConfig.from,
+              to: args.to,
+              isDomainError,
+            });
+            
+            let helpfulMessage = errorMsg;
+            if (isDomainError) {
+              helpfulMessage += ` To send from ${smtpConfig.from}, verify your domain in Resend dashboard (resend.com/domains). For testing, you can temporarily use "onboarding@resend.dev" as the From Email.`;
+            } else if (response.status === 401 || response.status === 403) {
+              helpfulMessage += ` Check that your RESEND_API_KEY is correct in Convex Dashboard → Settings → Environment Variables.`;
+            }
+            
+            throw new Error(`Resend error: ${helpfulMessage}`);
           }
         } else {
           // Try SMTP2GO API which accepts SMTP credentials via HTTP
@@ -728,14 +758,29 @@ export const sendEmail = action({
         }
       }
     } catch (apiError: any) {
-        console.warn("Email sending failed with SMTP config:", apiError.message);
-        errorMessage = `SMTP email error: ${apiError.message}`;
+        console.error("Email sending failed:", {
+          error: apiError.message,
+          stack: apiError.stack,
+          to: args.to,
+          from: settings.smtpFromEmail,
+          hasResendKey: !!process.env.RESEND_API_KEY,
+          hasSmtp2goKey: !!process.env.SMTP2GO_API_KEY,
+          hasMailgunKey: !!process.env.MAILGUN_API_KEY,
+        });
+        errorMessage = `Email service error: ${apiError.message}`;
         // Will be logged as simulated below
       }
       
       // If sending failed, log as simulated
       if (isSimulated) {
-        console.log("Email simulated - SMTP configured but no relay service available:", {
+        const availableServices = [];
+        if (process.env.RESEND_API_KEY) availableServices.push("Resend");
+        if (process.env.SMTP2GO_API_KEY) availableServices.push("SMTP2GO");
+        if (process.env.MAILGUN_API_KEY) availableServices.push("Mailgun");
+        if (process.env.SENDGRID_API_KEY) availableServices.push("SendGrid");
+        if (process.env.SMTP_RELAY_URL) availableServices.push("Custom Relay");
+        
+        console.log("Email simulated - No working email service:", {
           to: args.to,
           subject: args.subject,
           from: fromEmail,
@@ -743,7 +788,10 @@ export const sendEmail = action({
           smtpPort: settings.smtpPort,
           timestamp: new Date(now).toISOString(),
           error: errorMessage,
-          note: "Configure SMTP2GO_API_KEY or SMTP_RELAY_URL to send real emails via Exchange SMTP",
+          availableServices: availableServices.length > 0 ? availableServices.join(", ") : "None",
+          note: availableServices.length > 0 
+            ? `Services configured but failed. Check API keys and domain verification.`
+            : "Configure RESEND_API_KEY in Convex Dashboard → Settings → Environment Variables",
         });
         
         messageId = `simulated-${now}`;
@@ -866,6 +914,41 @@ export const logEmail = mutation({
       isSimulated: args.isSimulated ?? false,
       createdAt: Date.now(),
     });
+  },
+});
+
+// Diagnostic query to check email service configuration
+export const getEmailServiceStatus = query({
+  args: {},
+  handler: async (ctx): Promise<{
+    hasSettings: boolean;
+    settingsEnabled: boolean;
+    smtpEnabled: boolean;
+    hasSmtpConfig: boolean;
+    smtpHost: string | null;
+    smtpFromEmail: string | null;
+    message: string;
+  }> => {
+    // Query email settings directly from database
+    const settingsList = await ctx.db
+      .query("emailSettings")
+      .collect();
+    
+    const settings = settingsList.length > 0 
+      ? settingsList.sort((a, b) => b.updatedAt - a.updatedAt)[0]
+      : null;
+    
+    return {
+      hasSettings: !!settings,
+      settingsEnabled: settings?.enabled || false,
+      smtpEnabled: settings?.smtpEnabled || false,
+      hasSmtpConfig: !!(settings?.smtpHost && settings?.smtpUser && settings?.smtpFromEmail),
+      smtpHost: settings?.smtpHost || null,
+      smtpFromEmail: settings?.smtpFromEmail || null,
+      // Note: We can't check environment variables in queries, only in actions
+      // The actual check happens in the sendEmail action
+      message: "Environment variables (RESEND_API_KEY, etc.) are checked at send time in actions.",
+    };
   },
 });
 
