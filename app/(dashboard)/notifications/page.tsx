@@ -39,6 +39,9 @@ export default function NotificationsPage() {
   });
   const [searchTerm, setSearchTerm] = useState("");
   const [typeFilter, setTypeFilter] = useState("all");
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   const currentUser = useQuery(
@@ -113,7 +116,18 @@ export default function NotificationsPage() {
       n.userName.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesType = typeFilter === "all" || n.type === typeFilter;
     return matchesSearch && matchesType;
-  });
+  }) || [];
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredNotifications.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedNotifications = filteredNotifications.slice(startIndex, endIndex);
+
+  // Reset to page 1 when filters change (must be before any conditional returns)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, typeFilter]);
 
   if (notifications === undefined || currentUser === undefined) {
     return (
@@ -309,7 +323,11 @@ export default function NotificationsPage() {
 
       {/* Notifications Table */}
       <Card padding="none" className="overflow-hidden">
-        {filteredNotifications && filteredNotifications.length > 0 ? (
+        {paginatedNotifications.length === 0 && filteredNotifications.length > 0 ? (
+          <div className="text-center py-12">
+            <p className="text-slate-600">No notifications on this page. Please navigate to another page.</p>
+          </div>
+        ) : filteredNotifications.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -323,7 +341,7 @@ export default function NotificationsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredNotifications.map((notification) => (
+                {paginatedNotifications.map((notification) => (
                   <tr key={notification._id} className="hover:bg-slate-50/50 transition-colors">
                     <td className="py-3 px-4">
                       <span className={`inline-flex px-2 py-1 rounded-lg text-xs font-medium ${getTypeColor(notification.type)}`}>
@@ -381,7 +399,76 @@ export default function NotificationsPage() {
           </div>
         )}
         
-        {filteredNotifications && filteredNotifications.length > 0 && (
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="bg-slate-50 border-t border-slate-200 px-4 py-3">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-slate-600">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredNotifications.length)} of {filteredNotifications.length} notifications
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  Previous
+                </Button>
+                
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                    let pageNum: number;
+                    if (totalPages <= 5) {
+                      pageNum = i + 1;
+                    } else if (currentPage <= 3) {
+                      pageNum = i + 1;
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNum = totalPages - 4 + i;
+                    } else {
+                      pageNum = currentPage - 2 + i;
+                    }
+                    
+                    return (
+                      <button
+                        key={pageNum}
+                        onClick={() => setCurrentPage(pageNum)}
+                        className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                          currentPage === pageNum
+                            ? "bg-blue-600 text-white"
+                            : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
+                        }`}
+                      >
+                        {pageNum}
+                      </button>
+                    );
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                  <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                  </svg>
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+        
+        {/* Footer for single page */}
+        {totalPages <= 1 && filteredNotifications.length > 0 && (
           <div className="bg-slate-50 border-t border-slate-200 px-4 py-3">
             <p className="text-sm text-slate-600">
               Showing <span className="font-medium">{filteredNotifications.length}</span> of{" "}
