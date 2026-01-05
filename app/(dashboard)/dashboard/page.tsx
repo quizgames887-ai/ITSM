@@ -13,6 +13,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { useRouter } from "next/navigation";
 import { AnnouncementSlider } from "@/components/dashboard/AnnouncementSlider";
 import { useToastContext } from "@/contexts/ToastContext";
+import { DynamicForm } from "@/components/forms/DynamicForm";
 
 // Services will be fetched from the database
 
@@ -110,13 +111,8 @@ export default function DashboardPage() {
   const [selectedService, setSelectedService] = useState<any>(null);
   const [showSuggestionSuccessModal, setShowSuggestionSuccessModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [requestForm, setRequestForm] = useState({
-    title: "",
-    description: "",
-    type: "service_request" as "incident" | "service_request" | "inquiry",
-    priority: "medium" as "low" | "medium" | "high" | "critical",
-    urgency: "medium" as "low" | "medium" | "high",
-  });
+  const [requestFormData, setRequestFormData] = useState<Record<string, any>>({});
+  const [formRefreshKey, setFormRefreshKey] = useState(0);
   
   // Event management state
   // Initialize selectedDate to today's date
@@ -278,9 +274,44 @@ export default function DashboardPage() {
     normalizedSelectedLogoId ? { storageId: normalizedSelectedLogoId } : "skip"
   );
   
+  // Fetch the form for the selected service
+  // Always fetch when service is selected (not just when modal is open) to ensure fresh data
+  const serviceForm = useQuery(
+    api.forms.get,
+    selectedService?.formId ? { id: selectedService.formId } : "skip"
+  );
+  
+  // Force refresh when modal opens, service changes, or form is updated
+  useEffect(() => {
+    if (showRequestForm && selectedService?.formId && serviceForm) {
+      // Increment refresh key to force DynamicForm to re-render with latest data
+      // This ensures the form always shows the latest changes
+      setFormRefreshKey(prev => prev + 1);
+    }
+  }, [showRequestForm, selectedService?.formId, serviceForm?.updatedAt, serviceForm?.fields?.length]);
+  
+  // Debug: Log form changes and service info
+  useEffect(() => {
+    if (selectedService) {
+      console.log('Service selected:', {
+        serviceId: selectedService._id,
+        serviceName: selectedService.name,
+        hasFormId: !!selectedService.formId,
+        formId: selectedService.formId,
+        serviceForm: serviceForm ? {
+          formId: serviceForm._id,
+          updatedAt: serviceForm.updatedAt,
+          fieldsCount: serviceForm.fields?.length,
+          fields: serviceForm.fields?.map(f => ({ name: f.name, label: f.label }))
+        } : 'null/undefined'
+      });
+    }
+  }, [serviceForm, selectedService]);
+  
   const router = useRouter();
   const createTicket = useMutation(api.tickets.create);
   const toggleFavorite = useMutation((api.serviceCatalog as any).toggleFavorite);
+  const createFormForService = useMutation(api.serviceCatalog.createFormForService);
   const submitVote = useMutation((api as any).votes?.submitVote);
   const undoVote = useMutation((api as any).votes?.undoVote);
   const submitSuggestion = useMutation((api as any).suggestions?.submit);
@@ -344,14 +375,13 @@ export default function DashboardPage() {
   // This is okay - the UI will handle undefined gracefully
 
   const handleServiceClick = (service: any) => {
+    // Reset form data first
+    setRequestFormData({});
+    // Set selected service
     setSelectedService(service);
-    setRequestForm({
-      title: "",
-      description: "",
-      type: "service_request",
-      priority: "medium",
-      urgency: "medium",
-    });
+    // Force form refresh by incrementing key
+    setFormRefreshKey(prev => prev + 1);
+    // Show the modal - this will trigger the query
     setShowRequestForm(true);
   };
 
@@ -686,40 +716,57 @@ export default function DashboardPage() {
     };
   };
 
-  const handleRequestSubmit = async () => {
+  const handleRequestSubmit = async (formData: Record<string, any>) => {
     if (!selectedService || !userId) return;
     
-    if (!requestForm.title.trim()) {
+    // Extract standard fields from form data
+    const title = formData.title || "";
+    const description = formData.description || "";
+    
+    if (!title.trim()) {
       showError("Title is required");
       return;
     }
-    if (!requestForm.description.trim()) {
+    if (!description.trim()) {
       showError("Description is required");
       return;
     }
 
+    // Map form data to ticket format
+    // Handle priority mapping (form might have "Low", "Medium", etc. but ticket needs "low", "medium", etc.)
+    const priorityMap: Record<string, string> = {
+      "Low": "low",
+      "Medium": "medium",
+      "High": "high",
+      "Critical": "critical",
+    };
+    const priority = priorityMap[formData.priority] || formData.priority || "medium";
+    
+    // Handle urgency mapping
+    const urgencyMap: Record<string, string> = {
+      "Low": "low",
+      "Medium": "medium",
+      "High": "high",
+    };
+    const urgency = urgencyMap[formData.urgency] || formData.urgency || "medium";
+
     setIsSubmitting(true);
     try {
       await createTicket({
-        title: requestForm.title.trim(),
-        description: requestForm.description.trim(),
-        type: requestForm.type,
-        priority: requestForm.priority,
-        urgency: requestForm.urgency,
+        title: title.trim(),
+        description: description.trim(),
+        type: "service_request",
+        priority: priority as "low" | "medium" | "high" | "critical",
+        urgency: urgency as "low" | "medium" | "high",
         category: selectedService.name,
         createdBy: userId as Id<"users">,
+        formData: formData, // Include all form field values
       });
       
       success(`Service request for "${selectedService.name}" created successfully!`);
       setShowRequestForm(false);
       setSelectedService(null);
-      setRequestForm({
-        title: "",
-        description: "",
-        type: "service_request",
-        priority: "medium",
-        urgency: "medium",
-      });
+      setRequestFormData({});
     } catch (err: any) {
       showError(err.message || "Failed to create service request");
     } finally {
@@ -1165,7 +1212,11 @@ export default function DashboardPage() {
         {showRequestForm && selectedService && (
           <div 
             className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4"
-            onClick={() => setShowRequestForm(false)}
+            onClick={() => {
+              setShowRequestForm(false);
+              setSelectedService(null);
+              setRequestFormData({});
+            }}
           >
             <div 
               className="bg-white rounded-xl shadow-xl max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col"
@@ -1180,7 +1231,11 @@ export default function DashboardPage() {
                   </p>
                 </div>
                 <button
-                  onClick={() => setShowRequestForm(false)}
+                  onClick={() => {
+                    setShowRequestForm(false);
+                    setSelectedService(null);
+                    setRequestFormData({});
+                  }}
                   className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
                 >
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1212,72 +1267,151 @@ export default function DashboardPage() {
                     </div>
                   </div>
 
-                  <Input
-                    label="Title"
-                    value={requestForm.title}
-                    onChange={(e) => setRequestForm({ ...requestForm, title: e.target.value })}
-                    placeholder="Brief summary of your request"
-                  />
-                  
-                  <Textarea
-                    label="Description"
-                    value={requestForm.description}
-                    onChange={(e) => setRequestForm({ ...requestForm, description: e.target.value })}
-                    placeholder="Provide detailed information about your service request..."
-                    rows={4}
-                  />
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                    <Select
-                      label="Type"
-                      value={requestForm.type}
-                      onChange={(e) => setRequestForm({ ...requestForm, type: e.target.value as any })}
-                      options={[
-                        { value: "incident", label: "Incident" },
-                        { value: "service_request", label: "Service Request" },
-                        { value: "inquiry", label: "Inquiry" },
-                      ]}
-                    />
-                    
-                    <Select
-                      label="Priority"
-                      value={requestForm.priority}
-                      onChange={(e) => setRequestForm({ ...requestForm, priority: e.target.value as any })}
-                      options={[
-                        { value: "low", label: "Low" },
-                        { value: "medium", label: "Medium" },
-                        { value: "high", label: "High" },
-                        { value: "critical", label: "Critical" },
-                      ]}
-                    />
-                    
-                    <Select
-                      label="Urgency"
-                      value={requestForm.urgency}
-                      onChange={(e) => setRequestForm({ ...requestForm, urgency: e.target.value as any })}
-                      options={[
-                        { value: "low", label: "Low" },
-                        { value: "medium", label: "Medium" },
-                        { value: "high", label: "High" },
-                      ]}
-                    />
-                  </div>
-                </div>
-              </div>
+                  {/* Debug info - remove in production */}
+                  {process.env.NODE_ENV === 'development' && (
+                    <div className="text-xs text-slate-500 mb-2 p-2 bg-slate-50 rounded border border-slate-200">
+                      <strong>Debug Info:</strong><br/>
+                      Service ID: {selectedService?._id}<br/>
+                      Service has formId: {selectedService?.formId ? `Yes (${selectedService.formId})` : 'No'}<br/>
+                      Form query result: {serviceForm === undefined ? 'Loading...' : serviceForm === null ? 'Null (form not found)' : 'Loaded'}<br/>
+                      Fields count: {serviceForm?.fields?.length || 0}<br/>
+                      {serviceForm?.fields && serviceForm.fields.length > 0 && (
+                        <>Field names: {serviceForm.fields.map(f => f.name).join(', ')}</>
+                      )}
+                    </div>
+                  )}
 
-              {/* Modal Footer */}
-              <div className="p-4 border-t border-slate-200 flex justify-end gap-2">
-                <Button variant="outline" onClick={() => setShowRequestForm(false)}>
-                  Cancel
-                </Button>
-                <Button 
-                  variant="gradient" 
-                  onClick={handleRequestSubmit}
-                  disabled={isSubmitting}
-                  loading={isSubmitting}
-                >
-                  {isSubmitting ? "Submitting..." : "Submit Request"}
-                </Button>
+                  {/* Loading state while form is being fetched */}
+                  {selectedService?.formId && serviceForm === undefined ? (
+                    <div className="text-center py-8">
+                      <p className="text-slate-600">Loading form...</p>
+                    </div>
+                  ) : !selectedService?.formId ? (
+                    <div className="text-center py-8">
+                      <p className="text-slate-600 mb-2">This service doesn't have a form configured yet.</p>
+                      <p className="text-xs text-slate-500 mb-4">Would you like to create a default form for this service?</p>
+                      <div className="flex gap-2 justify-center">
+                        <Button 
+                          variant="gradient" 
+                          size="sm"
+                          onClick={async () => {
+                            if (!userId || !selectedService) return;
+                            try {
+                              const formId = await createFormForService({
+                                serviceId: selectedService._id as Id<"serviceCatalog">,
+                                createdBy: userId as Id<"users">,
+                              });
+                              success("Form created successfully! The form will load in a moment.");
+                              // Force refresh by updating the service
+                              setSelectedService({ ...selectedService, formId });
+                            } catch (err: any) {
+                              showError(err.message || "Failed to create form");
+                            }
+                          }}
+                        >
+                          Create Default Form
+                        </Button>
+                        <Link href="/forms">
+                          <Button variant="outline" size="sm">
+                            Go to Forms Page
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ) : serviceForm === null ? (
+                    <div className="text-center py-8">
+                      <p className="text-slate-600 mb-2">Form not found.</p>
+                      <p className="text-xs text-slate-500">The form associated with this service may have been deleted.</p>
+                    </div>
+                  ) : serviceForm && serviceForm.fields && serviceForm.fields.length > 0 ? (
+                    <div key={`form-wrapper-${selectedService.formId}-${serviceForm.updatedAt || 0}`}>
+                      <DynamicForm
+                        key={`service-form-${selectedService._id}-${selectedService.formId}-${serviceForm.updatedAt || 0}-${formRefreshKey}`}
+                        fields={serviceForm.fields}
+                        onSubmit={handleRequestSubmit}
+                        submitLabel={isSubmitting ? "Submitting..." : "Submit Request"}
+                        loading={isSubmitting}
+                        showSubmitButton={false}
+                        formId={`service-form-${selectedService._id}`}
+                      />
+                      <div className="flex justify-end gap-2 pt-4 border-t border-slate-200 mt-6">
+                        <Button type="button" variant="outline" onClick={() => {
+                          setShowRequestForm(false);
+                          setSelectedService(null);
+                          setRequestFormData({});
+                        }}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          type="submit"
+                          variant="gradient" 
+                          disabled={isSubmitting}
+                          loading={isSubmitting}
+                          form={`service-form-${selectedService._id}`}
+                        >
+                          {isSubmitting ? "Submitting..." : "Submit Request"}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      {/* Fallback form if service doesn't have a form yet */}
+                      <Input
+                        label="Title"
+                        value={requestFormData.title || ""}
+                        onChange={(e) => setRequestFormData({ ...requestFormData, title: e.target.value })}
+                        placeholder="Brief summary of your request"
+                      />
+                      
+                      <Textarea
+                        label="Description"
+                        value={requestFormData.description || ""}
+                        onChange={(e) => setRequestFormData({ ...requestFormData, description: e.target.value })}
+                        placeholder="Provide detailed information about your service request..."
+                        rows={4}
+                      />
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                        <Select
+                          label="Priority"
+                          value={requestFormData.priority || "Medium"}
+                          onChange={(e) => setRequestFormData({ ...requestFormData, priority: e.target.value })}
+                          options={[
+                            { value: "Low", label: "Low" },
+                            { value: "Medium", label: "Medium" },
+                            { value: "High", label: "High" },
+                            { value: "Critical", label: "Critical" },
+                          ]}
+                        />
+                        
+                        <Select
+                          label="Urgency"
+                          value={requestFormData.urgency || "Medium"}
+                          onChange={(e) => setRequestFormData({ ...requestFormData, urgency: e.target.value })}
+                          options={[
+                            { value: "Low", label: "Low" },
+                            { value: "Medium", label: "Medium" },
+                            { value: "High", label: "High" },
+                          ]}
+                        />
+                      </div>
+                      
+                      <div className="flex justify-end gap-2 pt-4 border-t border-slate-200">
+                        <Button variant="outline" onClick={() => setShowRequestForm(false)}>
+                          Cancel
+                        </Button>
+                        <Button 
+                          variant="gradient" 
+                          onClick={() => handleRequestSubmit(requestFormData)}
+                          disabled={isSubmitting}
+                          loading={isSubmitting}
+                        >
+                          {isSubmitting ? "Submitting..." : "Submit Request"}
+                        </Button>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
             </div>
           </div>

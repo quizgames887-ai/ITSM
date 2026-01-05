@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
@@ -32,6 +32,9 @@ interface DynamicFormProps {
   onSubmit: (data: Record<string, any>) => void;
   submitLabel?: string;
   loading?: boolean;
+  showSubmitButton?: boolean;
+  customFooter?: React.ReactNode;
+  formId?: string;
 }
 
 export function DynamicForm({
@@ -39,6 +42,9 @@ export function DynamicForm({
   onSubmit,
   submitLabel = "Submit",
   loading = false,
+  showSubmitButton = true,
+  customFooter,
+  formId = "dynamic-form",
 }: DynamicFormProps) {
   const [formData, setFormData] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
@@ -51,6 +57,20 @@ export function DynamicForm({
     });
     return initial;
   });
+
+  // Reset form data when fields change (e.g., when switching services or form is updated)
+  useEffect(() => {
+    const initial: Record<string, any> = {};
+    fields.forEach((field) => {
+      if (field.defaultValue) {
+        initial[field.name] = field.defaultValue;
+      } else if (field.fieldType === "checkbox") {
+        initial[field.name] = false;
+      }
+    });
+    setFormData(initial);
+    setErrors({});
+  }, [fields.map(f => `${f._id}-${f.label}-${f.name}-${f.order}`).join(',')]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -286,7 +306,7 @@ export function DynamicForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-6">
+    <form id={formId} onSubmit={handleSubmit} className="space-y-6">
       {fields.map((field) => (
         <div key={field._id}>
           {renderField(field)}
@@ -295,9 +315,12 @@ export function DynamicForm({
           )}
         </div>
       ))}
-      <Button type="submit" variant="gradient" disabled={loading} loading={loading} className="w-full">
-        {submitLabel}
-      </Button>
+      {showSubmitButton && (
+        <Button type="submit" variant="gradient" disabled={loading} loading={loading} className="w-full">
+          {submitLabel}
+        </Button>
+      )}
+      {customFooter}
     </form>
   );
 }

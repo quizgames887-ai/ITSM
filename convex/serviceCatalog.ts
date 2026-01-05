@@ -308,6 +308,109 @@ export const migrateAddLogoId = mutation({
   },
 });
 
+// Create a form for a service that doesn't have one
+export const createFormForService = mutation({
+  args: {
+    serviceId: v.id("serviceCatalog"),
+    createdBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const service = await ctx.db.get(args.serviceId);
+    if (!service) {
+      throw new Error("Service not found");
+    }
+    
+    // Check if service already has a form
+    if (service.formId) {
+      return service.formId;
+    }
+    
+    const now = Date.now();
+    
+    // Create a form for this service
+    const formId = await ctx.db.insert("forms", {
+      name: `${service.name} Form`,
+      description: `Form for ${service.name} service requests`,
+      createdBy: args.createdBy,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create default form fields for the service
+    const defaultFields = [
+      {
+        fieldType: "text" as const,
+        label: "Title",
+        name: "title",
+        placeholder: `Brief summary of your ${service.name} request`,
+        required: true,
+        order: 0,
+      },
+      {
+        fieldType: "textarea" as const,
+        label: "Description",
+        name: "description",
+        placeholder: `Provide detailed information about your ${service.name} request...`,
+        required: true,
+        order: 1,
+      },
+      {
+        fieldType: "select" as const,
+        label: "Priority",
+        name: "priority",
+        required: true,
+        options: ["Low", "Medium", "High", "Critical"],
+        defaultValue: "Medium",
+        order: 2,
+      },
+      {
+        fieldType: "select" as const,
+        label: "Urgency",
+        name: "urgency",
+        required: true,
+        options: ["Low", "Medium", "High"],
+        defaultValue: "Medium",
+        order: 3,
+      },
+      {
+        fieldType: "date" as const,
+        label: "Requested Date",
+        name: "requestedDate",
+        required: false,
+        order: 4,
+      },
+    ];
+
+    // Insert all default fields
+    for (const field of defaultFields) {
+      await ctx.db.insert("formFields", {
+        formId,
+        fieldType: field.fieldType,
+        label: field.label,
+        name: field.name,
+        placeholder: field.placeholder ?? null,
+        required: field.required ?? false,
+        defaultValue: field.defaultValue ?? null,
+        options: field.options ?? null,
+        validation: null,
+        order: field.order,
+        helpText: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    
+    // Update service with formId
+    await ctx.db.patch(args.serviceId, {
+      formId: formId,
+      updatedAt: now,
+    });
+
+    return formId;
+  },
+});
+
 // Favorites functionality
 export const toggleFavorite = mutation({
   args: {
