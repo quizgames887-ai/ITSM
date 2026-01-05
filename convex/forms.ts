@@ -385,3 +385,111 @@ export const createTicketForm = mutation({
     return formId;
   },
 });
+
+// Create default service request form with standard fields
+export const createServiceRequestForm = mutation({
+  args: {
+    createdBy: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Check if service request form already exists
+    const existingForms = await ctx.db
+      .query("forms")
+      .collect();
+    
+    const serviceRequestForm = existingForms.find(
+      (form) => form.name.toLowerCase().includes("service request")
+    );
+    
+    if (serviceRequestForm) {
+      throw new Error("Service Request form already exists");
+    }
+
+    const now = Date.now();
+    
+    // Create the form
+    const formId = await ctx.db.insert("forms", {
+      name: "Service Request Form",
+      description: "Default form for creating service requests with standard fields",
+      createdBy: args.createdBy,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create standard service request fields
+    const fields = [
+      {
+        fieldType: "text" as const,
+        label: "Title",
+        name: "title",
+        placeholder: "Brief summary of your service request",
+        required: true,
+        order: 0,
+      },
+      {
+        fieldType: "textarea" as const,
+        label: "Description",
+        name: "description",
+        placeholder: "Provide detailed information about your service request...",
+        required: true,
+        order: 1,
+      },
+      {
+        fieldType: "select" as const,
+        label: "Service Type",
+        name: "serviceType",
+        required: true,
+        options: ["IT Support", "HR", "Finance", "Facilities", "Security", "Other"],
+        defaultValue: "IT Support",
+        order: 2,
+      },
+      {
+        fieldType: "select" as const,
+        label: "Priority",
+        name: "priority",
+        required: true,
+        options: ["Low", "Medium", "High", "Critical"],
+        defaultValue: "Medium",
+        order: 3,
+      },
+      {
+        fieldType: "select" as const,
+        label: "Urgency",
+        name: "urgency",
+        required: true,
+        options: ["Low", "Medium", "High"],
+        defaultValue: "Medium",
+        order: 4,
+      },
+      {
+        fieldType: "date" as const,
+        label: "Requested Date",
+        name: "requestedDate",
+        required: false,
+        order: 5,
+      },
+    ];
+
+    // Insert all fields
+    for (const field of fields) {
+      await ctx.db.insert("formFields", {
+        formId,
+        fieldType: field.fieldType,
+        label: field.label,
+        name: field.name,
+        placeholder: field.placeholder ?? null,
+        required: field.required ?? false,
+        defaultValue: field.defaultValue ?? null,
+        options: field.options ?? null,
+        validation: null,
+        order: field.order,
+        helpText: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+
+    return formId;
+  },
+});
