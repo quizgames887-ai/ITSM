@@ -50,17 +50,26 @@ export default function SuggestionsPage() {
     currentUserId ? { id: currentUserId as Id<"users"> } : "skip"
   );
 
+  const isAdmin = currentUser?.role === "admin";
+
   // Get all suggestions - handle case where functions aren't synced yet
   const suggestionsApi = (api as any).suggestions;
+  
+  // Get suggestions based on user role
+  // Admins see all suggestions, regular users see only their own
   const allSuggestions = useQuery(
-    suggestionsApi?.list,
-    suggestionsApi?.list ? {} : "skip"
+    isAdmin && suggestionsApi?.list
+      ? suggestionsApi.list({})
+      : !isAdmin && currentUserId && suggestionsApi?.getByUser
+      ? suggestionsApi.getByUser({ userId: currentUserId as Id<"users"> })
+      : "skip"
   ) as any[] | undefined;
 
-  // Get statistics
+  // Get statistics (admin only)
   const stats = useQuery(
-    suggestionsApi?.getStats,
-    suggestionsApi?.getStats ? {} : "skip"
+    isAdmin && suggestionsApi?.getStats
+      ? suggestionsApi.getStats({})
+      : "skip"
   ) as any;
 
   // Get all users for display
@@ -69,8 +78,6 @@ export default function SuggestionsPage() {
   // Mutations
   const updateStatus = useMutation((api as any).suggestions?.updateStatus);
   const deleteSuggestion = useMutation((api as any).suggestions?.remove);
-
-  const isAdmin = currentUser?.role === "admin";
 
   // Filter suggestions
   const filteredSuggestions = allSuggestions?.filter((suggestion) => {
@@ -184,54 +191,47 @@ export default function SuggestionsPage() {
     );
   }
 
-  if (!isAdmin && currentUser !== undefined) {
-    return (
-      <Card padding="lg">
-        <div className="text-center py-12">
-          <span className="text-5xl mb-4 block">🔒</span>
-          <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Denied</h2>
-          <p className="text-slate-600 mb-4">You need admin privileges to access this page.</p>
-          <Link href="/dashboard">
-            <Button variant="gradient">Back to Dashboard</Button>
-          </Link>
-        </div>
-      </Card>
-    );
-  }
+  // No access restriction - users can view their own suggestions
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Suggestions Management</h1>
-          <p className="text-sm text-slate-600 mt-1">Review and manage user suggestions</p>
+          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">
+            {isAdmin ? "Suggestions Management" : "My Suggestions"}
+          </h1>
+          <p className="text-sm text-slate-600 mt-1">
+            {isAdmin ? "Review and manage user suggestions" : "View your submitted suggestions and their status"}
+          </p>
         </div>
       </div>
 
-      {/* Statistics */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <Card padding="sm" className="text-center">
-          <div className="text-2xl font-bold text-slate-900">{stats?.total || 0}</div>
-          <div className="text-xs text-slate-600">Total</div>
-        </Card>
-        <Card padding="sm" className="text-center">
-          <div className="text-2xl font-bold text-yellow-600">{stats?.pending || 0}</div>
-          <div className="text-xs text-slate-600">Pending</div>
-        </Card>
-        <Card padding="sm" className="text-center">
-          <div className="text-2xl font-bold text-blue-600">{stats?.reviewed || 0}</div>
-          <div className="text-xs text-slate-600">Reviewed</div>
-        </Card>
-        <Card padding="sm" className="text-center">
-          <div className="text-2xl font-bold text-green-600">{stats?.implemented || 0}</div>
-          <div className="text-xs text-slate-600">Implemented</div>
-        </Card>
-        <Card padding="sm" className="text-center">
-          <div className="text-2xl font-bold text-red-600">{stats?.rejected || 0}</div>
-          <div className="text-xs text-slate-600">Rejected</div>
-        </Card>
-      </div>
+      {/* Statistics - Admin only */}
+      {isAdmin && stats && (
+        <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+          <Card padding="sm" className="text-center">
+            <div className="text-2xl font-bold text-slate-900">{stats?.total || 0}</div>
+            <div className="text-xs text-slate-600">Total</div>
+          </Card>
+          <Card padding="sm" className="text-center">
+            <div className="text-2xl font-bold text-yellow-600">{stats?.pending || 0}</div>
+            <div className="text-xs text-slate-600">Pending</div>
+          </Card>
+          <Card padding="sm" className="text-center">
+            <div className="text-2xl font-bold text-blue-600">{stats?.reviewed || 0}</div>
+            <div className="text-xs text-slate-600">Reviewed</div>
+          </Card>
+          <Card padding="sm" className="text-center">
+            <div className="text-2xl font-bold text-green-600">{stats?.implemented || 0}</div>
+            <div className="text-xs text-slate-600">Implemented</div>
+          </Card>
+          <Card padding="sm" className="text-center">
+            <div className="text-2xl font-bold text-red-600">{stats?.rejected || 0}</div>
+            <div className="text-xs text-slate-600">Rejected</div>
+          </Card>
+        </div>
+      )}
 
       {/* Filters */}
       <Card padding="md">
@@ -309,23 +309,26 @@ export default function SuggestionsPage() {
                       </div>
                     )}
                   </div>
-                  <div className="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleReview(suggestion)}
-                    >
-                      Review
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleDelete(suggestion._id)}
-                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                    >
-                      Delete
-                    </Button>
-                  </div>
+                  {/* Action buttons - Admin only */}
+                  {isAdmin && (
+                    <div className="flex items-center gap-2 ml-4 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleReview(suggestion)}
+                      >
+                        Review
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(suggestion._id)}
+                        className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      >
+                        Delete
+                      </Button>
+                    </div>
+                  )}
                 </div>
               );
             })

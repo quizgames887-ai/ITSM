@@ -2242,11 +2242,9 @@ export default function DashboardPage() {
         <Card padding="md">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-base lg:text-lg font-semibold text-slate-900">Suggesting</h2>
-            {userRole === "admin" && (
-              <Link href="/suggestions" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
-                Show History
-              </Link>
-            )}
+            <Link href="/suggestions" className="text-xs lg:text-sm text-blue-600 hover:text-blue-700 font-medium">
+              Show History
+            </Link>
           </div>
           <p className="text-xs lg:text-sm text-slate-600 mb-4">How we can improve your experience</p>
           <div className="space-y-3">
