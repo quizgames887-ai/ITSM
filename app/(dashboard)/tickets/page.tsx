@@ -84,6 +84,14 @@ export default function TicketsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Tab state for agents: "created" (My Tickets) or "assigned" (Assigned to Me)
   const [activeTab, setActiveTab] = useState<"created" | "assigned">("created");
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const itemsPerPage = 20;
+
+  // Reset to page 1 when filters change (must be before any conditional returns)
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [statusFilter, priorityFilter, activeTab]);
   
   // Helper function to map form field values to ticket creation format
   const mapFormDataToTicket = (formData: Record<string, any>) => {
@@ -226,6 +234,12 @@ export default function TicketsPage() {
     if (priorityFilter !== "all" && ticket.priority !== priorityFilter) return false;
     return true;
   });
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTickets.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedTickets = filteredTickets.slice(startIndex, endIndex);
 
   // Status badge colors
   const getStatusBadge = (status: string) => {
@@ -595,11 +609,18 @@ export default function TicketsPage() {
         </select>
         <div className="ml-auto text-sm text-slate-500">
           {filteredTickets.length} ticket{filteredTickets.length !== 1 ? "s" : ""}
+          {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
         </div>
       </div>
 
       {/* Table */}
-      {filteredTickets.length === 0 ? (
+      {paginatedTickets.length === 0 && filteredTickets.length > 0 ? (
+        <Card padding="lg">
+          <div className="text-center text-slate-600">
+            No tickets on this page. Please navigate to another page.
+          </div>
+        </Card>
+      ) : filteredTickets.length === 0 ? (
         <Card hover padding="lg">
           <EmptyState
             icon={
@@ -669,7 +690,7 @@ export default function TicketsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
-                {filteredTickets.map((ticket) => (
+                {paginatedTickets.map((ticket) => (
                   <tr
                     key={ticket._id}
                     className="hover:bg-slate-50 transition-colors"
@@ -752,10 +773,79 @@ export default function TicketsPage() {
               </tbody>
             </table>
           </div>
+          {/* Pagination Controls */}
+          {totalPages > 1 && (
+            <div className="px-4 py-3 border-t border-slate-200 bg-slate-50">
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                <div className="text-sm text-slate-600">
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredTickets.length)} of {filteredTickets.length} tickets
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                    disabled={currentPage === 1}
+                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                    </svg>
+                    Previous
+                  </Button>
+                  
+                  {/* Page Numbers */}
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: Math.min(5, totalPages) }, (_, i) => {
+                      let pageNum: number;
+                      if (totalPages <= 5) {
+                        pageNum = i + 1;
+                      } else if (currentPage <= 3) {
+                        pageNum = i + 1;
+                      } else if (currentPage >= totalPages - 2) {
+                        pageNum = totalPages - 4 + i;
+                      } else {
+                        pageNum = currentPage - 2 + i;
+                      }
+                      
+                      return (
+                        <button
+                          key={pageNum}
+                          onClick={() => setCurrentPage(pageNum)}
+                          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                            currentPage === pageNum
+                              ? "bg-blue-600 text-white"
+                              : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    })}
+                  </div>
+                  
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                    disabled={currentPage === totalPages}
+                    className="disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Next
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
           {/* Table footer */}
-          <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 text-sm text-slate-500">
-            Showing {filteredTickets.length} of {ticketsToDisplay.length} {userRole === "agent" ? (activeTab === "created" ? "created" : "assigned") : ""} tickets
-          </div>
+          {totalPages <= 1 && (
+            <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 text-sm text-slate-500">
+              Showing {filteredTickets.length} of {ticketsToDisplay.length} {userRole === "agent" ? (activeTab === "created" ? "created" : "assigned") : ""} tickets
+            </div>
+          )}
         </Card>
       )}
     </div>
