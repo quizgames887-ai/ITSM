@@ -228,23 +228,58 @@ export default function SuggestionsPage() {
       {/* Statistics - Admin only */}
       {isAdmin && stats && (
         <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-          <Card padding="sm" className="text-center">
+          <Card 
+            padding="sm" 
+            className="text-center cursor-pointer hover:bg-slate-50 transition-colors"
+            onClick={() => {
+              setStatusFilter("all");
+              setCategoryFilter("all");
+            }}
+          >
             <div className="text-2xl font-bold text-slate-900">{stats?.total || 0}</div>
             <div className="text-xs text-slate-600">Total</div>
           </Card>
-          <Card padding="sm" className="text-center">
+          <Card 
+            padding="sm" 
+            className="text-center cursor-pointer hover:bg-yellow-50 transition-colors"
+            onClick={() => {
+              setStatusFilter("pending");
+              setCategoryFilter("all");
+            }}
+          >
             <div className="text-2xl font-bold text-yellow-600">{stats?.pending || 0}</div>
             <div className="text-xs text-slate-600">Pending</div>
           </Card>
-          <Card padding="sm" className="text-center">
+          <Card 
+            padding="sm" 
+            className="text-center cursor-pointer hover:bg-blue-50 transition-colors"
+            onClick={() => {
+              setStatusFilter("reviewed");
+              setCategoryFilter("all");
+            }}
+          >
             <div className="text-2xl font-bold text-blue-600">{stats?.reviewed || 0}</div>
             <div className="text-xs text-slate-600">Reviewed</div>
           </Card>
-          <Card padding="sm" className="text-center">
+          <Card 
+            padding="sm" 
+            className="text-center cursor-pointer hover:bg-green-50 transition-colors"
+            onClick={() => {
+              setStatusFilter("implemented");
+              setCategoryFilter("all");
+            }}
+          >
             <div className="text-2xl font-bold text-green-600">{stats?.implemented || 0}</div>
             <div className="text-xs text-slate-600">Implemented</div>
           </Card>
-          <Card padding="sm" className="text-center">
+          <Card 
+            padding="sm" 
+            className="text-center cursor-pointer hover:bg-red-50 transition-colors"
+            onClick={() => {
+              setStatusFilter("rejected");
+              setCategoryFilter("all");
+            }}
+          >
             <div className="text-2xl font-bold text-red-600">{stats?.rejected || 0}</div>
             <div className="text-xs text-slate-600">Rejected</div>
           </Card>
