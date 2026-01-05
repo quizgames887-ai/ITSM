@@ -480,6 +480,10 @@ export default function TicketsPage() {
               title="Total Tickets"
               value={kpiMetrics.total}
               color="default"
+              onClick={() => {
+                setStatusFilter("all");
+                setPriorityFilter("all");
+              }}
               icon={
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
@@ -490,6 +494,10 @@ export default function TicketsPage() {
               title="Open"
               value={kpiMetrics.openTickets}
               color="blue"
+              onClick={() => {
+                setStatusFilter("new");
+                setPriorityFilter("all");
+              }}
               icon={
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -500,6 +508,10 @@ export default function TicketsPage() {
               title="In Progress"
               value={kpiMetrics.inProgress}
               color="yellow"
+              onClick={() => {
+                setStatusFilter("in_progress");
+                setPriorityFilter("all");
+              }}
               icon={
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
@@ -510,6 +522,10 @@ export default function TicketsPage() {
               title="Resolved"
               value={kpiMetrics.resolved}
               color="green"
+              onClick={() => {
+                setStatusFilter("resolved");
+                setPriorityFilter("all");
+              }}
               icon={
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -520,6 +536,10 @@ export default function TicketsPage() {
               title="Critical"
               value={kpiMetrics.critical}
               color="red"
+              onClick={() => {
+                setStatusFilter("all");
+                setPriorityFilter("critical");
+              }}
               icon={
                 <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
@@ -540,23 +560,58 @@ export default function TicketsPage() {
 
           {/* Secondary Metrics */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <Card padding="sm" className="text-center">
+            <Card 
+              padding="sm" 
+              className="text-center cursor-pointer hover:bg-blue-50 transition-colors"
+              onClick={() => {
+                setStatusFilter("new");
+                setPriorityFilter("all");
+              }}
+            >
               <div className="text-xl font-bold text-blue-600">{kpiMetrics.newTickets}</div>
               <div className="text-xs text-slate-500 mt-1">New</div>
             </Card>
-            <Card padding="sm" className="text-center">
+            <Card 
+              padding="sm" 
+              className="text-center cursor-pointer hover:bg-orange-50 transition-colors"
+              onClick={() => {
+                setStatusFilter("on_hold");
+                setPriorityFilter("all");
+              }}
+            >
               <div className="text-xl font-bold text-orange-600">{kpiMetrics.onHold}</div>
               <div className="text-xs text-slate-500 mt-1">On Hold</div>
             </Card>
-            <Card padding="sm" className="text-center">
+            <Card 
+              padding="sm" 
+              className="text-center cursor-pointer hover:bg-slate-50 transition-colors"
+              onClick={() => {
+                setStatusFilter("closed");
+                setPriorityFilter("all");
+              }}
+            >
               <div className="text-xl font-bold text-slate-600">{kpiMetrics.closed}</div>
               <div className="text-xs text-slate-500 mt-1">Closed</div>
             </Card>
-            <Card padding="sm" className="text-center">
+            <Card 
+              padding="sm" 
+              className="text-center cursor-pointer hover:bg-red-50 transition-colors"
+              onClick={() => {
+                setStatusFilter("all");
+                setPriorityFilter("high");
+              }}
+            >
               <div className="text-xl font-bold text-red-600">{kpiMetrics.high}</div>
               <div className="text-xs text-slate-500 mt-1">High Priority</div>
             </Card>
-            <Card padding="sm" className="text-center">
+            <Card 
+              padding="sm" 
+              className="text-center cursor-pointer hover:bg-blue-50 transition-colors"
+              onClick={() => {
+                setStatusFilter("all");
+                setPriorityFilter("medium");
+              }}
+            >
               <div className="text-xl font-bold text-blue-600">{kpiMetrics.medium}</div>
               <div className="text-xs text-slate-500 mt-1">Medium Priority</div>
             </Card>

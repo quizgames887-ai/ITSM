@@ -7,6 +7,7 @@ interface StatsCardProps {
   value: number;
   color?: "blue" | "yellow" | "green" | "red" | "default";
   icon?: React.ReactNode;
+  onClick?: () => void;
 }
 
 const colorConfig = {
@@ -70,7 +71,7 @@ const defaultIcons = {
   ),
 };
 
-export function StatsCard({ title, value, color = "default", icon }: StatsCardProps) {
+export function StatsCard({ title, value, color = "default", icon, onClick }: StatsCardProps) {
   const config = colorConfig[color];
   const displayIcon = icon || defaultIcons[color];
 
@@ -78,8 +79,9 @@ export function StatsCard({ title, value, color = "default", icon }: StatsCardPr
     <Card 
       hover 
       variant="elevated"
-      className={`${config.bg} ${config.border} border animate-fade-in group cursor-pointer overflow-hidden relative`} 
+      className={`${config.bg} ${config.border} border animate-fade-in group ${onClick ? "cursor-pointer" : ""} overflow-hidden relative`} 
       padding="sm"
+      onClick={onClick}
     >
       {/* Subtle gradient overlay on hover */}
       <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
