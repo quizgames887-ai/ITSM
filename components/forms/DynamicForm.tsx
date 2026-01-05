@@ -25,6 +25,7 @@ interface FormField {
     maxLength: number | null;
   } | null;
   helpText: string | null;
+  order: number;
 }
 
 interface DynamicFormProps {
