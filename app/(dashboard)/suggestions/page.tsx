@@ -59,16 +59,17 @@ export default function SuggestionsPage() {
   
   // Determine which function to use based on role
   // Always call useQuery (React hooks rule), but conditionally pass function and args
+  // Security: Non-admin users can ONLY see their own suggestions via getByUser
   const suggestionsQuery = userLoaded && isAdmin && suggestionsApi?.list
-    ? suggestionsApi.list
+    ? suggestionsApi.list  // Admins see all suggestions
     : userLoaded && !isAdmin && currentUserId && suggestionsApi?.getByUser
-    ? suggestionsApi.getByUser
+    ? suggestionsApi.getByUser  // Regular users see only their own suggestions
     : suggestionsApi?.list || suggestionsApi?.getByUser || api.users.list; // Fallback to a valid function
     
   const suggestionsArgs = userLoaded && isAdmin && suggestionsApi?.list
-    ? {}
+    ? {}  // Admin: no filter, get all
     : userLoaded && !isAdmin && currentUserId && suggestionsApi?.getByUser
-    ? { userId: currentUserId as Id<"users"> }
+    ? { userId: currentUserId as Id<"users"> }  // User: filter by their own userId
     : "skip";
   
   const allSuggestions = useQuery(suggestionsQuery, suggestionsArgs) as any[] | undefined;
