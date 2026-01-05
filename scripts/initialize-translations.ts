@@ -72,7 +72,7 @@ const arabicTranslations = [
   { key: "profile.updateError", en: "Failed to update profile", ar: "فشل تحديث الملف الشخصي", category: "profile" },
   
   // Navigation
-  { key: "nav.dashboard", en: "Dashboard", ar: "لوحة التحكم", category: "navigation" },
+  { key: "nav.dashboard", en: "workplace", ar: "لوحة التحكم", category: "navigation" },
   { key: "nav.tickets", en: "Tickets", ar: "التذاكر", category: "navigation" },
   { key: "nav.serviceCatalog", en: "Service Catalog", ar: "كتالوج الخدمات", category: "navigation" },
   { key: "nav.forms", en: "Forms", ar: "النماذج", category: "navigation" },

@@ -10,7 +10,7 @@ export default function Home() {
     // Check if user is logged in
     const userId = localStorage.getItem("userId");
     if (userId) {
-      router.push("/dashboard");
+      router.push("/workplace");
     } else {
       router.push("/login");
     }

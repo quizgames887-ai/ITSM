@@ -302,7 +302,7 @@ export default function ServiceCatalogPage() {
           <span className="text-5xl mb-4 block">🔒</span>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Denied</h2>
           <p className="text-slate-600 mb-4">You need admin privileges to manage service catalog.</p>
-          <Link href="/dashboard">
+          <Link href="/workplace">
             <Button variant="gradient">Back to Dashboard</Button>
           </Link>
         </div>

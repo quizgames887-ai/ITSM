@@ -116,7 +116,7 @@ export function Navigation() {
     icon: string;
     adminOnly?: boolean;
   }> = [
-    { href: "/dashboard", label: t("nav.dashboard", "Dashboard"), icon: "📊" },
+    { href: "/workplace", label: t("nav.dashboard", "workplace"), icon: "📊" },
     { href: "/tickets", label: t("nav.tickets", "Tickets"), icon: "🎫" },
     { href: "/forms", label: t("nav.forms", "Forms"), icon: "📝", adminOnly: true },
     { href: "/users", label: t("nav.users", "Users"), icon: "👥", adminOnly: true },
@@ -195,7 +195,7 @@ export function Navigation() {
           <div className="flex justify-between items-center h-16 lg:h-18">
           <div className="flex items-center space-x-4 sm:space-x-8">
             <Link
-              href="/dashboard"
+              href="/workplace"
               className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-700 hover:to-purple-700 transition-all hover:scale-105 inline-block"
             >
               <span className="hidden sm:inline">Palmware</span>

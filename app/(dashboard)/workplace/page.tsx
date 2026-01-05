@@ -89,7 +89,7 @@ function LoadingSkeleton() {
   );
 }
 
-export default function DashboardPage() {
+export default function WorkplacePage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [suggestionCategory, setSuggestionCategory] = useState("");
@@ -247,7 +247,7 @@ export default function DashboardPage() {
     userId && selectedVoteId ? { userId: userId as Id<"users">, voteId: selectedVoteId } : "skip"
   ) as string | null | undefined;
 
-  // Fetch todos for current user (limited to 5 for dashboard)
+  // Fetch todos for current user (limited to 5 for workplace)
   const todos = useQuery(
     (api as any).todos?.list,
     userId ? { 

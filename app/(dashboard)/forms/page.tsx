@@ -182,7 +182,7 @@ export default function FormsPage() {
               <p className="text-slate-600 mb-4">
                 You need admin privileges to access this page.
               </p>
-              <Link href="/dashboard">
+              <Link href="/workplace">
                 <Button>Back to Dashboard</Button>
               </Link>
             </div>

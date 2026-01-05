@@ -144,7 +144,7 @@ export default function NotificationsPage() {
           </svg>
           <h2 className="text-2xl font-bold text-slate-900 mb-2">Access Denied</h2>
           <p className="text-slate-600 mb-4">You need admin privileges to access this page.</p>
-          <Link href="/dashboard">
+          <Link href="/workplace">
             <Button>Back to Dashboard</Button>
           </Link>
         </div>

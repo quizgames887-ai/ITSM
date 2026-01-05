@@ -48,7 +48,7 @@ export default function DashboardLayout({
 
   // Determine page title based on pathname with translations
   const getPageTitle = () => {
-    if (pathname === "/dashboard") return t("dashboard.title", "My Workspace");
+    if (pathname === "/workplace") return t("dashboard.title", "My Workspace");
     if (pathname === "/tickets") return t("tickets.title", "Tickets");
     if (pathname === "/tickets/new") return t("tickets.createTicket", "Create Ticket");
     if (pathname.startsWith("/tickets/")) return t("tickets.ticketDetails", "Ticket Details");

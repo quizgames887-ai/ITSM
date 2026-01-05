@@ -423,7 +423,7 @@ function ProfilePageContent() {
                   Exit Impersonation
                 </Button>
               ) : (
-                <Link href="/dashboard" className="w-full sm:w-auto">
+                <Link href="/workplace" className="w-full sm:w-auto">
                   <Button variant="outline" className="w-full sm:w-auto">
                     <span className="hidden sm:inline">← Back to Dashboard</span>
                     <span className="sm:hidden">← Back</span>

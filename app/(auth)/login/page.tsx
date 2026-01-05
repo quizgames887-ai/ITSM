@@ -30,11 +30,11 @@ export default function LoginPage() {
       localStorage.setItem("userName", result.name);
       localStorage.setItem("userRole", result.role || "user");
       
-      // Redirect to onboarding if user hasn't completed it, otherwise to dashboard
+      // Redirect to onboarding if user hasn't completed it, otherwise to workplace
       if (result.onboardingCompleted === false) {
         router.push("/onboarding");
       } else {
-        router.push("/dashboard");
+        router.push("/workplace");
       }
     } catch (err: any) {
       setError(err.message || "Failed to sign in");

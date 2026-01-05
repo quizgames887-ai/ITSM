@@ -268,7 +268,7 @@ export default function TranslationsPage() {
       { key: "profile.rightToLeft", en: "right to left", ar: "من اليمين إلى اليسار", category: "profile" },
       
       // Navigation
-      { key: "nav.dashboard", en: "Dashboard", ar: "لوحة التحكم", category: "navigation" },
+      { key: "nav.dashboard", en: "workplace", ar: "لوحة التحكم", category: "navigation" },
       { key: "nav.tickets", en: "Tickets", ar: "التذاكر", category: "navigation" },
       { key: "nav.serviceCatalog", en: "Service Catalog", ar: "كتالوج الخدمات", category: "navigation" },
       { key: "nav.forms", en: "Forms", ar: "النماذج", category: "navigation" },
@@ -419,7 +419,7 @@ export default function TranslationsPage() {
           <p className="text-sm text-slate-500 mb-4">
             Your current role: <strong>{currentUser?.role || "unknown"}</strong>
           </p>
-          <Link href="/dashboard">
+          <Link href="/workplace">
             <Button variant="gradient">Back to Dashboard</Button>
           </Link>
         </div>

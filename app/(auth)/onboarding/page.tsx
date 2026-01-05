@@ -65,7 +65,7 @@ export default function OnboardingPage() {
       const userId = localStorage.getItem("userId");
       if (userId) {
         await updateOnboarding({ userId: userId as any, completed: true });
-        router.push("/dashboard");
+        router.push("/workplace");
       } else {
         router.push("/login");
       }

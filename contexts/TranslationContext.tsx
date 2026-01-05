@@ -74,7 +74,7 @@ const defaultTranslations: Record<string, string> = {
   "shared.savedSuccess": "{item} saved successfully",
   
   // Navigation
-  "nav.dashboard": "Dashboard",
+  "nav.dashboard": "workplace",
   "nav.tickets": "Tickets",
   "nav.serviceCatalog": "Service Catalog",
   "nav.forms": "Forms",
@@ -191,7 +191,7 @@ const defaultTranslations: Record<string, string> = {
   "kpi.unassigned": "Unassigned",
   
   // ============================================
-  // PAGE: DASHBOARD (/dashboard)
+  // PAGE: WORKPLACE (/workplace)
   // ============================================
   "pages.dashboard.title": "My Workspace",
   "pages.dashboard.welcome": "Welcome",
