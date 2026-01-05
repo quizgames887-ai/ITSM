@@ -5,7 +5,7 @@ import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import Link from "next/link";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 export default function FormsPage() {
   const router = useRouter();
   const forms = useQuery(api.forms.list, {});
+  const services = useQuery(api.serviceCatalog.list, { activeOnly: false });
   const deleteForm = useMutation(api.forms.deleteForm);
   const createTicketForm = useMutation(api.forms.createTicketForm);
   const createServiceRequestForm = useMutation(api.forms.createServiceRequestForm);
@@ -118,8 +119,30 @@ export default function FormsPage() {
     (form) => form.name.toLowerCase().includes("service request")
   );
 
+  // Create a map of formId to service for quick lookup
+  const formToServiceMap = useMemo(() => {
+    if (!services || !forms) return new Map();
+    const map = new Map();
+    services.forEach((service) => {
+      if (service.formId) {
+        map.set(service.formId, service);
+      }
+    });
+    return map;
+  }, [services, forms]);
+
+  // Calculate statistics
+  const totalForms = forms?.length || 0;
+  const activeForms = forms?.filter(f => f.isActive).length || 0;
+  const serviceForms = forms?.filter(f => formToServiceMap.has(f._id)).length || 0;
+  const customForms = forms?.filter(f => 
+    !f.name.toLowerCase().includes("ticket") && 
+    !f.name.toLowerCase().includes("service request") &&
+    !formToServiceMap.has(f._id)
+  ).length || 0;
+
   // Wait for both queries to load before checking admin status
-  if (forms === undefined || (currentUserId && currentUser === undefined)) {
+  if (forms === undefined || services === undefined || (currentUserId && currentUser === undefined)) {
     return (
       <div className="min-h-screen bg-slate-50 p-8">
         <div className="max-w-7xl mx-auto">
@@ -168,14 +191,6 @@ export default function FormsPage() {
       </div>
     );
   }
-
-  // Calculate statistics
-  const totalForms = forms?.length || 0;
-  const activeForms = forms?.filter(f => f.isActive).length || 0;
-  const customForms = forms?.filter(f => 
-    !f.name.toLowerCase().includes("ticket") && 
-    !f.name.toLowerCase().includes("service request")
-  ).length || 0;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 p-4 sm:p-6 lg:p-8">
@@ -249,6 +264,19 @@ export default function FormsPage() {
                   <div className="p-3 bg-green-100 rounded-lg">
                     <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                </div>
+              </Card>
+              <Card padding="md" className="bg-gradient-to-br from-orange-50 to-amber-50 border border-orange-200">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium text-slate-600 mb-1">Service Forms</p>
+                    <p className="text-2xl font-bold text-slate-900">{serviceForms}</p>
+                  </div>
+                  <div className="p-3 bg-orange-100 rounded-lg">
+                    <svg className="w-6 h-6 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
                     </svg>
                   </div>
                 </div>
@@ -495,20 +523,22 @@ export default function FormsPage() {
               {forms.map((form, index) => {
                 const isTicketForm = form.name.toLowerCase().includes("ticket");
                 const isServiceRequestForm = form.name.toLowerCase().includes("service request");
+                const associatedService = formToServiceMap.get(form._id);
+                const isServiceForm = associatedService !== undefined;
                 return (
                   <Card
                     key={form._id}
                     hover
                     padding="lg"
                     className={`animate-fade-in cursor-pointer ${
-                      isTicketForm ? "ring-2 ring-blue-300" : isServiceRequestForm ? "ring-2 ring-green-300" : ""
+                      isTicketForm ? "ring-2 ring-blue-300" : isServiceRequestForm ? "ring-2 ring-green-300" : isServiceForm ? "ring-2 ring-orange-300" : ""
                     }`}
                     style={{ animationDelay: `${index * 50}ms` }}
                     onClick={() => router.push(`/forms/${form._id}/design`)}
                   >
                     <div className="flex justify-between items-start mb-4">
                       <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
+                        <div className="flex items-center gap-2 mb-2 flex-wrap">
                           <h3 className="text-xl font-semibold text-slate-900">
                             {form.name}
                           </h3>
@@ -522,11 +552,26 @@ export default function FormsPage() {
                               Service Request
                             </span>
                           )}
+                          {isServiceForm && associatedService && (
+                            <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
+                              {associatedService.name}
+                            </span>
+                          )}
                         </div>
                         {form.description && (
                           <p className="text-sm text-slate-600 mb-3">
                             {form.description}
                           </p>
+                        )}
+                        {isServiceForm && associatedService && (
+                          <div className="flex items-center gap-2 mt-2">
+                            <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                            </svg>
+                            <span className="text-xs text-slate-600">
+                              Service: <span className="font-semibold text-orange-600">{associatedService.name}</span>
+                            </span>
+                          </div>
                         )}
                       </div>
                       <div className="flex gap-1">
@@ -835,10 +880,14 @@ export default function FormsPage() {
                 {forms.map((form, index) => {
                   const isTicketForm = form.name.toLowerCase().includes("ticket");
                   const isServiceRequestForm = form.name.toLowerCase().includes("service request");
+                  const associatedService = formToServiceMap.get(form._id);
+                  const isServiceForm = associatedService !== undefined;
                   const formTypeColor = isTicketForm 
                     ? "from-blue-500 to-indigo-600" 
                     : isServiceRequestForm 
                     ? "from-green-500 to-emerald-600" 
+                    : isServiceForm
+                    ? "from-orange-500 to-amber-600"
                     : "from-purple-500 to-pink-600";
                   
                   return (
@@ -883,16 +932,31 @@ export default function FormsPage() {
                                     Ticket
                                   </span>
                                 )}
-                                {isServiceRequestForm && (
-                                  <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
-                                    Service Request
-                                  </span>
-                                )}
-                              </div>
+                          {isServiceRequestForm && (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200">
+                              Service Request
+                            </span>
+                          )}
+                          {isServiceForm && associatedService && (
+                            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700 border border-orange-200">
+                              {associatedService.name}
+                            </span>
+                          )}
+                        </div>
                               {form.description && (
                                 <p className="text-sm text-slate-600 line-clamp-2 mb-3">
                                   {form.description}
                                 </p>
+                              )}
+                              {isServiceForm && associatedService && (
+                                <div className="flex items-center gap-2 mt-2">
+                                  <svg className="w-4 h-4 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" />
+                                  </svg>
+                                  <span className="text-xs text-slate-600">
+                                    Service: <span className="font-semibold text-orange-600">{associatedService.name}</span>
+                                  </span>
+                                </div>
                               )}
                             </div>
                           </div>

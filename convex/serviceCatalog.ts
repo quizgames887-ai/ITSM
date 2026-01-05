@@ -116,6 +116,81 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
     const normalizedLogoId = normalizeLogoId(args.logoId);
+    
+    // Create a form for this service
+    const formId = await ctx.db.insert("forms", {
+      name: `${args.name} Form`,
+      description: `Form for ${args.name} service requests`,
+      createdBy: args.createdBy,
+      isActive: true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Create default form fields for the service
+    const defaultFields = [
+      {
+        fieldType: "text" as const,
+        label: "Title",
+        name: "title",
+        placeholder: `Brief summary of your ${args.name} request`,
+        required: true,
+        order: 0,
+      },
+      {
+        fieldType: "textarea" as const,
+        label: "Description",
+        name: "description",
+        placeholder: `Provide detailed information about your ${args.name} request...`,
+        required: true,
+        order: 1,
+      },
+      {
+        fieldType: "select" as const,
+        label: "Priority",
+        name: "priority",
+        required: true,
+        options: ["Low", "Medium", "High", "Critical"],
+        defaultValue: "Medium",
+        order: 2,
+      },
+      {
+        fieldType: "select" as const,
+        label: "Urgency",
+        name: "urgency",
+        required: true,
+        options: ["Low", "Medium", "High"],
+        defaultValue: "Medium",
+        order: 3,
+      },
+      {
+        fieldType: "date" as const,
+        label: "Requested Date",
+        name: "requestedDate",
+        required: false,
+        order: 4,
+      },
+    ];
+
+    // Insert all default fields
+    for (const field of defaultFields) {
+      await ctx.db.insert("formFields", {
+        formId,
+        fieldType: field.fieldType,
+        label: field.label,
+        name: field.name,
+        placeholder: field.placeholder ?? null,
+        required: field.required ?? false,
+        defaultValue: field.defaultValue ?? null,
+        options: field.options ?? null,
+        validation: null,
+        order: field.order,
+        helpText: null,
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    
     return await ctx.db.insert("serviceCatalog", {
       name: args.name,
       icon: args.icon,
@@ -126,6 +201,7 @@ export const create = mutation({
       isActive: args.isActive,
       order: args.order,
       requestCount: 0,
+      formId: formId,
       createdBy: args.createdBy,
       createdAt: now,
       updatedAt: now,
@@ -144,6 +220,7 @@ export const update = mutation({
     description: v.optional(v.string()),
     isActive: v.optional(v.boolean()),
     order: v.optional(v.number()),
+    formId: v.optional(v.union(v.id("forms"), v.null())),
   },
   handler: async (ctx, args) => {
     const { id, ...updates } = args;
@@ -158,6 +235,7 @@ export const update = mutation({
     if (updates.description !== undefined) patch.description = updates.description;
     if (updates.isActive !== undefined) patch.isActive = updates.isActive;
     if (updates.order !== undefined) patch.order = updates.order;
+    if (updates.formId !== undefined) patch.formId = updates.formId;
     await ctx.db.patch(id, patch);
   },
 });

@@ -276,12 +276,14 @@ export default defineSchema({
     isActive: v.boolean(),
     order: v.number(), // Display order (lower = shown first)
     requestCount: v.number(), // Number of requests for this service
+    formId: v.optional(v.id("forms")), // Associated form for this service
     createdBy: v.id("users"),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_isActive", ["isActive"])
-    .index("by_order", ["order"]),
+    .index("by_order", ["order"])
+    .index("by_formId", ["formId"]),
 
   // Service Favorites (user-service favorites)
   serviceFavorites: defineTable({
