@@ -494,13 +494,14 @@ export default function FormsPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
               {forms.map((form, index) => {
                 const isTicketForm = form.name.toLowerCase().includes("ticket");
+                const isServiceRequestForm = form.name.toLowerCase().includes("service request");
                 return (
                   <Card
                     key={form._id}
                     hover
                     padding="lg"
                     className={`animate-fade-in cursor-pointer ${
-                      isTicketForm ? "ring-2 ring-blue-300" : ""
+                      isTicketForm ? "ring-2 ring-blue-300" : isServiceRequestForm ? "ring-2 ring-green-300" : ""
                     }`}
                     style={{ animationDelay: `${index * 50}ms` }}
                     onClick={() => router.push(`/forms/${form._id}/design`)}
