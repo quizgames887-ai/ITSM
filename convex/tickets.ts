@@ -565,3 +565,116 @@ export const assign = mutation({
     return args.id;
   },
 });
+
+// Delete a single ticket (admin only)
+export const deleteTicket = mutation({
+  args: {
+    id: v.id("tickets"),
+    userId: v.id("users"), // Admin user making the deletion
+  },
+  handler: async (ctx, args) => {
+    // Verify user is admin
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can delete tickets");
+    }
+
+    const ticket = await ctx.db.get(args.id);
+    if (!ticket) {
+      throw new Error("Ticket not found");
+    }
+
+    // Delete related records
+    // Delete ticket comments
+    const comments = await ctx.db
+      .query("ticketComments")
+      .withIndex("by_ticketId", (q: any) => q.eq("ticketId", args.id))
+      .collect();
+    for (const comment of comments) {
+      await ctx.db.delete(comment._id);
+    }
+
+    // Delete ticket history
+    const history = await ctx.db
+      .query("ticketHistory")
+      .withIndex("by_ticketId", (q: any) => q.eq("ticketId", args.id))
+      .collect();
+    for (const entry of history) {
+      await ctx.db.delete(entry._id);
+    }
+
+    // Delete notifications related to this ticket
+    const notifications = await ctx.db
+      .query("notifications")
+      .filter((q: any) => q.eq(q.field("ticketId"), args.id))
+      .collect();
+    for (const notification of notifications) {
+      await ctx.db.delete(notification._id);
+    }
+
+    // Delete the ticket
+    await ctx.db.delete(args.id);
+
+    return { success: true };
+  },
+});
+
+// Delete multiple tickets (admin only)
+export const deleteTickets = mutation({
+  args: {
+    ids: v.array(v.id("tickets")),
+    userId: v.id("users"), // Admin user making the deletion
+  },
+  handler: async (ctx, args) => {
+    // Verify user is admin
+    const user = await ctx.db.get(args.userId);
+    if (!user || user.role !== "admin") {
+      throw new Error("Only admins can delete tickets");
+    }
+
+    if (args.ids.length === 0) {
+      return { success: true, deleted: 0 };
+    }
+
+    let deletedCount = 0;
+
+    for (const ticketId of args.ids) {
+      const ticket = await ctx.db.get(ticketId);
+      if (!ticket) continue;
+
+      // Delete related records
+      // Delete ticket comments
+      const comments = await ctx.db
+        .query("ticketComments")
+        .withIndex("by_ticketId", (q: any) => q.eq("ticketId", ticketId))
+        .collect();
+      for (const comment of comments) {
+        await ctx.db.delete(comment._id);
+      }
+
+      // Delete ticket history
+      const history = await ctx.db
+        .query("ticketHistory")
+        .withIndex("by_ticketId", (q: any) => q.eq("ticketId", ticketId))
+        .collect();
+      for (const entry of history) {
+        await ctx.db.delete(entry._id);
+      }
+
+      // Delete notifications related to this ticket
+      const notifications = await ctx.db
+        .query("notifications")
+        .filter((q: any) => q.eq(q.field("ticketId"), ticketId))
+        .collect();
+      for (const notification of notifications) {
+        await ctx.db.delete(notification._id);
+      }
+
+      // Delete the ticket
+      await ctx.db.delete(ticketId);
+      deletedCount++;
+    }
+
+    return { success: true, deleted: deletedCount };
+  },
+});

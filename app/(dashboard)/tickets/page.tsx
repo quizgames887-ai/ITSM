@@ -62,6 +62,11 @@ export default function TicketsPage() {
   const users = useQuery(api.users.list, {});
   const slaPolicies = useQuery(api.sla.list, {});
   const createTicket = useMutation(api.tickets.create);
+  const deleteTickets = useMutation(api.tickets.deleteTickets);
+  
+  // State for selected tickets
+  const [selectedTickets, setSelectedTickets] = useState<Set<string>>(new Set());
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Fetch all forms to find the ticket form
   const forms = useQuery(api.forms.list, {});
@@ -87,6 +92,11 @@ export default function TicketsPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  
+  // Reset selected tickets when filters change
+  useEffect(() => {
+    setSelectedTickets(new Set());
+  }, [statusFilter, priorityFilter, activeTab, currentPage]);
 
   // Reset to page 1 when filters change (must be before any conditional returns)
   useEffect(() => {
@@ -347,6 +357,61 @@ export default function TicketsPage() {
     };
   };
 
+  // Handle ticket selection
+  const handleSelectTicket = (ticketId: string) => {
+    setSelectedTickets((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(ticketId)) {
+        newSet.delete(ticketId);
+      } else {
+        newSet.add(ticketId);
+      }
+      return newSet;
+    });
+  };
+
+  // Handle select all
+  const handleSelectAll = () => {
+    if (selectedTickets.size === paginatedTickets.length) {
+      setSelectedTickets(new Set());
+    } else {
+      setSelectedTickets(new Set(paginatedTickets.map((t) => t._id)));
+    }
+  };
+
+  // Handle delete selected tickets
+  const handleDeleteSelected = async () => {
+    if (!userId || userRole !== "admin") {
+      showError("Only admins can delete tickets");
+      return;
+    }
+
+    if (selectedTickets.size === 0) {
+      showError("No tickets selected");
+      return;
+    }
+
+    const confirmMessage = `Are you sure you want to delete ${selectedTickets.size} ticket${selectedTickets.size > 1 ? "s" : ""}? This action cannot be undone.`;
+    if (!window.confirm(confirmMessage)) {
+      return;
+    }
+
+    setIsDeleting(true);
+    try {
+      const result = await deleteTickets({
+        ids: Array.from(selectedTickets) as Id<"tickets">[],
+        userId: userId as Id<"users">,
+      });
+      
+      success(`Successfully deleted ${result.deleted} ticket${result.deleted > 1 ? "s" : ""}`);
+      setSelectedTickets(new Set());
+    } catch (err: any) {
+      showError(err.message || "Failed to delete tickets");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleCreateTicket = async (formData: Record<string, any>) => {
     if (!currentUserId) {
       showError("You must be logged in to create a ticket");
@@ -582,8 +647,8 @@ export default function TicketsPage() {
         </div>
       )}
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      {/* Filters and Bulk Actions */}
+      <div className="flex flex-wrap gap-3 items-center">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
@@ -607,9 +672,27 @@ export default function TicketsPage() {
           <option value="high">High</option>
           <option value="critical">Critical</option>
         </select>
+        {userRole === "admin" && selectedTickets.size > 0 && (
+          <Button
+            variant="outline"
+            onClick={handleDeleteSelected}
+            disabled={isDeleting}
+            className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+          >
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+            </svg>
+            {isDeleting ? "Deleting..." : `Delete ${selectedTickets.size} Selected`}
+          </Button>
+        )}
         <div className="ml-auto text-sm text-slate-500">
           {filteredTickets.length} ticket{filteredTickets.length !== 1 ? "s" : ""}
           {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
+          {userRole === "admin" && selectedTickets.size > 0 && (
+            <span className="ml-2 text-blue-600 font-medium">
+              ({selectedTickets.size} selected)
+            </span>
+          )}
         </div>
       </div>
 
@@ -663,6 +746,17 @@ export default function TicketsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
+                  {userRole === "admin" && (
+                    <th className="w-12 px-4 py-3">
+                      <input
+                        type="checkbox"
+                        checked={paginatedTickets.length > 0 && selectedTickets.size === paginatedTickets.length}
+                        onChange={handleSelectAll}
+                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        title="Select all"
+                      />
+                    </th>
+                  )}
                   <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
                     Ticket
                   </th>
@@ -693,8 +787,20 @@ export default function TicketsPage() {
                 {paginatedTickets.map((ticket) => (
                   <tr
                     key={ticket._id}
-                    className="hover:bg-slate-50 transition-colors"
+                    className={`hover:bg-slate-50 transition-colors ${
+                      selectedTickets.has(ticket._id) ? "bg-blue-50" : ""
+                    }`}
                   >
+                    {userRole === "admin" && (
+                      <td className="px-4 py-4">
+                        <input
+                          type="checkbox"
+                          checked={selectedTickets.has(ticket._id)}
+                          onChange={() => handleSelectTicket(ticket._id)}
+                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                        />
+                      </td>
+                    )}
                     <td className="px-4 py-4">
                       <div className="flex flex-col">
                         <Link
