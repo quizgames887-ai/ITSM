@@ -50,27 +50,35 @@ export default function SuggestionsPage() {
     currentUserId ? { id: currentUserId as Id<"users"> } : "skip"
   );
 
-  const isAdmin = currentUser?.role === "admin";
-
   // Get all suggestions - handle case where functions aren't synced yet
   const suggestionsApi = (api as any).suggestions;
   
-  // Get suggestions based on user role
-  // Admins see all suggestions, regular users see only their own
-  const allSuggestions = useQuery(
-    isAdmin && suggestionsApi?.list
-      ? suggestionsApi.list({})
-      : !isAdmin && currentUserId && suggestionsApi?.getByUser
-      ? suggestionsApi.getByUser({ userId: currentUserId as Id<"users"> })
-      : "skip"
-  ) as any[] | undefined;
+  // Wait for user to load before determining role
+  const isAdmin = currentUser?.role === "admin";
+  const userLoaded = currentUserId ? (currentUser !== undefined) : true; // If no userId, we're not logged in, so consider "loaded"
+  
+  // Determine which function to use based on role
+  // Always call useQuery (React hooks rule), but conditionally pass function and args
+  const suggestionsQuery = userLoaded && isAdmin && suggestionsApi?.list
+    ? suggestionsApi.list
+    : userLoaded && !isAdmin && currentUserId && suggestionsApi?.getByUser
+    ? suggestionsApi.getByUser
+    : suggestionsApi?.list || suggestionsApi?.getByUser || api.users.list; // Fallback to a valid function
+    
+  const suggestionsArgs = userLoaded && isAdmin && suggestionsApi?.list
+    ? {}
+    : userLoaded && !isAdmin && currentUserId && suggestionsApi?.getByUser
+    ? { userId: currentUserId as Id<"users"> }
+    : "skip";
+  
+  const allSuggestions = useQuery(suggestionsQuery, suggestionsArgs) as any[] | undefined;
 
   // Get statistics (admin only)
-  const stats = useQuery(
-    isAdmin && suggestionsApi?.getStats
-      ? suggestionsApi.getStats({})
-      : "skip"
-  ) as any;
+  const statsQuery = userLoaded && isAdmin && suggestionsApi?.getStats
+    ? suggestionsApi.getStats
+    : suggestionsApi?.getStats || api.users.list; // Fallback to a valid function
+    
+  const stats = useQuery(statsQuery, userLoaded && isAdmin && suggestionsApi?.getStats ? {} : "skip") as any;
 
   // Get all users for display
   const users = useQuery(api.users.list, {});
@@ -160,8 +168,10 @@ export default function SuggestionsPage() {
     return STATUS_OPTIONS.find((s) => s.value === status) || STATUS_OPTIONS[0];
   };
 
-  // Check if Convex functions are available
-  if (!suggestionsApi?.list || !suggestionsApi?.getStats) {
+  // Check if Convex functions are available (basic check)
+  const hasBasicFunctions = suggestionsApi?.list || suggestionsApi?.getByUser;
+    
+  if (!hasBasicFunctions) {
     return (
       <Card padding="lg">
         <div className="text-center py-12">
@@ -181,7 +191,12 @@ export default function SuggestionsPage() {
     );
   }
 
-  if (allSuggestions === undefined || stats === undefined || (currentUserId && currentUser === undefined)) {
+  // Loading check - stats is only required for admins
+  const isLoading = allSuggestions === undefined || 
+    (currentUserId && currentUser === undefined) ||
+    (isAdmin && stats === undefined);
+
+  if (isLoading) {
     return (
       <div className="animate-pulse space-y-4">
         {[...Array(5)].map((_, i) => (
