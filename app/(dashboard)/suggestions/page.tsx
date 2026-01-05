@@ -59,17 +59,17 @@ export default function SuggestionsPage() {
   
   // Determine which function to use based on role
   // Always call useQuery (React hooks rule), but conditionally pass function and args
-  // Security: Non-admin users can ONLY see their own suggestions via getByUser
+  // Security: Only admins see all suggestions; end users and agents see only their own
   const suggestionsQuery = userLoaded && isAdmin && suggestionsApi?.list
     ? suggestionsApi.list  // Admins see all suggestions
     : userLoaded && !isAdmin && currentUserId && suggestionsApi?.getByUser
-    ? suggestionsApi.getByUser  // Regular users see only their own suggestions
+    ? suggestionsApi.getByUser  // End users and agents see only their own suggestions
     : suggestionsApi?.list || suggestionsApi?.getByUser || api.users.list; // Fallback to a valid function
     
   const suggestionsArgs = userLoaded && isAdmin && suggestionsApi?.list
     ? {}  // Admin: no filter, get all
     : userLoaded && !isAdmin && currentUserId && suggestionsApi?.getByUser
-    ? { userId: currentUserId as Id<"users"> }  // User: filter by their own userId
+    ? { userId: currentUserId as Id<"users"> }  // End users and agents: filter by their own userId
     : "skip";
   
   const allSuggestions = useQuery(suggestionsQuery, suggestionsArgs) as any[] | undefined;
@@ -218,7 +218,9 @@ export default function SuggestionsPage() {
             {isAdmin ? "Suggestions Management" : "My Suggestions"}
           </h1>
           <p className="text-sm text-slate-600 mt-1">
-            {isAdmin ? "Review and manage user suggestions" : "View your submitted suggestions and their status"}
+            {isAdmin 
+              ? "Review and manage user suggestions" 
+              : "View your submitted suggestions and their status"}
           </p>
         </div>
       </div>
