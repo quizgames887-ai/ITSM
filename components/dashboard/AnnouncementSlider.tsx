@@ -165,7 +165,8 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
             {announcement.buttonText && (
               <button 
                 onClick={() => handleButtonClick(announcement)}
-                className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+                className="px-4 py-2.5 bg-white text-teal-600 hover:bg-teal-50 text-sm font-bold rounded-lg transition-colors shadow-xl z-30 relative border-2 border-teal-300"
+                style={{ minWidth: '80px' }}
               >
                 {announcement.buttonText}
               </button>
@@ -254,7 +255,8 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
           {currentAnnouncement.buttonText && (
             <button 
               onClick={() => handleButtonClick(currentAnnouncement)}
-              className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+              className="px-4 py-2.5 bg-white text-teal-600 hover:bg-teal-50 text-sm font-bold rounded-lg transition-colors shadow-xl z-30 relative border-2 border-teal-300"
+              style={{ minWidth: '80px' }}
             >
               {currentAnnouncement.buttonText}
             </button>
