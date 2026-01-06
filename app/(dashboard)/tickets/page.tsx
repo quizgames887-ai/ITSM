@@ -10,7 +10,7 @@ import { DynamicForm } from "@/components/forms/DynamicForm";
 import { ColumnCustomizer, ColumnConfig } from "@/components/tickets/ColumnCustomizer";
 import { ViewManager, SavedView } from "@/components/tickets/ViewManager";
 import Link from "next/link";
-import { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 
@@ -391,7 +391,7 @@ export default function TicketsPage() {
       bg: string; 
       text: string; 
       border: string; 
-      icon: JSX.Element;
+      icon: React.ReactElement;
     }> = {
       new: {
         label: "New",
@@ -489,7 +489,7 @@ export default function TicketsPage() {
       bg: string; 
       text: string; 
       border: string; 
-      icon: JSX.Element;
+      icon: React.ReactElement;
     }> = {
       low: {
         label: "Low",
@@ -588,7 +588,7 @@ export default function TicketsPage() {
       bg: string; 
       text: string; 
       border: string; 
-      icon: JSX.Element;
+      icon: React.ReactElement;
     }> = {
       incident: {
         label: "Incident",
