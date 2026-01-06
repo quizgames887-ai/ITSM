@@ -84,9 +84,16 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
   };
 
   // Helper function to check if content is longer than 3 lines
+  // Show "More" button if content is likely to be truncated
   const isContentTruncated = (content: string) => {
-    // Rough estimate: if content has more than ~150 characters, it's likely more than 3 lines
-    return content.length > 150;
+    if (!content || content.trim().length === 0) return false;
+    // Count newlines - if more than 2, definitely truncated
+    const newlineCount = (content.match(/\n/g) || []).length;
+    if (newlineCount > 2) return true;
+    // For small text (text-xs lg:text-sm), estimate ~40-50 chars per line
+    // 3 lines = ~120-150 chars, so show "More" if longer than 80 chars
+    // Lower threshold to ensure button shows for content that will be truncated
+    return content.length > 80;
   };
 
   // If no announcements, show default welcome message
@@ -98,7 +105,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
           <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-3">
             Welcome to Palmware
           </h3>
-          <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3 flex-1">
+          <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3">
             Your centralized IT Service Management platform for efficient ticket handling and support.
           </p>
           <Link href="/tickets">
@@ -138,14 +145,25 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
           <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-3">
             {announcement.title}
           </h3>
-          <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3 flex-1">
-            {announcement.content}
-          </p>
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="mb-4 flex-1 min-h-0">
+            <p 
+              className="text-xs lg:text-sm text-teal-100 leading-relaxed"
+              style={{
+                display: '-webkit-box',
+                WebkitLineClamp: 3,
+                WebkitBoxOrient: 'vertical',
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+              }}
+            >
+              {announcement.content}
+            </p>
+          </div>
+          <div className="flex items-center gap-2 flex-wrap mt-auto">
             {isContentTruncated(announcement.content) && (
               <button 
                 onClick={() => handleShowMore(announcement)}
-                className="px-3 lg:px-4 py-2 bg-teal-500/80 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+                className="px-3 lg:px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs lg:text-sm font-medium rounded-lg transition-colors border border-white/30"
               >
                 More...
               </button>
@@ -217,14 +235,25 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
         <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-3">
           {currentAnnouncement.title}
         </h3>
-        <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3 flex-1">
-          {currentAnnouncement.content}
-        </p>
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="mb-4 flex-1 min-h-0">
+          <p 
+            className="text-xs lg:text-sm text-teal-100 leading-relaxed"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 3,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+            }}
+          >
+            {currentAnnouncement.content}
+          </p>
+        </div>
+        <div className="flex items-center gap-2 flex-wrap mt-auto">
           {isContentTruncated(currentAnnouncement.content) && (
             <button 
               onClick={() => handleShowMore(currentAnnouncement)}
-              className="px-3 lg:px-4 py-2 bg-teal-500/80 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+              className="px-3 lg:px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs lg:text-sm font-medium rounded-lg transition-colors border border-white/30"
             >
               More...
             </button>
