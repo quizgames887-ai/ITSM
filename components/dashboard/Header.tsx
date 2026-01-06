@@ -224,6 +224,16 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
         return "⚡";
       case "ticket_comment":
         return "💬";
+      case "approval_requested":
+        return "✅";
+      case "approval_approved":
+        return "✓";
+      case "approval_rejected":
+        return "✗";
+      case "approval_more_info_needed":
+        return "❓";
+      case "ticket_assignment_updated":
+        return "👥";
       default:
         return "🔔";
     }

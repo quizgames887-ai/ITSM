@@ -438,15 +438,25 @@ export const create = mutation({
 
             // Notify the approver if found
             if (approverId) {
-              const approver = await ctx.db.get(approverId);
-              await createNotification(
-                ctx,
-                approverId,
-                "approval_requested",
-                "Approval Required",
-                `You have a pending approval request for ticket: "${args.title}" (Stage: ${stage.name})`,
-                ticketId
-              );
+              try {
+                const approver = await ctx.db.get(approverId);
+                if (approver) {
+                  await createNotification(
+                    ctx,
+                    approverId,
+                    "approval_requested",
+                    "Approval Required",
+                    `You have a pending approval request for ticket: "${args.title}" (Stage: ${stage.name})`,
+                    ticketId
+                  );
+                } else {
+                  console.warn(`Approver with ID ${approverId} not found for approval request`);
+                }
+              } catch (error) {
+                console.error(`Error creating notification for approver ${approverId}:`, error);
+              }
+            } else {
+              console.warn(`No approver found for approval stage: ${stage.name} (Type: ${stage.approverType})`);
             }
           }
 
