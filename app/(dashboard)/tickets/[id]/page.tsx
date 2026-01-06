@@ -102,10 +102,18 @@ export default function TicketDetailPage({
   // Fetch approval requests for this ticket
   const approvalRequests = useQuery(api.approvals.getByTicket, { ticketId });
 
+  // Approval mutations
+  const approveRequest = useMutation(api.approvals.approve);
+  const rejectRequest = useMutation(api.approvals.reject);
+  const needMoreInfoRequest = useMutation(api.approvals.needMoreInfo);
+
   const [commentText, setCommentText] = useState("");
   const [commentVisibility, setCommentVisibility] = useState<"internal" | "external">("external");
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [selectedApprovalRequest, setSelectedApprovalRequest] = useState<any>(null);
+  const [approvalActionType, setApprovalActionType] = useState<"approve" | "reject" | "need_more_info" | null>(null);
+  const [approvalComments, setApprovalComments] = useState("");
   const { success, error: showError } = useToastContext();
 
   if (ticket === undefined || comments === undefined) {
@@ -229,6 +237,46 @@ export default function TicketDetailPage({
     closed: "Closed",
   };
 
+  const handleApprovalAction = async () => {
+    if (!selectedApprovalRequest || !approvalActionType || !currentUserId) return;
+
+    if (approvalActionType === "need_more_info" && !approvalComments.trim()) {
+      showError("Comments are required when requesting more information");
+      return;
+    }
+
+    try {
+      if (approvalActionType === "approve") {
+        await approveRequest({
+          id: selectedApprovalRequest._id,
+          approverId: currentUserId as Id<"users">,
+          comments: approvalComments.trim() || undefined,
+        });
+        success("Approval request approved successfully!");
+      } else if (approvalActionType === "reject") {
+        await rejectRequest({
+          id: selectedApprovalRequest._id,
+          approverId: currentUserId as Id<"users">,
+          comments: approvalComments.trim() || undefined,
+        });
+        success("Approval request rejected.");
+      } else if (approvalActionType === "need_more_info") {
+        await needMoreInfoRequest({
+          id: selectedApprovalRequest._id,
+          approverId: currentUserId as Id<"users">,
+          comments: approvalComments.trim(),
+        });
+        success("More information requested. The requester has been notified.");
+      }
+
+      setSelectedApprovalRequest(null);
+      setApprovalActionType(null);
+      setApprovalComments("");
+    } catch (err: any) {
+      showError(err.message || "Failed to process approval request");
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Back Button */}
@@ -326,45 +374,96 @@ export default function TicketDetailPage({
                 </div>
                 {approvalRequests && approvalRequests.length > 0 && (
                   <div className="space-y-2">
-                    {approvalRequests.map((request: any) => (
-                      <div key={request._id} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
-                        <div className="flex items-start justify-between mb-2">
-                          <div>
-                            <p className="text-sm font-medium text-slate-900">
-                              {request.stage?.name || "Unknown Stage"}
-                            </p>
-                            {request.stage?.description && (
-                              <p className="text-xs text-slate-600 mt-1">
-                                {request.stage.description}
+                    {approvalRequests.map((request: any) => {
+                      const isCurrentUserApprover = currentUserId && request.approverId === currentUserId;
+                      const isPending = request.status === "pending";
+                      const canTakeAction = isCurrentUserApprover && isPending;
+
+                      return (
+                        <div key={request._id} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                          <div className="flex items-start justify-between mb-2">
+                            <div className="flex-1">
+                              <p className="text-sm font-medium text-slate-900">
+                                {request.stage?.name || "Unknown Stage"}
                               </p>
-                            )}
+                              {request.stage?.description && (
+                                <p className="text-xs text-slate-600 mt-1">
+                                  {request.stage.description}
+                                </p>
+                              )}
+                            </div>
+                            <span className={`px-2 py-1 rounded text-xs font-medium ${
+                              request.status === "approved" ? "bg-green-100 text-green-700" :
+                              request.status === "rejected" ? "bg-red-100 text-red-700" :
+                              request.status === "need_more_info" ? "bg-blue-100 text-blue-700" :
+                              request.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                              "bg-slate-100 text-slate-600"
+                            }`}>
+                              {request.status === "approved" ? "Approved" :
+                               request.status === "rejected" ? "Rejected" :
+                               request.status === "need_more_info" ? "Need More Info" :
+                               request.status === "pending" ? "Pending" : request.status}
+                            </span>
                           </div>
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${
-                            request.status === "approved" ? "bg-green-100 text-green-700" :
-                            request.status === "rejected" ? "bg-red-100 text-red-700" :
-                            request.status === "need_more_info" ? "bg-blue-100 text-blue-700" :
-                            request.status === "pending" ? "bg-yellow-100 text-yellow-700" :
-                            "bg-slate-100 text-slate-600"
-                          }`}>
-                            {request.status === "approved" ? "Approved" :
-                             request.status === "rejected" ? "Rejected" :
-                             request.status === "need_more_info" ? "Need More Info" :
-                             request.status === "pending" ? "Pending" : request.status}
-                          </span>
+                          
+                          {/* Approval Action Buttons - Only show if current user is the approver and status is pending */}
+                          {canTakeAction && (
+                            <div className="mt-3 pt-3 border-t border-slate-200">
+                              <p className="text-xs font-medium text-slate-700 mb-2">Your Action Required:</p>
+                              <div className="flex flex-wrap gap-2">
+                                <Button
+                                  variant="gradient"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedApprovalRequest(request);
+                                    setApprovalActionType("approve");
+                                    setApprovalComments("");
+                                  }}
+                                >
+                                  Approve
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedApprovalRequest(request);
+                                    setApprovalActionType("need_more_info");
+                                    setApprovalComments("");
+                                  }}
+                                  className="border-blue-300 text-blue-700 hover:bg-blue-50"
+                                >
+                                  Need More Info
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setSelectedApprovalRequest(request);
+                                    setApprovalActionType("reject");
+                                    setApprovalComments("");
+                                  }}
+                                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  Reject
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+
+                          {request.comments && (
+                            <div className="mt-2 p-2 bg-white rounded border border-slate-200">
+                              <p className="text-xs font-medium text-slate-700 mb-1">Comments:</p>
+                              <p className="text-xs text-slate-600">{request.comments}</p>
+                            </div>
+                          )}
+                          {request.respondedAt && (
+                            <p className="text-xs text-slate-500 mt-2">
+                              Responded: {new Date(request.respondedAt).toLocaleString()}
+                            </p>
+                          )}
                         </div>
-                        {request.comments && (
-                          <div className="mt-2 p-2 bg-white rounded border border-slate-200">
-                            <p className="text-xs font-medium text-slate-700 mb-1">Comments:</p>
-                            <p className="text-xs text-slate-600">{request.comments}</p>
-                          </div>
-                        )}
-                        {request.respondedAt && (
-                          <p className="text-xs text-slate-500 mt-2">
-                            Responded: {new Date(request.respondedAt).toLocaleString()}
-                          </p>
-                        )}
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
               </div>
@@ -803,6 +902,88 @@ export default function TicketDetailPage({
           <TicketAudit ticketId={ticketId} />
         </div>
       </Card>
+
+      {/* Approval Action Modal */}
+      {selectedApprovalRequest && approvalActionType && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-4 sm:p-6 -m-4 sm:-m-6 mb-4 sm:mb-6">
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                {approvalActionType === "approve"
+                  ? "Approve Request"
+                  : approvalActionType === "reject"
+                  ? "Reject Request"
+                  : "Request More Information"}
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium text-slate-700 mb-2">Ticket:</p>
+                <p className="text-slate-900">{ticket.title}</p>
+              </div>
+
+              <div>
+                <p className="text-sm font-medium text-slate-700 mb-2">Stage:</p>
+                <p className="text-slate-900">{selectedApprovalRequest.stage?.name}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                  Comments
+                  {approvalActionType === "need_more_info" && (
+                    <span className="text-red-500 ml-1">*</span>
+                  )}
+                  {approvalActionType !== "need_more_info" && (
+                    <span className="text-slate-400 ml-1">(optional)</span>
+                  )}
+                </label>
+                <Textarea
+                  value={approvalComments}
+                  onChange={(e) => setApprovalComments(e.target.value)}
+                  placeholder={
+                    approvalActionType === "approve"
+                      ? "Add any comments about your approval..."
+                      : approvalActionType === "reject"
+                      ? "Please provide a reason for rejection..."
+                      : "Please specify what additional information is needed..."
+                  }
+                  rows={4}
+                  required={approvalActionType === "need_more_info"}
+                />
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t border-slate-200">
+                <Button
+                  variant="gradient"
+                  onClick={handleApprovalAction}
+                  className="flex-1 sm:flex-none"
+                  disabled={
+                    approvalActionType === "need_more_info" && !approvalComments.trim()
+                  }
+                >
+                  {approvalActionType === "approve"
+                    ? "Approve"
+                    : approvalActionType === "reject"
+                    ? "Reject"
+                    : "Request More Info"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedApprovalRequest(null);
+                    setApprovalActionType(null);
+                    setApprovalComments("");
+                  }}
+                  className="flex-1 sm:flex-none"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }
