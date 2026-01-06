@@ -83,17 +83,12 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
     setIsPaused(true); // Pause auto-play when modal is open
   };
 
-  // Helper function to check if content is longer than 3 lines
-  // Show "More" button if content is likely to be truncated
+  // Helper function to check if content should show "More" button
+  // Always show if content exists (we're applying line-clamp-3 to all content)
   const isContentTruncated = (content: string) => {
-    if (!content || content.trim().length === 0) return false;
-    // Count newlines - if more than 2, definitely truncated
-    const newlineCount = (content.match(/\n/g) || []).length;
-    if (newlineCount > 2) return true;
-    // For small text (text-xs lg:text-sm), estimate ~40-50 chars per line
-    // 3 lines = ~120-150 chars, so show "More" if longer than 80 chars
-    // Lower threshold to ensure button shows for content that will be truncated
-    return content.length > 80;
+    // Always show "More" button if content exists and is not empty
+    // Since we're applying line-clamp-3, users can always see more details
+    return content && content.trim().length > 0;
   };
 
   // If no announcements, show default welcome message
@@ -163,7 +158,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
             {isContentTruncated(announcement.content) && (
               <button 
                 onClick={() => handleShowMore(announcement)}
-                className="px-3 lg:px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs lg:text-sm font-medium rounded-lg transition-colors border border-white/30"
+                className="px-4 py-2 bg-white/30 hover:bg-white/40 backdrop-blur-sm text-white text-sm font-semibold rounded-lg transition-colors border-2 border-white/50 shadow-lg"
               >
                 More...
               </button>
@@ -253,7 +248,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
           {isContentTruncated(currentAnnouncement.content) && (
             <button 
               onClick={() => handleShowMore(currentAnnouncement)}
-              className="px-3 lg:px-4 py-2 bg-white/20 hover:bg-white/30 backdrop-blur-sm text-white text-xs lg:text-sm font-medium rounded-lg transition-colors border border-white/30"
+              className="px-4 py-2 bg-white/30 hover:bg-white/40 backdrop-blur-sm text-white text-sm font-semibold rounded-lg transition-colors border-2 border-white/50 shadow-lg"
             >
               More...
             </button>
