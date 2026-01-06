@@ -150,6 +150,30 @@ export default function TicketsPage() {
         } catch (error) {
           console.error("Failed to load saved view:", error);
         }
+      } else {
+        // Load default columns if no view is saved
+        try {
+          const defaultColumnsStored = localStorage.getItem("ticketDefaultColumns");
+          if (defaultColumnsStored) {
+            const savedDefaultColumns: ColumnConfig[] = JSON.parse(defaultColumnsStored);
+            setColumns(savedDefaultColumns);
+            // Create default view with saved columns
+            setCurrentView({
+              id: "default",
+              name: "Default View",
+              columns: savedDefaultColumns,
+              filters: {
+                status: statusFilter,
+                priority: priorityFilter,
+              },
+              sortBy: sortBy,
+              sortOrder: sortOrder,
+              createdAt: Date.now(),
+            });
+          }
+        } catch (error) {
+          console.error("Failed to load default columns:", error);
+        }
       }
     }
   }, []);
@@ -471,8 +495,20 @@ export default function TicketsPage() {
   
   const handleViewDelete = (viewId: string) => {
     if (currentView?.id === viewId) {
-      setCurrentView(null);
-      setColumns(defaultColumns);
+      // Reset to default view with current columns
+      const defaultView = {
+        id: "default",
+        name: "Default View",
+        columns: columns, // Keep current columns
+        filters: {
+          status: statusFilter,
+          priority: priorityFilter,
+        },
+        sortBy: sortBy,
+        sortOrder: sortOrder,
+        createdAt: Date.now(),
+      };
+      setCurrentView(defaultView);
       localStorage.removeItem("ticketViewId");
     }
     success("View deleted successfully");
@@ -480,20 +516,51 @@ export default function TicketsPage() {
   
   const handleColumnsChange = (newColumns: ColumnConfig[]) => {
     setColumns(newColumns);
-    if (currentView) {
-      const updatedView = { ...currentView, columns: newColumns };
+    
+    // Always update the current view (or create/update default view) to link columns and views
+    const viewToUpdate = currentView || {
+      id: "default",
+      name: "Default View",
+      columns: newColumns,
+      filters: {
+        status: statusFilter,
+        priority: priorityFilter,
+      },
+      sortBy: sortBy,
+      sortOrder: sortOrder,
+      createdAt: Date.now(),
+    };
+    
+    const updatedView = { ...viewToUpdate, columns: newColumns };
+    
+    // Set current view if it was null (default view)
+    if (!currentView) {
       setCurrentView(updatedView);
-      // Update in localStorage
-      try {
-        const stored = localStorage.getItem("ticketViews");
-        if (stored) {
-          const views: SavedView[] = JSON.parse(stored);
-          const updatedViews = views.map((v) => (v.id === updatedView.id ? updatedView : v));
-          localStorage.setItem("ticketViews", JSON.stringify(updatedViews));
+    } else {
+      setCurrentView(updatedView);
+    }
+    
+    // Update in localStorage
+    try {
+      const stored = localStorage.getItem("ticketViews");
+      let views: SavedView[] = stored ? JSON.parse(stored) : [];
+      
+      // If updating default view, don't save it to ticketViews (it's implicit)
+      // But if it's a saved view, update it
+      if (updatedView.id !== "default") {
+        const existingIndex = views.findIndex((v) => v.id === updatedView.id);
+        if (existingIndex >= 0) {
+          views[existingIndex] = updatedView;
+        } else {
+          views.push(updatedView);
         }
-      } catch (error) {
-        console.error("Failed to update view:", error);
+        localStorage.setItem("ticketViews", JSON.stringify(views));
+      } else {
+        // For default view, save column config separately
+        localStorage.setItem("ticketDefaultColumns", JSON.stringify(newColumns));
       }
+    } catch (error) {
+      console.error("Failed to update view:", error);
     }
   };
   
