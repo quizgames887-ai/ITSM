@@ -135,12 +135,12 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
             />
           </div>
         )}
-        <div className="relative z-10 h-full flex flex-col">
+        <div className="relative z-10 flex flex-col">
           <span className="text-xs text-teal-200 font-medium">Announcement</span>
           <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-3">
             {announcement.title}
           </h3>
-          <div className="mb-4 flex-1 min-h-0">
+          <div className="mb-3">
             <p 
               className="text-xs lg:text-sm text-teal-100 leading-relaxed"
               style={{
@@ -154,7 +154,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
               {announcement.content}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap mt-4">
+          <div className="flex items-center gap-2 flex-wrap mt-2">
             <button 
               onClick={() => handleShowMore(announcement)}
               className="px-4 py-2.5 bg-white text-teal-600 hover:bg-teal-50 text-sm font-bold rounded-lg transition-colors shadow-xl z-30 relative border-2 border-teal-300"
