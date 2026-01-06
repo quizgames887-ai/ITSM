@@ -218,21 +218,28 @@ export default function TodosPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl lg:text-3xl font-bold text-slate-900">Todos</h1>
-          <p className="text-sm text-slate-600 mt-1">
-            Manage your tasks and track progress
-          </p>
+      <div className="flex items-center justify-between pb-4 border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <div className="p-2.5 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg shadow-sm">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Todos</h1>
+            <p className="text-sm text-slate-600 mt-1">
+              Manage your tasks and track progress
+            </p>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {/* View Toggle */}
-          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1">
+          <div className="flex items-center gap-1 bg-slate-100 rounded-lg p-1 border border-slate-200">
             <button
               onClick={() => setViewMode("kanban")}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+              className={`px-4 py-2 text-sm font-semibold rounded transition-all duration-200 ${
                 viewMode === "kanban"
-                  ? "bg-white text-slate-900 shadow-sm"
+                  ? "bg-white text-slate-900 shadow-sm border border-slate-200"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
@@ -240,20 +247,24 @@ export default function TodosPage() {
             </button>
             <button
               onClick={() => setViewMode("list")}
-              className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
+              className={`px-4 py-2 text-sm font-semibold rounded transition-all duration-200 ${
                 viewMode === "list"
-                  ? "bg-white text-slate-900 shadow-sm"
+                  ? "bg-white text-slate-900 shadow-sm border border-slate-200"
                   : "text-slate-600 hover:text-slate-900"
               }`}
             >
               List
             </button>
           </div>
-          <Button variant="gradient" onClick={handleAddTodo}>
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <Button 
+            variant="gradient" 
+            onClick={handleAddTodo}
+            className="shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 px-4 py-2.5"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
             </svg>
-            Add Todo
+            <span className="font-semibold">Add Todo</span>
           </Button>
         </div>
       </div>
