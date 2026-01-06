@@ -913,15 +913,29 @@ export default function TicketsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-slate-900">Tickets</h1>
-          <p className="text-sm text-slate-600">
-            Manage and track all your support tickets
-          </p>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2 border-b border-slate-200">
+        <div className="flex items-center gap-3">
+          <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-sm">
+            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+          </div>
+          <div>
+            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Tickets</h1>
+            <p className="text-sm text-slate-600 mt-1">
+              Manage and track all your support tickets
+            </p>
+          </div>
         </div>
-        <Button variant="gradient" onClick={() => setShowCreateForm(true)}>
-          +
+        <Button 
+          variant="gradient" 
+          onClick={() => setShowCreateForm(true)}
+          className="shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 px-4 py-2.5"
+        >
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          <span className="font-semibold">New Ticket</span>
         </Button>
       </div>
 
@@ -1134,27 +1148,37 @@ export default function TicketsPage() {
 
       {/* Tabs for Agents */}
       {userRole === "agent" && (
-        <div className="border-b border-slate-200">
+        <div className="border-b border-slate-200 bg-white rounded-t-lg">
           <div className="flex gap-1">
             <button
               onClick={() => setActiveTab("created")}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all duration-200 relative ${
                 activeTab === "created"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
+                  ? "border-blue-600 text-blue-600 bg-blue-50/50"
+                  : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
-              My Tickets
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                </svg>
+                My Tickets
+              </span>
             </button>
             <button
               onClick={() => setActiveTab("assigned")}
-              className={`px-4 py-2.5 text-sm font-medium border-b-2 transition-colors ${
+              className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all duration-200 relative ${
                 activeTab === "assigned"
-                  ? "border-blue-600 text-blue-600"
-                  : "border-transparent text-slate-600 hover:text-slate-900"
+                  ? "border-blue-600 text-blue-600 bg-blue-50/50"
+                  : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
               }`}
             >
-              Assigned to Me
+              <span className="flex items-center gap-2">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Assigned to Me
+              </span>
             </button>
           </div>
         </div>
@@ -1251,13 +1275,27 @@ export default function TicketsPage() {
             {isDeleting ? "Deleting..." : `Delete ${selectedTickets.size} Selected`}
           </Button>
         )}
-        <div className="ml-auto text-sm text-slate-500">
-          {filteredTickets.length} ticket{filteredTickets.length !== 1 ? "s" : ""}
-          {totalPages > 1 && ` (Page ${currentPage} of ${totalPages})`}
+        <div className="ml-auto flex items-center gap-4">
+          <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+            </svg>
+            <span className="font-semibold text-slate-700">{filteredTickets.length}</span>
+            <span className="text-slate-500">ticket{filteredTickets.length !== 1 ? "s" : ""}</span>
+            {totalPages > 1 && (
+              <span className="text-slate-400">•</span>
+            )}
+            {totalPages > 1 && (
+              <span className="text-slate-500">Page {currentPage} of {totalPages}</span>
+            )}
+          </div>
           {userRole === "admin" && selectedTickets.size > 0 && (
-            <span className="ml-2 text-blue-600 font-medium">
-              ({selectedTickets.size} selected)
-            </span>
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
+              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <span className="text-sm font-semibold text-blue-700">{selectedTickets.size} selected</span>
+            </div>
           )}
         </div>
       </div>
@@ -1307,28 +1345,30 @@ export default function TicketsPage() {
           )}
         </Card>
       ) : (
-        <Card padding="none">
+        <Card padding="none" className="overflow-hidden shadow-lg border border-slate-200">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50">
+                <tr className="border-b-2 border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
                   {visibleColumns.map((column) => {
                     if (column.id === "select" && userRole !== "admin") return null;
                     const isSortable = ["title", "status", "priority", "createdAt", "updatedAt", "category"].includes(column.id);
                     return (
                       <th
                         key={column.id}
-                        className={`px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider ${
+                        className={`px-6 py-4 text-xs font-bold text-slate-700 uppercase tracking-wider ${
                           column.id === "action" ? "text-right" : "text-left"
                         } ${column.id === "select" ? "w-12" : ""}`}
                       >
                         {isSortable ? (
                           <button
                             onClick={() => handleSort(column.id)}
-                            className="flex items-center gap-1.5 hover:text-slate-900 transition-colors"
+                            className="flex items-center gap-2 hover:text-blue-600 transition-colors group"
                           >
                             {column.label}
-                            {getSortIcon(column.id)}
+                            <span className={`${sortBy === column.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
+                              {getSortIcon(column.id)}
+                            </span>
                           </button>
                         ) : (
                           column.label
@@ -1342,20 +1382,20 @@ export default function TicketsPage() {
                 {paginatedTickets.map((ticket) => (
                   <tr
                     key={ticket._id}
-                    className={`hover:bg-slate-50 transition-colors ${
-                      selectedTickets.has(ticket._id) ? "bg-blue-50" : ""
+                    className={`group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/30 transition-all duration-200 ${
+                      selectedTickets.has(ticket._id) ? "bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500" : ""
                     }`}
                   >
                     {visibleColumns.map((column) => {
                       if (column.id === "select") {
                         if (userRole !== "admin") return null;
                         return (
-                          <td key={column.id} className="px-4 py-4">
+                          <td key={column.id} className="px-6 py-4">
                             <input
                               type="checkbox"
                               checked={selectedTickets.has(ticket._id)}
                               onChange={() => handleSelectTicket(ticket._id)}
-                              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all hover:scale-110"
                             />
                           </td>
                         );
@@ -1363,15 +1403,18 @@ export default function TicketsPage() {
                       
                       if (column.id === "ticket") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
-                            <div className="flex flex-col">
+                          <td key={column.id} className="px-6 py-4">
+                            <div className="flex flex-col gap-1">
                               <Link
                                 href={`/tickets/${ticket._id}`}
-                                className="font-medium text-slate-900 hover:text-blue-600 transition-colors"
+                                className="font-semibold text-slate-900 hover:text-blue-600 transition-colors inline-flex items-center gap-2 group-hover:underline"
                               >
                                 {ticket.title}
+                                <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                                </svg>
                               </Link>
-                              <span className="text-xs text-slate-500">
+                              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded w-fit">
                                 #TK-{ticket._id.slice(-6).toUpperCase()}
                               </span>
                             </div>
@@ -1381,9 +1424,9 @@ export default function TicketsPage() {
                       
                       if (column.id === "description") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
+                          <td key={column.id} className="px-6 py-4">
                             <p className="text-sm text-slate-600 line-clamp-2 max-w-md">
-                              {ticket.description || "No description"}
+                              {ticket.description || <span className="text-slate-400 italic">No description</span>}
                             </p>
                           </td>
                         );
@@ -1391,7 +1434,7 @@ export default function TicketsPage() {
                       
                       if (column.id === "status") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
+                          <td key={column.id} className="px-6 py-4">
                             {getStatusBadge(ticket.status)}
                           </td>
                         );
@@ -1399,7 +1442,7 @@ export default function TicketsPage() {
                       
                       if (column.id === "priority") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
+                          <td key={column.id} className="px-6 py-4">
                             {getPriorityBadge(ticket.priority)}
                           </td>
                         );
@@ -1407,7 +1450,7 @@ export default function TicketsPage() {
                       
                       if (column.id === "type") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
+                          <td key={column.id} className="px-6 py-4">
                             {getTypeBadge(ticket.type)}
                           </td>
                         );
@@ -1415,9 +1458,9 @@ export default function TicketsPage() {
                       
                       if (column.id === "assignee") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
-                            <span className="text-sm text-slate-600">
-                              {getUserName(ticket.assignedTo)}
+                          <td key={column.id} className="px-6 py-4">
+                            <span className="text-sm font-medium text-slate-700">
+                              {getUserName(ticket.assignedTo) || <span className="text-slate-400 italic">Unassigned</span>}
                             </span>
                           </td>
                         );
@@ -1425,8 +1468,8 @@ export default function TicketsPage() {
                       
                       if (column.id === "reporter") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
-                            <span className="text-sm text-slate-600">
+                          <td key={column.id} className="px-6 py-4">
+                            <span className="text-sm font-medium text-slate-700">
                               {getUserName(ticket.createdBy)}
                             </span>
                           </td>
@@ -1435,8 +1478,8 @@ export default function TicketsPage() {
                       
                       if (column.id === "category") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
-                            <span className="text-sm text-slate-600 capitalize">
+                          <td key={column.id} className="px-6 py-4">
+                            <span className="text-sm font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md capitalize inline-block">
                               {ticket.category}
                             </span>
                           </td>
@@ -1445,12 +1488,12 @@ export default function TicketsPage() {
                       
                       if (column.id === "created") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
-                            <div className="flex flex-col">
-                              <span className="text-sm text-slate-500">
+                          <td key={column.id} className="px-6 py-4">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-sm font-medium text-slate-700">
                                 {formatDate(ticket.createdAt)}
                               </span>
-                              <span className="text-xs text-slate-400">
+                              <span className="text-xs text-slate-500">
                                 {formatDateTime(ticket.createdAt)}
                               </span>
                             </div>
@@ -1460,10 +1503,15 @@ export default function TicketsPage() {
                       
                       if (column.id === "updated") {
                         return (
-                          <td key={column.id} className="px-4 py-4">
-                            <span className="text-sm text-slate-500">
-                              {formatDateTime(ticket.updatedAt)}
-                            </span>
+                          <td key={column.id} className="px-6 py-4">
+                            <div className="flex flex-col gap-0.5">
+                              <span className="text-sm font-medium text-slate-700">
+                                {formatDate(ticket.updatedAt)}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {formatDateTime(ticket.updatedAt)}
+                              </span>
+                            </div>
                           </td>
                         );
                       }
@@ -1471,19 +1519,19 @@ export default function TicketsPage() {
                       if (column.id === "sla") {
                         const slaStatus = getSLAStatus(ticket);
                         return (
-                          <td key={column.id} className="px-4 py-4">
+                          <td key={column.id} className="px-6 py-4">
                             {!slaStatus ? (
-                              <span className="text-xs text-slate-400">No SLA</span>
+                              <span className="text-xs text-slate-400 italic">No SLA</span>
                             ) : (
                               <div className="flex flex-col gap-1">
-                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border ${slaStatus.color}`}>
-                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border shadow-sm ${slaStatus.color}`}>
+                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
                                   </svg>
                                   {slaStatus.text}
                                 </span>
                                 {slaStatus.policyName && (
-                                  <span className="text-xs text-slate-500 truncate max-w-[120px]" title={slaStatus.policyName}>
+                                  <span className="text-xs text-slate-500 truncate max-w-[120px] font-medium" title={slaStatus.policyName}>
                                     {slaStatus.policyName}
                                   </span>
                                 )}
@@ -1495,10 +1543,10 @@ export default function TicketsPage() {
                       
                       if (column.id === "action") {
                         return (
-                          <td key={column.id} className="px-4 py-4 text-right">
+                          <td key={column.id} className="px-6 py-4 text-right">
                             <Link
                               href={`/tickets/${ticket._id}`}
-                              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 shadow-sm hover:shadow"
                             >
                               View
                               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
