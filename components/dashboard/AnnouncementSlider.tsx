@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 
 interface Announcement {
   _id: string;
@@ -20,6 +22,8 @@ interface AnnouncementSliderProps {
 export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPaused, setIsPaused] = useState(false);
+  const [showDetailsModal, setShowDetailsModal] = useState(false);
+  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const router = useRouter();
 
@@ -71,6 +75,18 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
         router.push(announcement.buttonLink);
       }
     }
+  };
+
+  const handleShowMore = (announcement: Announcement) => {
+    setSelectedAnnouncement(announcement);
+    setShowDetailsModal(true);
+    setIsPaused(true); // Pause auto-play when modal is open
+  };
+
+  // Helper function to check if content is longer than 3 lines
+  const isContentTruncated = (content: string) => {
+    // Rough estimate: if content has more than ~150 characters, it's likely more than 3 lines
+    return content.length > 150;
   };
 
   // If no announcements, show default welcome message
@@ -125,14 +141,24 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
           <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3 flex-1">
             {announcement.content}
           </p>
-          {announcement.buttonText && (
-            <button 
-              onClick={() => handleButtonClick(announcement)}
-              className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors self-start mt-2"
-            >
-              {announcement.buttonText}
-            </button>
-          )}
+          <div className="flex items-center gap-2 flex-wrap">
+            {isContentTruncated(announcement.content) && (
+              <button 
+                onClick={() => handleShowMore(announcement)}
+                className="px-3 lg:px-4 py-2 bg-teal-500/80 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+              >
+                More...
+              </button>
+            )}
+            {announcement.buttonText && (
+              <button 
+                onClick={() => handleButtonClick(announcement)}
+                className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+              >
+                {announcement.buttonText}
+              </button>
+            )}
+          </div>
         </div>
         {/* Decorative illustration - only show if no image */}
         {!announcement.imageUrl && (
@@ -194,14 +220,24 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
         <p className="text-xs lg:text-sm text-teal-100 mb-4 leading-relaxed line-clamp-3 flex-1">
           {currentAnnouncement.content}
         </p>
-        {currentAnnouncement.buttonText && (
-          <button 
-            onClick={() => handleButtonClick(currentAnnouncement)}
-            className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors self-start mt-2"
-          >
-            {currentAnnouncement.buttonText}
-          </button>
-        )}
+        <div className="flex items-center gap-2 flex-wrap">
+          {isContentTruncated(currentAnnouncement.content) && (
+            <button 
+              onClick={() => handleShowMore(currentAnnouncement)}
+              className="px-3 lg:px-4 py-2 bg-teal-500/80 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+            >
+              More...
+            </button>
+          )}
+          {currentAnnouncement.buttonText && (
+            <button 
+              onClick={() => handleButtonClick(currentAnnouncement)}
+              className="px-3 lg:px-4 py-2 bg-teal-500 hover:bg-teal-400 text-white text-xs lg:text-sm font-medium rounded-lg transition-colors"
+            >
+              {currentAnnouncement.buttonText}
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Dots Indicator */}
@@ -230,6 +266,86 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
             <div className="w-full h-full bg-gradient-to-br from-pink-300 to-purple-400 rounded-full"></div>
           </div>
         </>
+      )}
+
+      {/* Details Modal */}
+      {showDetailsModal && selectedAnnouncement && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b border-slate-200 p-4 sm:p-6 -m-4 sm:-m-6 mb-4 sm:mb-6">
+              <div className="flex items-center justify-between">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                  {selectedAnnouncement.title}
+                </h2>
+                <button
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedAnnouncement(null);
+                    setIsPaused(false); // Resume auto-play
+                  }}
+                  className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+                  aria-label="Close"
+                >
+                  <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* Image if available */}
+              {selectedAnnouncement.imageUrl && (
+                <div className="rounded-lg overflow-hidden">
+                  <img
+                    src={selectedAnnouncement.imageUrl}
+                    alt={selectedAnnouncement.title}
+                    className="w-full h-auto object-cover"
+                  />
+                </div>
+              )}
+
+              {/* Full Content */}
+              <div>
+                <p className="text-sm sm:text-base text-slate-700 whitespace-pre-wrap leading-relaxed">
+                  {selectedAnnouncement.content}
+                </p>
+              </div>
+
+              {/* Action Button */}
+              {selectedAnnouncement.buttonText && (
+                <div className="pt-4 border-t border-slate-200">
+                  <Button
+                    variant="gradient"
+                    onClick={() => {
+                      handleButtonClick(selectedAnnouncement);
+                      setShowDetailsModal(false);
+                      setSelectedAnnouncement(null);
+                      setIsPaused(false);
+                    }}
+                    className="w-full sm:w-auto"
+                  >
+                    {selectedAnnouncement.buttonText}
+                  </Button>
+                </div>
+              )}
+
+              {/* Close Button */}
+              <div className="flex justify-end pt-4 border-t border-slate-200">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowDetailsModal(false);
+                    setSelectedAnnouncement(null);
+                    setIsPaused(false);
+                  }}
+                >
+                  Close
+                </Button>
+              </div>
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );
