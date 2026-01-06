@@ -118,6 +118,7 @@ export function Navigation() {
   }> = [
     { href: "/workplace", label: t("nav.dashboard", "workplace"), icon: "📊" },
     { href: "/tickets", label: t("nav.tickets", "Tickets"), icon: "🎫" },
+    { href: "/todos", label: t("nav.todos", "Todos"), icon: "📋" },
     { href: "/approvals", label: t("nav.approvals", "Approvals"), icon: "✅" },
     { href: "/forms", label: t("nav.forms", "Forms"), icon: "📝", adminOnly: true },
     { href: "/users", label: t("nav.users", "Users"), icon: "👥", adminOnly: true },

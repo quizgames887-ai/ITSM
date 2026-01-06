@@ -2324,12 +2324,12 @@ export default function WorkplacePage() {
             </div>
             <div className="flex items-center gap-2">
               <div className="relative">
-                <button
-                  onClick={() => setShowAllTodosModal(true)}
-                  className="px-3 py-1.5 text-xs lg:text-sm text-slate-600 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg font-medium transition-colors"
+                <Link
+                  href="/todos"
+                  className="px-3 py-1.5 text-xs lg:text-sm text-slate-600 hover:text-slate-700 bg-slate-50 hover:bg-slate-100 rounded-lg font-medium transition-colors inline-block"
                 >
-                  Show More
-                </button>
+                  View All
+                </Link>
               </div>
               <button
                 onClick={handleAddTodo}
