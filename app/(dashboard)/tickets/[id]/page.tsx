@@ -86,6 +86,68 @@ export default function TicketDetailPage({
   const updateTicket = useMutation(api.tickets.update);
   const createComment = useMutation(api.comments.create);
   
+  // Calculate SLA details
+  const slaDetails = useMemo(() => {
+    if (!ticket?.slaDeadline) return null;
+    
+    const now = Date.now();
+    const deadline = ticket.slaDeadline;
+    const diff = deadline - now;
+    const diffMinutes = Math.floor(diff / (1000 * 60));
+    const diffHours = Math.floor(diffMinutes / 60);
+    const diffDays = Math.floor(diffHours / 24);
+    const isOverdue = diff < 0;
+    const isUrgent = diff >= 0 && diff < 60 * 60 * 1000; // Less than 1 hour
+    
+    const policy = slaPolicies?.find(p => p.priority === ticket.priority && p.enabled);
+    
+    let statusText = "";
+    let statusBg = "";
+    let statusTextColor = "";
+    
+    if (isOverdue) {
+      const overdueHours = Math.floor(Math.abs(diffMinutes) / 60);
+      const overdueDays = Math.floor(overdueHours / 24);
+      if (overdueDays > 0) {
+        statusText = `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue`;
+      } else if (overdueHours > 0) {
+        statusText = `${overdueHours} hour${overdueHours > 1 ? 's' : ''} overdue`;
+      } else {
+        statusText = `${Math.abs(diffMinutes)} minute${Math.abs(diffMinutes) > 1 ? 's' : ''} overdue`;
+      }
+      statusBg = "bg-red-50 border-red-200";
+      statusTextColor = "text-red-700";
+    } else if (isUrgent) {
+      if (diffMinutes < 60) {
+        statusText = `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} remaining`;
+      } else {
+        statusText = `${diffHours} hour${diffHours > 1 ? 's' : ''} remaining`;
+      }
+      statusBg = "bg-orange-50 border-orange-200";
+      statusTextColor = "text-orange-700";
+    } else {
+      if (diffDays > 0) {
+        statusText = `${diffDays} day${diffDays > 1 ? 's' : ''} remaining`;
+      } else if (diffHours > 0) {
+        statusText = `${diffHours} hour${diffHours > 1 ? 's' : ''} remaining`;
+      } else {
+        statusText = `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} remaining`;
+      }
+      statusBg = "bg-green-50 border-green-200";
+      statusTextColor = "text-green-700";
+    }
+    
+    return {
+      deadline,
+      policy,
+      statusText,
+      statusBg,
+      statusTextColor,
+      isOverdue,
+      isUrgent,
+    };
+  }, [ticket?.slaDeadline, ticket?.priority, slaPolicies]);
+  
   // Fetch all forms to find the ticket form
   const forms = useQuery(api.forms.list, {});
   const ticketForm = useMemo(() => {
@@ -301,20 +363,34 @@ export default function TicketDetailPage({
   };
 
   return (
-    <div className="space-y-6">
-      {/* Back Button */}
-      <Link 
-        href="/tickets" 
-        className="inline-flex items-center gap-2 text-sm text-slate-600 hover:text-blue-600 transition-colors"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to Tickets
-      </Link>
+    <div className="min-h-screen bg-slate-50 pb-8">
+      {/* Header with Navigation */}
+      <div className="bg-white border-b border-slate-200 sticky top-0 z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            <Link 
+              href="/tickets" 
+              className="inline-flex items-center gap-2 text-sm font-semibold text-slate-700 hover:text-blue-600 transition-colors group"
+            >
+              <svg className="w-4 h-4 transition-transform group-hover:-translate-x-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+              Back to Tickets
+            </Link>
+            <div className="flex items-center gap-3">
+              <span className="text-xs font-semibold text-slate-500 bg-slate-50 px-3 py-1.5 rounded-md border border-slate-200 uppercase tracking-wider">
+                Ticket Details
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        <div className="space-y-6">
 
       {/* Main Ticket Card */}
-      <Card padding="none" className="overflow-hidden">
+      <Card padding="none" className="overflow-hidden shadow-lg border border-slate-200">
         {/* Header */}
         <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
@@ -381,15 +457,17 @@ export default function TicketDetailPage({
             </p>
           </div>
 
-          {/* Approval Status */}
+          {/* Approval Status Section */}
           {ticket.requiresApproval && approvalRequests !== undefined && approvalRequests !== null && (
-            <div className="mb-8">
-              <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-                Approval Status
-              </h2>
+            <div className="mb-8 pb-8 border-b border-slate-200">
+              <div className="flex items-center gap-2 mb-4">
+                <div className="p-2 bg-amber-100 rounded-lg">
+                  <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">Approval Status</h2>
+              </div>
               <div className="space-y-3">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-slate-700">Overall Status:</span>
@@ -504,13 +582,15 @@ export default function TicketDetailPage({
 
           {/* Form Fields - Dynamic Display */}
           {ticketFormWithFields && ticketFormWithFields.fields ? (
-            <div className="mb-8">
-              <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4 flex items-center gap-2">
-                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-                Form Details
-              </h2>
+            <div className="mb-8 pb-8 border-b border-slate-200">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="p-2 bg-purple-100 rounded-lg">
+                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                  </svg>
+                </div>
+                <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">Form Details</h2>
+              </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 {ticketFormWithFields.fields.map((field) => {
                   const formData = ticket.formData || {};
@@ -590,10 +670,46 @@ export default function TicketDetailPage({
                     </div>
                   );
                 })}
-                
-                {/* System Fields - Creator with full details */}
+              </div>
+            </div>
+          ) : (
+            /* Fallback to old display if form not found */
+            <>
+              <div className="mb-8 pb-8 border-b border-slate-200">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="p-2 bg-purple-100 rounded-lg">
+                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                    </svg>
+                  </div>
+                  <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">Ticket Information</h2>
+                </div>
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Type</span>
+                    <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.type.replace("_", " ")}</p>
+                  </div>
+                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Urgency</span>
+                    <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.urgency}</p>
+                  </div>
+                </div>
+              </div>
+              
+              {/* People & Dates Section for Fallback */}
+              <div className="mb-8 pb-8 border-b border-slate-200">
+              <div className="flex items-center gap-2 mb-6">
+                <div className="p-2 bg-indigo-100 rounded-lg">
+                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                  </svg>
+                </div>
+                <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">People & Dates</h2>
+              </div>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Creator Card */}
                 {getCreatorInfo() && (
-                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200 col-span-full">
+                  <Card padding="md" className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
                     <div className="flex items-center gap-3 mb-4">
                       <div className="p-2 bg-blue-100 rounded-lg">
                         <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -656,283 +772,179 @@ export default function TicketDetailPage({
                         </div>
                       )}
                     </div>
-                  </div>
+                  </Card>
                 )}
-                <div className="bg-slate-50 rounded-xl p-4">
-                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Assignee</span>
-                  <p className="text-sm font-semibold text-slate-900">{getAssigneeName()}</p>
-                </div>
-                <div className="bg-slate-50 rounded-xl p-4">
-                  <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Created</span>
-                  <p className="text-sm font-semibold text-slate-900">
-                    {new Date(ticket.createdAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-                {ticket.resolvedAt && (
-                  <div className="bg-green-50 rounded-xl p-4">
-                    <span className="text-xs font-medium text-green-600 uppercase tracking-wide block mb-1">Resolved</span>
-                    <p className="text-sm font-semibold text-green-900">
-                      {new Date(ticket.resolvedAt).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      })}
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            /* Fallback to old display if form not found */
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-              <div className="bg-slate-50 rounded-xl p-4">
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Type</span>
-                <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.type.replace("_", " ")}</p>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-4">
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Urgency</span>
-                <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.urgency}</p>
-              </div>
-              {getCreatorInfo() && (
-                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200 col-span-2">
-                  <div className="flex items-center gap-3 mb-4">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                      </svg>
-                    </div>
+                
+                {/* Assignee & Dates Card */}
+                <Card padding="md" className="bg-slate-50 border border-slate-200">
+                  <div className="space-y-4">
+                    {/* Assignee */}
                     <div>
-                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wide block">Creator</span>
-                      <h3 className="text-lg font-bold text-slate-900 mt-1">{getCreatorInfo()?.name}</h3>
+                      <div className="flex items-center gap-2 mb-2">
+                        <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Assignee</span>
+                      </div>
+                      <p className="text-sm font-semibold text-slate-900 ml-6">{getAssigneeName()}</p>
                     </div>
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-blue-200">
-                    {getCreatorInfo()?.email && (
-                      <div className="flex items-start gap-2">
-                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                        <div>
-                          <span className="text-xs font-medium text-slate-500 block">Email</span>
-                          <a href={`mailto:${getCreatorInfo()?.email}`} className="text-sm font-semibold text-blue-700 hover:text-blue-800 hover:underline">
-                            {getCreatorInfo()?.email}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                    {getCreatorInfo()?.phone && (
-                      <div className="flex items-start gap-2">
-                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                        </svg>
-                        <div>
-                          <span className="text-xs font-medium text-slate-500 block">Phone</span>
-                          <a href={`tel:${getCreatorInfo()?.phone}`} className="text-sm font-semibold text-slate-900 hover:text-blue-600">
-                            {getCreatorInfo()?.phone}
-                          </a>
-                        </div>
-                      </div>
-                    )}
-                    {getCreatorInfo()?.location && (
-                      <div className="flex items-start gap-2">
-                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                        </svg>
-                        <div>
-                          <span className="text-xs font-medium text-slate-500 block">Location</span>
-                          <p className="text-sm font-semibold text-slate-900">{getCreatorInfo()?.location}</p>
-                        </div>
-                      </div>
-                    )}
-                    {getCreatorInfo()?.jobTitle && (
-                      <div className="flex items-start gap-2">
-                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                        </svg>
-                        <div>
-                          <span className="text-xs font-medium text-slate-500 block">Job Title</span>
-                          <p className="text-sm font-semibold text-slate-900">{getCreatorInfo()?.jobTitle}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
-              <div className="bg-slate-50 rounded-xl p-4">
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Assignee</span>
-                <p className="text-sm font-semibold text-slate-900">{getAssigneeName()}</p>
-              </div>
-              <div className="bg-slate-50 rounded-xl p-4">
-                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Created</span>
-                <p className="text-sm font-semibold text-slate-900">
-                  {new Date(ticket.createdAt).toLocaleDateString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    year: "numeric",
-                  })}
-                </p>
-              </div>
-              {ticket.resolvedAt && (
-                <div className="bg-green-50 rounded-xl p-4 col-span-2 lg:col-span-1">
-                  <span className="text-xs font-medium text-green-600 uppercase tracking-wide block mb-1">Resolved</span>
-                  <p className="text-sm font-semibold text-green-900">
-                    {new Date(ticket.resolvedAt).toLocaleDateString("en-US", {
-                      month: "short",
-                      day: "numeric",
-                      year: "numeric",
-                    })}
-                  </p>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* SLA Details Section */}
-          {ticket.slaDeadline && (() => {
-            const now = Date.now();
-            const deadline = ticket.slaDeadline;
-            const diff = deadline - now;
-            const diffMinutes = Math.floor(diff / (1000 * 60));
-            const diffHours = Math.floor(diffMinutes / 60);
-            const diffDays = Math.floor(diffHours / 24);
-            const isOverdue = diff < 0;
-            const isUrgent = diff >= 0 && diff < 60 * 60 * 1000; // Less than 1 hour
-            
-            const policy = slaPolicies?.find(p => p.priority === ticket.priority && p.enabled);
-            
-            let statusText = "";
-            let statusBg = "";
-            let statusTextColor = "";
-            
-            if (isOverdue) {
-              const overdueHours = Math.floor(Math.abs(diffMinutes) / 60);
-              const overdueDays = Math.floor(overdueHours / 24);
-              if (overdueDays > 0) {
-                statusText = `${overdueDays} day${overdueDays > 1 ? 's' : ''} overdue`;
-              } else if (overdueHours > 0) {
-                statusText = `${overdueHours} hour${overdueHours > 1 ? 's' : ''} overdue`;
-              } else {
-                statusText = `${Math.abs(diffMinutes)} minute${Math.abs(diffMinutes) > 1 ? 's' : ''} overdue`;
-              }
-              statusBg = "bg-red-50 border-red-200";
-              statusTextColor = "text-red-700";
-            } else if (isUrgent) {
-              if (diffMinutes < 60) {
-                statusText = `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} remaining`;
-              } else {
-                statusText = `${diffHours} hour${diffHours > 1 ? 's' : ''} remaining`;
-              }
-              statusBg = "bg-orange-50 border-orange-200";
-              statusTextColor = "text-orange-700";
-            } else {
-              if (diffDays > 0) {
-                statusText = `${diffDays} day${diffDays > 1 ? 's' : ''} remaining`;
-              } else if (diffHours > 0) {
-                statusText = `${diffHours} hour${diffHours > 1 ? 's' : ''} remaining`;
-              } else {
-                statusText = `${diffMinutes} minute${diffMinutes > 1 ? 's' : ''} remaining`;
-              }
-              statusBg = "bg-green-50 border-green-200";
-              statusTextColor = "text-green-700";
-            }
-            
-            return (
-              <div className={`mt-4 rounded-xl p-5 border-2 ${statusBg}`}>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                      </svg>
-                      <h3 className="text-sm font-semibold text-slate-900">Service Level Agreement (SLA)</h3>
-                    </div>
-                    <div className="space-y-2">
-                      {policy && (
-                        <div>
-                          <span className="text-xs text-slate-600">Policy: </span>
-                          <span className="text-sm font-medium text-slate-900">{policy.name}</span>
-                        </div>
-                      )}
+                    
+                    <div className="border-t border-slate-200 pt-4 space-y-3">
+                      {/* Created Date */}
                       <div>
-                        <span className="text-xs text-slate-600">Deadline: </span>
-                        <span className="text-sm font-medium text-slate-900">
-                          {new Date(deadline).toLocaleString("en-US", {
+                        <div className="flex items-center gap-2 mb-2">
+                          <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                          </svg>
+                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Created</span>
+                        </div>
+                        <p className="text-sm font-semibold text-slate-900 ml-6">
+                          {new Date(ticket.createdAt).toLocaleDateString("en-US", {
                             month: "short",
                             day: "numeric",
                             year: "numeric",
+                          })}
+                        </p>
+                        <p className="text-xs text-slate-500 ml-6 mt-1">
+                          {new Date(ticket.createdAt).toLocaleTimeString("en-US", {
                             hour: "numeric",
                             minute: "2-digit",
                           })}
-                        </span>
+                        </p>
                       </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold ${statusTextColor} ${statusBg.replace('bg-', 'bg-').replace('-50', '-100')} border`}>
-                          {isOverdue ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                          ) : isUrgent ? (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                            </svg>
-                          ) : (
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      
+                      {/* Resolved Date */}
+                      {ticket.resolvedAt && (
+                        <div>
+                          <div className="flex items-center gap-2 mb-2">
+                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
-                          )}
-                          {statusText}
-                        </span>
-                      </div>
-                      {policy && (
-                        <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-200">
-                          <div>
-                            <span className="text-xs text-slate-500">Response Time: </span>
-                            <span className="text-sm font-medium text-slate-900">
-                              {policy.responseTime < 60 
-                                ? `${policy.responseTime}m`
-                                : policy.responseTime < 1440
-                                ? `${Math.floor(policy.responseTime / 60)}h`
-                                : `${Math.floor(policy.responseTime / 1440)}d`
-                              }
-                            </span>
+                            <span className="text-xs font-bold text-green-600 uppercase tracking-wide">Resolved</span>
                           </div>
-                          <div>
-                            <span className="text-xs text-slate-500">Resolution Time: </span>
-                            <span className="text-sm font-medium text-slate-900">
-                              {policy.resolutionTime < 60 
-                                ? `${policy.resolutionTime}m`
-                                : policy.resolutionTime < 1440
-                                ? `${Math.floor(policy.resolutionTime / 60)}h`
-                                : `${Math.floor(policy.resolutionTime / 1440)}d`
-                              }
-                            </span>
-                          </div>
+                          <p className="text-sm font-semibold text-green-900 ml-6">
+                            {new Date(ticket.resolvedAt).toLocaleDateString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                            })}
+                          </p>
+                          <p className="text-xs text-green-600 ml-6 mt-1">
+                            {new Date(ticket.resolvedAt).toLocaleTimeString("en-US", {
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </p>
                         </div>
                       )}
                     </div>
                   </div>
+                </Card>
+              </div>
+            </div>
+            </>
+          )}
+
+          {/* SLA Details Section */}
+          {slaDetails && (
+              <div className="mb-8 pb-8 border-b border-slate-200">
+                <div className="flex items-center gap-2 mb-4">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">Service Level Agreement (SLA)</h2>
+                </div>
+                <div className={`rounded-xl p-5 border-2 ${slaDetails.statusBg}`}>
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1">
+                      <div className="space-y-2">
+                        {slaDetails.policy && (
+                          <div>
+                            <span className="text-xs text-slate-600">Policy: </span>
+                            <span className="text-sm font-medium text-slate-900">{slaDetails.policy.name}</span>
+                          </div>
+                        )}
+                        <div>
+                          <span className="text-xs text-slate-600">Deadline: </span>
+                          <span className="text-sm font-medium text-slate-900">
+                            {new Date(slaDetails.deadline).toLocaleString("en-US", {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric",
+                              hour: "numeric",
+                              minute: "2-digit",
+                            })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm font-semibold ${slaDetails.statusTextColor} ${slaDetails.statusBg.replace('bg-', 'bg-').replace('-50', '-100')} border`}>
+                            {slaDetails.isOverdue ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            ) : slaDetails.isUrgent ? (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                              </svg>
+                            )}
+                            {slaDetails.statusText}
+                          </span>
+                        </div>
+                        {slaDetails.policy && (
+                          <div className="grid grid-cols-2 gap-4 mt-3 pt-3 border-t border-slate-200">
+                            <div>
+                              <span className="text-xs text-slate-500">Response Time: </span>
+                              <span className="text-sm font-medium text-slate-900">
+                                {slaDetails.policy.responseTime < 60 
+                                  ? `${slaDetails.policy.responseTime}m`
+                                  : slaDetails.policy.responseTime < 1440
+                                  ? `${Math.floor(slaDetails.policy.responseTime / 60)}h`
+                                  : `${Math.floor(slaDetails.policy.responseTime / 1440)}d`
+                                }
+                              </span>
+                            </div>
+                            <div>
+                              <span className="text-xs text-slate-500">Resolution Time: </span>
+                              <span className="text-sm font-medium text-slate-900">
+                                {slaDetails.policy.resolutionTime < 60 
+                                  ? `${slaDetails.policy.resolutionTime}m`
+                                  : slaDetails.policy.resolutionTime < 1440
+                                  ? `${Math.floor(slaDetails.policy.resolutionTime / 60)}h`
+                                  : `${Math.floor(slaDetails.policy.resolutionTime / 1440)}d`
+                                }
+                              </span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
-            );
-          })()}
+            )}
         </div>
       </Card>
 
       {/* Comments Card */}
-      <Card padding="none">
-        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-            </svg>
-            Comments
-            <span className="text-sm font-normal text-slate-500">({filteredComments?.length || 0})</span>
-          </h2>
+      <Card padding="none" className="shadow-lg border border-slate-200">
+        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b-2 border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-slate-900">Comments</h2>
+            <span className="px-2.5 py-1 bg-blue-100 text-blue-700 text-xs font-bold rounded-full border border-blue-200">
+              {filteredComments?.length || 0}
+            </span>
+          </div>
         </div>
 
         <div className="px-6 py-6 sm:px-8 sm:py-8">
@@ -1053,14 +1065,16 @@ export default function TicketDetailPage({
       </Card>
 
       {/* Audit History Card */}
-      <Card padding="none">
-        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200">
-          <h2 className="text-lg font-semibold text-slate-900 flex items-center gap-2">
-            <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            Activity History
-          </h2>
+      <Card padding="none" className="shadow-lg border border-slate-200">
+        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b-2 border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-slate-100 rounded-lg">
+              <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            </div>
+            <h2 className="text-lg font-bold text-slate-900">Activity History</h2>
+          </div>
         </div>
         <div className="px-6 py-6 sm:px-8 sm:py-8">
           <TicketAudit ticketId={ticketId} />
@@ -1148,6 +1162,8 @@ export default function TicketDetailPage({
           </Card>
         </div>
       )}
+        </div>
+      </div>
     </div>
   );
 }
