@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { StatsCard } from "@/components/dashboard/StatsCard";
 import { DynamicForm } from "@/components/forms/DynamicForm";
+import { ColumnCustomizer, ColumnConfig } from "@/components/tickets/ColumnCustomizer";
+import { ViewManager, SavedView } from "@/components/tickets/ViewManager";
 import Link from "next/link";
 import { useState, useEffect, useMemo } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
@@ -92,6 +94,65 @@ export default function TicketsPage() {
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 20;
+  
+  // Column customization and view management
+  const [showColumnCustomizer, setShowColumnCustomizer] = useState(false);
+  const [showViewManager, setShowViewManager] = useState(false);
+  const [currentView, setCurrentView] = useState<SavedView | null>(null);
+  const [sortBy, setSortBy] = useState<string>("createdAt");
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
+  
+  // Default columns configuration
+  const defaultColumns: ColumnConfig[] = useMemo(() => [
+    { id: "select", label: "Select", visible: userRole === "admin", order: 0 },
+    { id: "ticket", label: "Ticket", visible: true, order: 1 },
+    { id: "description", label: "Description", visible: true, order: 2 },
+    { id: "status", label: "Status", visible: true, order: 3 },
+    { id: "priority", label: "Priority", visible: true, order: 4 },
+    { id: "type", label: "Type", visible: true, order: 5 },
+    { id: "assignee", label: "Assignee", visible: true, order: 6 },
+    { id: "reporter", label: "Reporter", visible: true, order: 7 },
+    { id: "category", label: "Category", visible: true, order: 8 },
+    { id: "created", label: "Created", visible: true, order: 9 },
+    { id: "updated", label: "Last Updated", visible: true, order: 10 },
+    { id: "sla", label: "SLA", visible: true, order: 11 },
+    { id: "action", label: "Action", visible: true, order: 12 },
+  ], [userRole]);
+  
+  const [columns, setColumns] = useState<ColumnConfig[]>(() => defaultColumns);
+  
+  // Update columns when userRole changes
+  useEffect(() => {
+    if (userRole && !currentView) {
+      setColumns(defaultColumns);
+    }
+  }, [userRole, defaultColumns, currentView]);
+  
+  // Load saved view on mount
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedViewId = localStorage.getItem("ticketViewId");
+      if (savedViewId && savedViewId !== "default") {
+        try {
+          const stored = localStorage.getItem("ticketViews");
+          if (stored) {
+            const views: SavedView[] = JSON.parse(stored);
+            const view = views.find((v) => v.id === savedViewId);
+            if (view) {
+              setCurrentView(view);
+              setColumns(view.columns);
+              setStatusFilter(view.filters.status);
+              setPriorityFilter(view.filters.priority);
+              if (view.sortBy) setSortBy(view.sortBy);
+              if (view.sortOrder) setSortOrder(view.sortOrder);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to load saved view:", error);
+        }
+      }
+    }
+  }, []);
   
   // Reset selected tickets when filters change
   useEffect(() => {
@@ -208,6 +269,13 @@ export default function TicketsPage() {
     };
   }, [allAgentTickets, tickets, assignedTickets, userRole]);
 
+  // Get visible columns sorted by order - MUST be before any early returns
+  const visibleColumns = useMemo(() => {
+    return columns
+      .filter((col) => col.visible)
+      .sort((a, b) => a.order - b.order);
+  }, [columns]);
+
   if (tickets === undefined || (userRole === "agent" && assignedTickets === undefined)) {
     return (
       <div className="animate-pulse space-y-4">
@@ -239,10 +307,51 @@ export default function TicketsPage() {
   }
   
   // Apply status and priority filters
-  const filteredTickets = ticketsToDisplay.filter((ticket) => {
+  let filteredTickets = ticketsToDisplay.filter((ticket) => {
     if (statusFilter !== "all" && ticket.status !== statusFilter) return false;
     if (priorityFilter !== "all" && ticket.priority !== priorityFilter) return false;
     return true;
+  });
+  
+  // Apply sorting
+  filteredTickets = [...filteredTickets].sort((a, b) => {
+    let aValue: any;
+    let bValue: any;
+    
+    switch (sortBy) {
+      case "title":
+        aValue = a.title.toLowerCase();
+        bValue = b.title.toLowerCase();
+        break;
+      case "status":
+        aValue = a.status;
+        bValue = b.status;
+        break;
+      case "priority":
+        const priorityOrder = { critical: 4, high: 3, medium: 2, low: 1 };
+        aValue = priorityOrder[a.priority as keyof typeof priorityOrder] || 0;
+        bValue = priorityOrder[b.priority as keyof typeof priorityOrder] || 0;
+        break;
+      case "createdAt":
+        aValue = a.createdAt;
+        bValue = b.createdAt;
+        break;
+      case "updatedAt":
+        aValue = a.updatedAt;
+        bValue = b.updatedAt;
+        break;
+      case "category":
+        aValue = a.category.toLowerCase();
+        bValue = b.category.toLowerCase();
+        break;
+      default:
+        aValue = a.createdAt;
+        bValue = b.createdAt;
+    }
+    
+    if (aValue < bValue) return sortOrder === "asc" ? -1 : 1;
+    if (aValue > bValue) return sortOrder === "asc" ? 1 : -1;
+    return 0;
   });
 
   // Pagination calculations
@@ -297,7 +406,125 @@ export default function TicketsPage() {
       year: "numeric",
     });
   };
-
+  
+  const formatDateTime = (timestamp: number) => {
+    const date = new Date(timestamp);
+    const now = Date.now();
+    const diff = now - timestamp;
+    const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+    
+    if (days === 0) {
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      if (hours === 0) {
+        const minutes = Math.floor(diff / (1000 * 60));
+        return minutes <= 1 ? "Just now" : `${minutes}m ago`;
+      }
+      return `${hours}h ago`;
+    } else if (days === 1) {
+      return "Yesterday";
+    } else if (days < 7) {
+      return `${days}d ago`;
+    }
+    
+    return date.toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: date.getFullYear() !== new Date().getFullYear() ? "numeric" : undefined,
+    });
+  };
+  
+  const getTypeBadge = (type: string) => {
+    const styles: Record<string, string> = {
+      incident: "bg-red-100 text-red-700 border-red-200",
+      service_request: "bg-blue-100 text-blue-700 border-blue-200",
+      inquiry: "bg-purple-100 text-purple-700 border-purple-200",
+    };
+    const labels: Record<string, string> = {
+      incident: "Incident",
+      service_request: "Service Request",
+      inquiry: "Inquiry",
+    };
+    return (
+      <span className={`px-2 py-1 text-xs font-medium rounded-full border capitalize ${styles[type] || styles.incident}`}>
+        {labels[type] || type}
+      </span>
+    );
+  };
+  
+  // View management handlers
+  const handleViewSelect = (view: SavedView) => {
+    setCurrentView(view);
+    setColumns(view.columns);
+    setStatusFilter(view.filters.status);
+    setPriorityFilter(view.filters.priority);
+    if (view.sortBy) setSortBy(view.sortBy);
+    if (view.sortOrder) setSortOrder(view.sortOrder);
+    localStorage.setItem("ticketViewId", view.id);
+    setShowViewManager(false);
+  };
+  
+  const handleViewSave = (view: SavedView) => {
+    setCurrentView(view);
+    localStorage.setItem("ticketViewId", view.id);
+    success("View saved successfully");
+  };
+  
+  const handleViewDelete = (viewId: string) => {
+    if (currentView?.id === viewId) {
+      setCurrentView(null);
+      setColumns(defaultColumns);
+      localStorage.removeItem("ticketViewId");
+    }
+    success("View deleted successfully");
+  };
+  
+  const handleColumnsChange = (newColumns: ColumnConfig[]) => {
+    setColumns(newColumns);
+    if (currentView) {
+      const updatedView = { ...currentView, columns: newColumns };
+      setCurrentView(updatedView);
+      // Update in localStorage
+      try {
+        const stored = localStorage.getItem("ticketViews");
+        if (stored) {
+          const views: SavedView[] = JSON.parse(stored);
+          const updatedViews = views.map((v) => (v.id === updatedView.id ? updatedView : v));
+          localStorage.setItem("ticketViews", JSON.stringify(updatedViews));
+        }
+      } catch (error) {
+        console.error("Failed to update view:", error);
+      }
+    }
+  };
+  
+  const handleSort = (columnId: string) => {
+    if (sortBy === columnId) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(columnId);
+      setSortOrder("asc");
+    }
+  };
+  
+  const getSortIcon = (columnId: string) => {
+    if (sortBy !== columnId) {
+      return (
+        <svg className="w-3 h-3 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+    return sortOrder === "asc" ? (
+      <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+      </svg>
+    ) : (
+      <svg className="w-3 h-3 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+      </svg>
+    );
+  };
+  
   // Helper function to get SLA status
   const getSLAStatus = (ticket: any) => {
     if (!ticket.slaDeadline) return null;
@@ -727,6 +954,38 @@ export default function TicketsPage() {
           <option value="high">High</option>
           <option value="critical">Critical</option>
         </select>
+        
+        {/* View Management */}
+        <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowColumnCustomizer(true)}
+            className="text-slate-600 hover:text-slate-900"
+          >
+            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+            Columns
+          </Button>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setShowViewManager(true)}
+            className="text-slate-600 hover:text-slate-900"
+          >
+            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
+            </svg>
+            Views
+            {currentView && currentView.id !== "default" && (
+              <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">
+                {currentView.name}
+              </span>
+            )}
+          </Button>
+        </div>
+        
         {userRole === "admin" && selectedTickets.size > 0 && (
           <Button
             variant="outline"
@@ -801,41 +1060,30 @@ export default function TicketsPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-slate-200 bg-slate-50">
-                  {userRole === "admin" && (
-                    <th className="w-12 px-4 py-3">
-                      <input
-                        type="checkbox"
-                        checked={paginatedTickets.length > 0 && selectedTickets.size === paginatedTickets.length}
-                        onChange={handleSelectAll}
-                        className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        title="Select all"
-                      />
-                    </th>
-                  )}
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Ticket
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden sm:table-cell">
-                    Status
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden md:table-cell">
-                    Priority
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden lg:table-cell">
-                    Assignee
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden md:table-cell">
-                    Category
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden sm:table-cell">
-                    Created
-                  </th>
-                  <th className="text-left px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider hidden lg:table-cell">
-                    SLA
-                  </th>
-                  <th className="text-right px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider">
-                    Action
-                  </th>
+                  {visibleColumns.map((column) => {
+                    if (column.id === "select" && userRole !== "admin") return null;
+                    const isSortable = ["title", "status", "priority", "createdAt", "updatedAt", "category"].includes(column.id);
+                    return (
+                      <th
+                        key={column.id}
+                        className={`px-4 py-3 text-xs font-semibold text-slate-600 uppercase tracking-wider ${
+                          column.id === "action" ? "text-right" : "text-left"
+                        } ${column.id === "select" ? "w-12" : ""}`}
+                      >
+                        {isSortable ? (
+                          <button
+                            onClick={() => handleSort(column.id)}
+                            className="flex items-center gap-1.5 hover:text-slate-900 transition-colors"
+                          >
+                            {column.label}
+                            {getSortIcon(column.id)}
+                          </button>
+                        ) : (
+                          column.label
+                        )}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100">
@@ -846,89 +1094,171 @@ export default function TicketsPage() {
                       selectedTickets.has(ticket._id) ? "bg-blue-50" : ""
                     }`}
                   >
-                    {userRole === "admin" && (
-                      <td className="px-4 py-4">
-                        <input
-                          type="checkbox"
-                          checked={selectedTickets.has(ticket._id)}
-                          onChange={() => handleSelectTicket(ticket._id)}
-                          className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                        />
-                      </td>
-                    )}
-                    <td className="px-4 py-4">
-                      <div className="flex flex-col">
-                        <Link
-                          href={`/tickets/${ticket._id}`}
-                          className="font-medium text-slate-900 hover:text-blue-600 transition-colors"
-                        >
-                          {ticket.title}
-                        </Link>
-                        <span className="text-xs text-slate-500">
-                          #TK-{ticket._id.slice(-6).toUpperCase()}
-                        </span>
-                        {/* Mobile badges */}
-                        <div className="flex gap-2 mt-2 sm:hidden">
-                          {getStatusBadge(ticket.status)}
-                          {getPriorityBadge(ticket.priority)}
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-4 hidden sm:table-cell">
-                      {getStatusBadge(ticket.status)}
-                    </td>
-                    <td className="px-4 py-4 hidden md:table-cell">
-                      {getPriorityBadge(ticket.priority)}
-                    </td>
-                    <td className="px-4 py-4 hidden lg:table-cell">
-                      <span className="text-sm text-slate-600">
-                        {getUserName(ticket.assignedTo)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 hidden md:table-cell">
-                      <span className="text-sm text-slate-600 capitalize">
-                        {ticket.category}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 hidden sm:table-cell">
-                      <span className="text-sm text-slate-500">
-                        {formatDate(ticket.createdAt)}
-                      </span>
-                    </td>
-                    <td className="px-4 py-4 hidden lg:table-cell">
-                      {(() => {
-                        const slaStatus = getSLAStatus(ticket);
-                        if (!slaStatus) {
-                          return <span className="text-xs text-slate-400">No SLA</span>;
-                        }
+                    {visibleColumns.map((column) => {
+                      if (column.id === "select") {
+                        if (userRole !== "admin") return null;
                         return (
-                          <div className="flex flex-col gap-1">
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border ${slaStatus.color}`}>
-                              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                              </svg>
-                              {slaStatus.text}
-                            </span>
-                            {slaStatus.policyName && (
-                              <span className="text-xs text-slate-500 truncate max-w-[120px]" title={slaStatus.policyName}>
-                                {slaStatus.policyName}
-                              </span>
-                            )}
-                          </div>
+                          <td key={column.id} className="px-4 py-4">
+                            <input
+                              type="checkbox"
+                              checked={selectedTickets.has(ticket._id)}
+                              onChange={() => handleSelectTicket(ticket._id)}
+                              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                            />
+                          </td>
                         );
-                      })()}
-                    </td>
-                    <td className="px-4 py-4 text-right">
-                      <Link
-                        href={`/tickets/${ticket._id}`}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                      >
-                        View
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                        </svg>
-                      </Link>
-                    </td>
+                      }
+                      
+                      if (column.id === "ticket") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            <div className="flex flex-col">
+                              <Link
+                                href={`/tickets/${ticket._id}`}
+                                className="font-medium text-slate-900 hover:text-blue-600 transition-colors"
+                              >
+                                {ticket.title}
+                              </Link>
+                              <span className="text-xs text-slate-500">
+                                #TK-{ticket._id.slice(-6).toUpperCase()}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "description") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            <p className="text-sm text-slate-600 line-clamp-2 max-w-md">
+                              {ticket.description || "No description"}
+                            </p>
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "status") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            {getStatusBadge(ticket.status)}
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "priority") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            {getPriorityBadge(ticket.priority)}
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "type") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            {getTypeBadge(ticket.type)}
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "assignee") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            <span className="text-sm text-slate-600">
+                              {getUserName(ticket.assignedTo)}
+                            </span>
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "reporter") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            <span className="text-sm text-slate-600">
+                              {getUserName(ticket.createdBy)}
+                            </span>
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "category") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            <span className="text-sm text-slate-600 capitalize">
+                              {ticket.category}
+                            </span>
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "created") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            <div className="flex flex-col">
+                              <span className="text-sm text-slate-500">
+                                {formatDate(ticket.createdAt)}
+                              </span>
+                              <span className="text-xs text-slate-400">
+                                {formatDateTime(ticket.createdAt)}
+                              </span>
+                            </div>
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "updated") {
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            <span className="text-sm text-slate-500">
+                              {formatDateTime(ticket.updatedAt)}
+                            </span>
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "sla") {
+                        const slaStatus = getSLAStatus(ticket);
+                        return (
+                          <td key={column.id} className="px-4 py-4">
+                            {!slaStatus ? (
+                              <span className="text-xs text-slate-400">No SLA</span>
+                            ) : (
+                              <div className="flex flex-col gap-1">
+                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 text-xs rounded border ${slaStatus.color}`}>
+                                  <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                                  </svg>
+                                  {slaStatus.text}
+                                </span>
+                                {slaStatus.policyName && (
+                                  <span className="text-xs text-slate-500 truncate max-w-[120px]" title={slaStatus.policyName}>
+                                    {slaStatus.policyName}
+                                  </span>
+                                )}
+                              </div>
+                            )}
+                          </td>
+                        );
+                      }
+                      
+                      if (column.id === "action") {
+                        return (
+                          <td key={column.id} className="px-4 py-4 text-right">
+                            <Link
+                              href={`/tickets/${ticket._id}`}
+                              className="inline-flex items-center gap-1 px-3 py-1.5 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                              View
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                              </svg>
+                            </Link>
+                          </td>
+                        );
+                      }
+                      
+                      return null;
+                    })}
                   </tr>
                 ))}
               </tbody>
@@ -1008,6 +1338,35 @@ export default function TicketsPage() {
             </div>
           )}
         </Card>
+      )}
+      
+      {/* Column Customizer Modal */}
+      {showColumnCustomizer && (
+        <ColumnCustomizer
+          columns={columns}
+          onColumnsChange={handleColumnsChange}
+          onClose={() => setShowColumnCustomizer(false)}
+        />
+      )}
+      
+      {/* View Manager Modal */}
+      {showViewManager && (
+        <ViewManager
+          currentView={currentView}
+          onViewSelect={handleViewSelect}
+          onViewSave={handleViewSave}
+          onViewDelete={handleViewDelete}
+          onClose={() => setShowViewManager(false)}
+          currentColumns={columns}
+          currentFilters={{
+            status: statusFilter,
+            priority: priorityFilter,
+          }}
+          currentSort={{
+            by: sortBy,
+            order: sortOrder,
+          }}
+        />
       )}
     </div>
   );
