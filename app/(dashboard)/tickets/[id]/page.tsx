@@ -99,6 +99,9 @@ export default function TicketDetailPage({
     ticketForm ? { id: ticketForm._id } : "skip"
   );
 
+  // Fetch approval requests for this ticket
+  const approvalRequests = useQuery(api.approvals.getByTicket, { ticketId });
+
   const [commentText, setCommentText] = useState("");
   const [commentVisibility, setCommentVisibility] = useState<"internal" | "external">("external");
   const [loading, setLoading] = useState(false);
@@ -297,6 +300,76 @@ export default function TicketDetailPage({
               {ticket.description}
             </p>
           </div>
+
+          {/* Approval Status */}
+          {ticket.requiresApproval && approvalRequests !== undefined && (
+            <div className="mb-8">
+              <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
+                <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                Approval Status
+              </h2>
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-slate-700">Overall Status:</span>
+                  <span className={`px-2 py-1 rounded text-xs font-medium ${
+                    ticket.approvalStatus === "approved" ? "bg-green-100 text-green-700" :
+                    ticket.approvalStatus === "rejected" ? "bg-red-100 text-red-700" :
+                    ticket.approvalStatus === "pending" ? "bg-yellow-100 text-yellow-700" :
+                    "bg-slate-100 text-slate-600"
+                  }`}>
+                    {ticket.approvalStatus === "approved" ? "Approved" :
+                     ticket.approvalStatus === "rejected" ? "Rejected" :
+                     ticket.approvalStatus === "pending" ? "Pending" : "Not Required"}
+                  </span>
+                </div>
+                {approvalRequests && approvalRequests.length > 0 && (
+                  <div className="space-y-2">
+                    {approvalRequests.map((request: any) => (
+                      <div key={request._id} className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                        <div className="flex items-start justify-between mb-2">
+                          <div>
+                            <p className="text-sm font-medium text-slate-900">
+                              {request.stage?.name || "Unknown Stage"}
+                            </p>
+                            {request.stage?.description && (
+                              <p className="text-xs text-slate-600 mt-1">
+                                {request.stage.description}
+                              </p>
+                            )}
+                          </div>
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${
+                            request.status === "approved" ? "bg-green-100 text-green-700" :
+                            request.status === "rejected" ? "bg-red-100 text-red-700" :
+                            request.status === "need_more_info" ? "bg-blue-100 text-blue-700" :
+                            request.status === "pending" ? "bg-yellow-100 text-yellow-700" :
+                            "bg-slate-100 text-slate-600"
+                          }`}>
+                            {request.status === "approved" ? "Approved" :
+                             request.status === "rejected" ? "Rejected" :
+                             request.status === "need_more_info" ? "Need More Info" :
+                             request.status === "pending" ? "Pending" : request.status}
+                          </span>
+                        </div>
+                        {request.comments && (
+                          <div className="mt-2 p-2 bg-white rounded border border-slate-200">
+                            <p className="text-xs font-medium text-slate-700 mb-1">Comments:</p>
+                            <p className="text-xs text-slate-600">{request.comments}</p>
+                          </div>
+                        )}
+                        {request.respondedAt && (
+                          <p className="text-xs text-slate-500 mt-2">
+                            Responded: {new Date(request.respondedAt).toLocaleString()}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {/* Form Fields - Dynamic Display */}
           {ticketFormWithFields && ticketFormWithFields.fields ? (

@@ -237,6 +237,7 @@ export default defineSchema({
       v.literal("pending"), // Waiting for approval
       v.literal("approved"), // Approved
       v.literal("rejected"), // Rejected
+      v.literal("need_more_info"), // Need more information
       v.literal("skipped") // Skipped (if stage becomes optional)
     ),
     approverId: v.union(v.id("users"), v.null()), // Who approved/rejected
