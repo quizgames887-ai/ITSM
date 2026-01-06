@@ -952,6 +952,21 @@ export const getEmailServiceStatus = query({
   },
 });
 
+// Get email log by message ID
+export const getEmailLogByMessageId = query({
+  args: {
+    messageId: v.string(),
+  },
+  handler: async (ctx, args) => {
+    const logs = await ctx.db
+      .query("emailLogs")
+      .withIndex("by_messageId", (q) => q.eq("messageId", args.messageId))
+      .collect();
+    
+    return logs.length > 0 ? logs[0] : null;
+  },
+});
+
 // Get email logs
 export const getEmailLogs = query({
   args: {

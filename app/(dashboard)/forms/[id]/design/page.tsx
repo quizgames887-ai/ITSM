@@ -29,6 +29,12 @@ export default function FormDesignerPage({
   const updateForm = useMutation(api.forms.update);
   const reorderFields = useMutation(api.forms.reorderFields);
   const linkFormToService = useMutation(api.serviceCatalog.linkFormToService);
+  // Approval stages functions
+  const getApprovalStages = useQuery(api.forms.getApprovalStages, { formId });
+  const addApprovalStage = useMutation(api.forms.addApprovalStage);
+  const updateApprovalStage = useMutation(api.forms.updateApprovalStage);
+  const deleteApprovalStage = useMutation(api.forms.deleteApprovalStage);
+  const reorderApprovalStages = useMutation(api.forms.reorderApprovalStages);
   const { success, error: showError } = useToastContext();
   
   // Fetch services to show in the link dropdown
@@ -37,8 +43,23 @@ export default function FormDesignerPage({
   // Find all services linked to this form
   const linkedServices = services?.filter((service) => service.formId === formId) || [];
   
+  // Fetch users and teams for approval stages
+  const users = useQuery(api.users.list, {});
+  const teams = useQuery(api.teams.list, {});
+  
   const [showLinkService, setShowLinkService] = useState(false);
   const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
+  const [showAddApprovalStage, setShowAddApprovalStage] = useState(false);
+  const [editingApprovalStage, setEditingApprovalStage] = useState<Id<"approvalStages"> | null>(null);
+  const [approvalStageForm, setApprovalStageForm] = useState({
+    name: "",
+    description: "",
+    approverType: "user" as "user" | "role" | "team",
+    approverId: "",
+    approverRole: "",
+    approverTeamId: "",
+    isRequired: true,
+  });
 
   const currentUserId = typeof window !== "undefined" ? localStorage.getItem("userId") : null;
   
@@ -228,6 +249,131 @@ export default function FormDesignerPage({
 
   const isTicketForm = form.name.toLowerCase().includes("ticket");
   const isServiceRequestForm = form.name.toLowerCase().includes("service request");
+  
+  const handleAddApprovalStage = async () => {
+    if (!approvalStageForm.name.trim()) {
+      showError("Stage name is required");
+      return;
+    }
+    
+    if (approvalStageForm.approverType === "user" && !approvalStageForm.approverId) {
+      showError("Please select an approver");
+      return;
+    }
+    
+    if (approvalStageForm.approverType === "role" && !approvalStageForm.approverRole) {
+      showError("Please select a role");
+      return;
+    }
+    
+    if (approvalStageForm.approverType === "team" && !approvalStageForm.approverTeamId) {
+      showError("Please select a team");
+      return;
+    }
+    
+    try {
+      const maxOrder = getApprovalStages && Array.isArray(getApprovalStages) && getApprovalStages.length > 0
+        ? Math.max(...getApprovalStages.map((s: any) => s.order))
+        : -1;
+      
+      await addApprovalStage({
+        formId,
+        name: approvalStageForm.name.trim(),
+        description: approvalStageForm.description.trim() || undefined,
+        approverType: approvalStageForm.approverType,
+        approverId: approvalStageForm.approverType === "user" && approvalStageForm.approverId
+          ? approvalStageForm.approverId as Id<"users">
+          : undefined,
+        approverRole: approvalStageForm.approverType === "role" && approvalStageForm.approverRole
+          ? approvalStageForm.approverRole
+          : undefined,
+        approverTeamId: approvalStageForm.approverType === "team" && approvalStageForm.approverTeamId
+          ? approvalStageForm.approverTeamId as Id<"teams">
+          : undefined,
+        order: maxOrder + 1,
+        isRequired: approvalStageForm.isRequired,
+      });
+      
+      success("Approval stage added successfully!");
+      setShowAddApprovalStage(false);
+      setApprovalStageForm({
+        name: "",
+        description: "",
+        approverType: "user",
+        approverId: "",
+        approverRole: "",
+        approverTeamId: "",
+        isRequired: true,
+      });
+    } catch (err: any) {
+      showError(err.message || "Failed to add approval stage");
+    }
+  };
+  
+  const handleUpdateApprovalStage = async (stageId: Id<"approvalStages">) => {
+    if (!approvalStageForm.name.trim()) {
+      showError("Stage name is required");
+      return;
+    }
+    
+    try {
+      await updateApprovalStage({
+        id: stageId,
+        name: approvalStageForm.name.trim(),
+        description: approvalStageForm.description.trim() || undefined,
+        approverType: approvalStageForm.approverType,
+        approverId: approvalStageForm.approverType === "user" && approvalStageForm.approverId
+          ? approvalStageForm.approverId as Id<"users">
+          : null,
+        approverRole: approvalStageForm.approverType === "role" && approvalStageForm.approverRole
+          ? approvalStageForm.approverRole
+          : null,
+        approverTeamId: approvalStageForm.approverType === "team" && approvalStageForm.approverTeamId
+          ? approvalStageForm.approverTeamId as Id<"teams">
+          : null,
+        isRequired: approvalStageForm.isRequired,
+      });
+      
+      success("Approval stage updated successfully!");
+      setEditingApprovalStage(null);
+      setApprovalStageForm({
+        name: "",
+        description: "",
+        approverType: "user",
+        approverId: "",
+        approverRole: "",
+        approverTeamId: "",
+        isRequired: true,
+      });
+    } catch (err: any) {
+      showError(err.message || "Failed to update approval stage");
+    }
+  };
+  
+  const handleDeleteApprovalStage = async (stageId: Id<"approvalStages">) => {
+    if (!confirm("Are you sure you want to delete this approval stage?")) return;
+    
+    try {
+      await deleteApprovalStage({ id: stageId });
+      success("Approval stage deleted successfully!");
+    } catch (err: any) {
+      showError(err.message || "Failed to delete approval stage");
+    }
+  };
+  
+  const handleEditApprovalStage = (stage: any) => {
+    setApprovalStageForm({
+      name: stage.name,
+      description: stage.description || "",
+      approverType: stage.approverType,
+      approverId: stage.approverId || "",
+      approverRole: stage.approverRole || "",
+      approverTeamId: stage.approverTeamId || "",
+      isRequired: stage.isRequired,
+    });
+    setEditingApprovalStage(stage._id);
+    setShowAddApprovalStage(true);
+  };
   
   const handleLinkService = async () => {
     try {
@@ -444,6 +590,135 @@ export default function FormDesignerPage({
                 </Card>
               ))
             )}
+            
+            {/* Approval Stages Section - Only for Service Request Forms */}
+            {isServiceRequestForm && (
+              <Card padding="lg" className="mt-6 border-2 border-green-200 bg-green-50/50">
+                <div className="flex items-center justify-between mb-4">
+                  <div>
+                    <h2 className="text-xl font-bold text-slate-900 flex items-center gap-2">
+                      <svg className="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      Approval Stages
+                    </h2>
+                    <p className="text-sm text-slate-600 mt-1">
+                      Define approval workflow stages for service requests created with this form
+                    </p>
+                  </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddApprovalStage(true);
+                      setEditingApprovalStage(null);
+                      setApprovalStageForm({
+                        name: "",
+                        description: "",
+                        approverType: "user",
+                        approverId: "",
+                        approverRole: "",
+                        approverTeamId: "",
+                        isRequired: true,
+                      });
+                    }}
+                  >
+                    <span className="mr-2">+</span>
+                    Add Stage
+                  </Button>
+                </div>
+                
+                {getApprovalStages && getApprovalStages.length > 0 ? (
+                  <div className="space-y-3">
+                    {getApprovalStages.map((stage, index) => (
+                      <Card key={stage._id} padding="md" className="bg-white">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="px-2 py-1 bg-green-100 text-green-700 rounded text-xs font-medium">
+                                Stage {index + 1}
+                              </span>
+                              {stage.isRequired && (
+                                <span className="px-2 py-1 bg-red-100 text-red-700 rounded text-xs font-medium">
+                                  Required
+                                </span>
+                              )}
+                              <span className="px-2 py-1 bg-blue-100 text-blue-700 rounded text-xs font-medium">
+                                {stage.approverType === "user" ? "User" : stage.approverType === "role" ? "Role" : "Team"}
+                              </span>
+                            </div>
+                            <h3 className="text-lg font-semibold text-slate-900 mb-1">
+                              {stage.name}
+                            </h3>
+                            {stage.description && (
+                              <p className="text-sm text-slate-600 mb-2">
+                                {stage.description}
+                              </p>
+                            )}
+                            <div className="text-xs text-slate-500">
+                              {stage.approverType === "user" && stage.approverId && (
+                                <span>Approver: {users?.find(u => u._id === stage.approverId)?.name || "Unknown"}</span>
+                              )}
+                              {stage.approverType === "role" && stage.approverRole && (
+                                <span>Role: {stage.approverRole}</span>
+                              )}
+                              {stage.approverType === "team" && stage.approverTeamId && (
+                                <span>Team: {teams?.find(t => t._id === stage.approverTeamId)?.name || "Unknown"}</span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => handleEditApprovalStage(stage)}
+                              className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors"
+                              title="Edit stage"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            <button
+                              onClick={() => handleDeleteApprovalStage(stage._id)}
+                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded transition-colors"
+                              title="Delete stage"
+                            >
+                              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            </button>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                ) : (
+                  <EmptyState
+                    icon={
+                      <svg className="w-12 h-12 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    }
+                    title="No approval stages"
+                    description="Add approval stages to create a workflow for service requests. Each stage requires approval before the request can proceed."
+                    action={{
+                      label: "Add First Stage",
+                      onClick: () => {
+                        setShowAddApprovalStage(true);
+                        setEditingApprovalStage(null);
+                        setApprovalStageForm({
+                          name: "",
+                          description: "",
+                          approverType: "user",
+                          approverId: "",
+                          approverRole: "",
+                          approverTeamId: "",
+                          isRequired: true,
+                        });
+                      },
+                    }}
+                  />
+                )}
+              </Card>
+            )}
           </div>
 
           <div className="lg:col-span-1">
@@ -592,6 +867,164 @@ export default function FormDesignerPage({
                   <Button
                     variant="outline"
                     onClick={() => setShowEditForm(false)}
+                    className="flex-1 sm:flex-none"
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          </div>
+        )}
+
+        {/* Add/Edit Approval Stage Modal */}
+        {showAddApprovalStage && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+            <Card className="max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="sticky top-0 bg-white border-b border-slate-200 p-4 sm:p-6 -m-4 sm:-m-6 mb-4 sm:mb-6">
+                <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                  {editingApprovalStage ? "Edit Approval Stage" : "Add Approval Stage"}
+                </h2>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Stage Name <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    value={approvalStageForm.name}
+                    onChange={(e) => setApprovalStageForm({ ...approvalStageForm, name: e.target.value })}
+                    placeholder="e.g., Manager Approval, Finance Approval"
+                    required
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Description
+                  </label>
+                  <Textarea
+                    value={approvalStageForm.description}
+                    onChange={(e) => setApprovalStageForm({ ...approvalStageForm, description: e.target.value })}
+                    placeholder="Optional description for this approval stage"
+                    rows={3}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                    Approver Type <span className="text-red-500">*</span>
+                  </label>
+                  <Select
+                    value={approvalStageForm.approverType}
+                    onChange={(e) => setApprovalStageForm({ 
+                      ...approvalStageForm, 
+                      approverType: e.target.value as "user" | "role" | "team",
+                      approverId: "",
+                      approverRole: "",
+                      approverTeamId: "",
+                    })}
+                    options={[
+                      { value: "user", label: "Specific User" },
+                      { value: "role", label: "User Role" },
+                      { value: "team", label: "Team" },
+                    ]}
+                  />
+                </div>
+
+                {approvalStageForm.approverType === "user" && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Select Approver <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={approvalStageForm.approverId}
+                      onChange={(e) => setApprovalStageForm({ ...approvalStageForm, approverId: e.target.value })}
+                      options={users ? [
+                        { value: "", label: "Select a user..." },
+                        ...users.map(user => ({ value: user._id, label: user.name }))
+                      ] : [{ value: "", label: "Loading users..." }]}
+                    />
+                  </div>
+                )}
+
+                {approvalStageForm.approverType === "role" && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Select Role <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={approvalStageForm.approverRole}
+                      onChange={(e) => setApprovalStageForm({ ...approvalStageForm, approverRole: e.target.value })}
+                      options={[
+                        { value: "", label: "Select a role..." },
+                        { value: "admin", label: "Admin" },
+                        { value: "agent", label: "Agent" },
+                        { value: "user", label: "User" },
+                      ]}
+                    />
+                  </div>
+                )}
+
+                {approvalStageForm.approverType === "team" && (
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1.5">
+                      Select Team <span className="text-red-500">*</span>
+                    </label>
+                    <Select
+                      value={approvalStageForm.approverTeamId}
+                      onChange={(e) => setApprovalStageForm({ ...approvalStageForm, approverTeamId: e.target.value })}
+                      options={teams ? [
+                        { value: "", label: "Select a team..." },
+                        ...teams.map(team => ({ value: team._id, label: team.name }))
+                      ] : [{ value: "", label: "Loading teams..." }]}
+                    />
+                  </div>
+                )}
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    id="isRequired"
+                    checked={approvalStageForm.isRequired}
+                    onChange={(e) => setApprovalStageForm({ ...approvalStageForm, isRequired: e.target.checked })}
+                    className="w-4 h-4 text-indigo-600 rounded focus:ring-indigo-500"
+                  />
+                  <label htmlFor="isRequired" className="text-sm font-medium text-slate-700">
+                    Required Stage (must be approved to proceed)
+                  </label>
+                </div>
+
+                <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 border-t border-slate-200">
+                  <Button
+                    variant="gradient"
+                    onClick={() => {
+                      if (editingApprovalStage) {
+                        handleUpdateApprovalStage(editingApprovalStage);
+                      } else {
+                        handleAddApprovalStage();
+                      }
+                    }}
+                    className="flex-1 sm:flex-none"
+                  >
+                    {editingApprovalStage ? "Update Stage" : "Add Stage"}
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowAddApprovalStage(false);
+                      setEditingApprovalStage(null);
+                      setApprovalStageForm({
+                        name: "",
+                        description: "",
+                        approverType: "user",
+                        approverId: "",
+                        approverRole: "",
+                        approverTeamId: "",
+                        isRequired: true,
+                      });
+                    }}
                     className="flex-1 sm:flex-none"
                   >
                     Cancel

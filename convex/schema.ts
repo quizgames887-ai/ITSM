@@ -46,6 +46,13 @@ export default defineSchema({
     aiCategorySuggestion: v.union(v.string(), v.null()),
     aiPrioritySuggestion: v.union(v.string(), v.null()),
     formData: v.optional(v.any()), // Store all form field values including custom fields
+    requiresApproval: v.optional(v.boolean()), // Whether this ticket requires approval
+    approvalStatus: v.optional(v.union(
+      v.literal("pending"), // Waiting for approval
+      v.literal("approved"), // All approvals completed
+      v.literal("rejected"), // Rejected at some stage
+      v.literal("not_required") // No approval required
+    )),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -200,6 +207,49 @@ export default defineSchema({
   })
     .index("by_formId", ["formId"])
     .index("by_formId_order", ["formId", "order"]),
+
+  // Approval Stages for Forms
+  approvalStages: defineTable({
+    formId: v.id("forms"),
+    name: v.string(), // Stage name (e.g., "Manager Approval", "Finance Approval")
+    description: v.union(v.string(), v.null()),
+    approverType: v.union(
+      v.literal("user"), // Specific user
+      v.literal("role"), // Users with specific role
+      v.literal("team") // Team members
+    ),
+    approverId: v.union(v.id("users"), v.null()), // If approverType is "user"
+    approverRole: v.union(v.string(), v.null()), // If approverType is "role" (e.g., "admin", "manager")
+    approverTeamId: v.union(v.id("teams"), v.null()), // If approverType is "team"
+    order: v.number(), // Stage order (1, 2, 3, etc.)
+    isRequired: v.boolean(), // Whether this stage is required
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_formId", ["formId"])
+    .index("by_formId_order", ["formId", "order"]),
+
+  // Approval Requests for Tickets
+  approvalRequests: defineTable({
+    ticketId: v.id("tickets"),
+    stageId: v.id("approvalStages"),
+    status: v.union(
+      v.literal("pending"), // Waiting for approval
+      v.literal("approved"), // Approved
+      v.literal("rejected"), // Rejected
+      v.literal("skipped") // Skipped (if stage becomes optional)
+    ),
+    approverId: v.union(v.id("users"), v.null()), // Who approved/rejected
+    comments: v.union(v.string(), v.null()), // Approval/rejection comments
+    requestedAt: v.number(), // When approval was requested
+    respondedAt: v.union(v.number(), v.null()), // When approval was given/rejected
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_ticketId", ["ticketId"])
+    .index("by_stageId", ["stageId"])
+    .index("by_status", ["status"])
+    .index("by_approverId", ["approverId"]),
 
   // Support Teams
   teams: defineTable({
@@ -454,5 +504,6 @@ export default defineSchema({
     .index("by_to", ["to"])
     .index("by_status", ["status"])
     .index("by_createdAt", ["createdAt"])
-    .index("by_sentAt", ["sentAt"]),
+    .index("by_sentAt", ["sentAt"])
+    .index("by_messageId", ["messageId"]),
 });

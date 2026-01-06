@@ -386,6 +386,107 @@ export const createTicketForm = mutation({
   },
 });
 
+// Approval Stages Management
+
+export const getApprovalStages = query({
+  args: { formId: v.id("forms") },
+  handler: async (ctx, args) => {
+    const stages = await ctx.db
+      .query("approvalStages")
+      .withIndex("by_formId", (q) => q.eq("formId", args.formId))
+      .collect();
+
+    return stages.sort((a, b) => a.order - b.order);
+  },
+});
+
+export const addApprovalStage = mutation({
+  args: {
+    formId: v.id("forms"),
+    name: v.string(),
+    description: v.optional(v.string()),
+    approverType: v.union(
+      v.literal("user"),
+      v.literal("role"),
+      v.literal("team")
+    ),
+    approverId: v.optional(v.id("users")),
+    approverRole: v.optional(v.string()),
+    approverTeamId: v.optional(v.id("teams")),
+    order: v.number(),
+    isRequired: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    const stageId = await ctx.db.insert("approvalStages", {
+      formId: args.formId,
+      name: args.name,
+      description: args.description ?? null,
+      approverType: args.approverType,
+      approverId: args.approverType === "user" && args.approverId ? args.approverId : null,
+      approverRole: args.approverType === "role" && args.approverRole ? args.approverRole : null,
+      approverTeamId: args.approverType === "team" && args.approverTeamId ? args.approverTeamId : null,
+      order: args.order,
+      isRequired: args.isRequired ?? true,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    return stageId;
+  },
+});
+
+export const updateApprovalStage = mutation({
+  args: {
+    id: v.id("approvalStages"),
+    name: v.optional(v.string()),
+    description: v.optional(v.string()),
+    approverType: v.optional(v.union(
+      v.literal("user"),
+      v.literal("role"),
+      v.literal("team")
+    )),
+    approverId: v.optional(v.union(v.id("users"), v.null())),
+    approverRole: v.optional(v.union(v.string(), v.null())),
+    approverTeamId: v.optional(v.union(v.id("teams"), v.null())),
+    order: v.optional(v.number()),
+    isRequired: v.optional(v.boolean()),
+  },
+  handler: async (ctx, args) => {
+    const { id, ...updates } = args;
+    await ctx.db.patch(id, {
+      ...updates,
+      updatedAt: Date.now(),
+    });
+  },
+});
+
+export const deleteApprovalStage = mutation({
+  args: { id: v.id("approvalStages") },
+  handler: async (ctx, args) => {
+    await ctx.db.delete(args.id);
+  },
+});
+
+export const reorderApprovalStages = mutation({
+  args: {
+    formId: v.id("forms"),
+    stageOrders: v.array(v.object({
+      id: v.id("approvalStages"),
+      order: v.number(),
+    })),
+  },
+  handler: async (ctx, args) => {
+    const now = Date.now();
+    for (const { id, order } of args.stageOrders) {
+      await ctx.db.patch(id, {
+        order,
+        updatedAt: now,
+      });
+    }
+  },
+});
+
 // Create default service request form with standard fields
 export const createServiceRequestForm = mutation({
   args: {
