@@ -477,6 +477,10 @@ export default function TicketsPage() {
   
   // View management handlers
   const handleViewSelect = (view: SavedView) => {
+    // Close column customizer if open when switching views
+    if (showColumnCustomizer) {
+      setShowColumnCustomizer(false);
+    }
     setCurrentView(view);
     setColumns(view.columns);
     setStatusFilter(view.filters.status);
@@ -531,14 +535,14 @@ export default function TicketsPage() {
       createdAt: Date.now(),
     };
     
-    const updatedView = { ...viewToUpdate, columns: newColumns };
+    // Create a new array reference for columns to ensure React detects the change
+    const updatedView = { 
+      ...viewToUpdate, 
+      columns: [...newColumns].sort((a, b) => a.order - b.order) // Ensure sorted
+    };
     
-    // Set current view if it was null (default view)
-    if (!currentView) {
-      setCurrentView(updatedView);
-    } else {
-      setCurrentView(updatedView);
-    }
+    // Always update current view (creates new object reference)
+    setCurrentView(updatedView);
     
     // Update in localStorage
     try {
@@ -1431,9 +1435,12 @@ export default function TicketsPage() {
       {/* Column Customizer Modal */}
       {showColumnCustomizer && (
         <ColumnCustomizer
+          key={currentView?.id || 'default'} // Force remount when view changes
           columns={columns}
           onColumnsChange={handleColumnsChange}
-          onClose={() => setShowColumnCustomizer(false)}
+          onClose={() => {
+            setShowColumnCustomizer(false);
+          }}
         />
       )}
       

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 
@@ -25,6 +25,19 @@ export function ColumnCustomizer({
 }: ColumnCustomizerProps) {
   const [localColumns, setLocalColumns] = useState<ColumnConfig[]>(columns);
   const [draggedIndex, setDraggedIndex] = useState<number | null>(null);
+  
+  // Sync localColumns when columns prop changes (e.g., when view changes)
+  useEffect(() => {
+    // Deep comparison to avoid unnecessary updates - compare sorted arrays
+    const sortedProp = [...columns].sort((a, b) => a.order - b.order);
+    const sortedLocal = [...localColumns].sort((a, b) => a.order - b.order);
+    const columnsChanged = JSON.stringify(sortedProp) !== JSON.stringify(sortedLocal);
+    if (columnsChanged) {
+      // Sort by order and update
+      setLocalColumns(sortedProp);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [columns]);
 
   const handleToggleVisibility = (columnId: string) => {
     setLocalColumns((prev) =>
@@ -62,7 +75,9 @@ export function ColumnCustomizer({
   };
 
   const handleSave = () => {
-    onColumnsChange(localColumns);
+    // Sort columns by order before saving to ensure correct order
+    const sortedColumns = [...localColumns].sort((a, b) => a.order - b.order);
+    onColumnsChange(sortedColumns);
     onClose();
   };
 
