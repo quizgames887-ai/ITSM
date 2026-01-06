@@ -192,7 +192,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
   const currentAnnouncement = announcements[currentIndex];
 
   return (
-    <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-visible min-h-[200px]">
+    <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-visible min-h-[200px] flex flex-col">
       {/* Navigation Arrows */}
       <button
         onClick={goToPrevious}

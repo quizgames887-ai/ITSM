@@ -995,10 +995,10 @@ export default function WorkplacePage() {
   return (
     <div className="space-y-4 lg:space-y-6">
       {/* Top Row - Services Grid & Announcement */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4 lg:gap-6 items-stretch">
         {/* Most Services Request */}
-        <div className="xl:col-span-2">
-          <Card padding="md">
+        <div className="xl:col-span-2 h-full">
+          <Card padding="md" className="h-full">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg lg:text-xl font-bold text-slate-900">Most Services Request</h2>
               <div className="flex items-center gap-4">
@@ -1750,7 +1750,7 @@ export default function WorkplacePage() {
         )}
 
         {/* Announcement Slider */}
-        <div className="xl:col-span-1">
+        <div className="xl:col-span-1 h-full">
           <AnnouncementSlider announcements={announcements || []} />
         </div>
       </div>
