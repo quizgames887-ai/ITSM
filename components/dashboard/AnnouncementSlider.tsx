@@ -124,7 +124,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
   if (announcements.length === 1) {
     const announcement = announcements[0];
     return (
-      <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-hidden min-h-[200px]">
+      <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-visible min-h-[200px]">
         {/* Image if available */}
         {announcement.imageUrl && (
           <div className="mb-3 rounded-lg overflow-hidden">
@@ -154,15 +154,14 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
               {announcement.content}
             </p>
           </div>
-          <div className="flex items-center gap-2 flex-wrap mt-auto">
-            {isContentTruncated(announcement.content) && (
-              <button 
-                onClick={() => handleShowMore(announcement)}
-                className="px-4 py-2 bg-white/30 hover:bg-white/40 backdrop-blur-sm text-white text-sm font-semibold rounded-lg transition-colors border-2 border-white/50 shadow-lg"
-              >
-                More...
-              </button>
-            )}
+          <div className="flex items-center gap-2 flex-wrap mt-4">
+            <button 
+              onClick={() => handleShowMore(announcement)}
+              className="px-4 py-2.5 bg-white text-teal-600 hover:bg-teal-50 text-sm font-bold rounded-lg transition-colors shadow-xl z-30 relative border-2 border-teal-300"
+              style={{ minWidth: '80px' }}
+            >
+              More...
+            </button>
             {announcement.buttonText && (
               <button 
                 onClick={() => handleButtonClick(announcement)}
@@ -192,7 +191,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
   const currentAnnouncement = announcements[currentIndex];
 
   return (
-    <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-hidden min-h-[200px]">
+    <div className="bg-gradient-to-br from-teal-600 to-teal-700 rounded-2xl p-5 lg:p-6 h-full relative overflow-visible min-h-[200px]">
       {/* Navigation Arrows */}
       <button
         onClick={goToPrevious}
@@ -225,7 +224,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
       )}
 
       {/* Slide Content */}
-      <div className="relative z-10 h-full flex flex-col pl-10 pr-10">
+      <div className="relative z-10 h-full flex flex-col pl-10 pr-10 pb-12">
         <span className="text-xs text-teal-200 font-medium">Announcement</span>
         <h3 className="text-lg lg:text-xl font-bold text-white mt-2 mb-3">
           {currentAnnouncement.title}
@@ -244,15 +243,14 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
             {currentAnnouncement.content}
           </p>
         </div>
-        <div className="flex items-center gap-2 flex-wrap mt-auto">
-          {isContentTruncated(currentAnnouncement.content) && (
-            <button 
-              onClick={() => handleShowMore(currentAnnouncement)}
-              className="px-4 py-2 bg-white/30 hover:bg-white/40 backdrop-blur-sm text-white text-sm font-semibold rounded-lg transition-colors border-2 border-white/50 shadow-lg"
-            >
-              More...
-            </button>
-          )}
+        <div className="flex items-center gap-2 flex-wrap mt-4 mb-2">
+          <button 
+            onClick={() => handleShowMore(currentAnnouncement)}
+            className="px-4 py-2.5 bg-white text-teal-600 hover:bg-teal-50 text-sm font-bold rounded-lg transition-colors shadow-xl z-30 relative border-2 border-teal-300"
+            style={{ minWidth: '80px' }}
+          >
+            More...
+          </button>
           {currentAnnouncement.buttonText && (
             <button 
               onClick={() => handleButtonClick(currentAnnouncement)}
@@ -265,7 +263,7 @@ export function AnnouncementSlider({ announcements }: AnnouncementSliderProps) {
       </div>
 
       {/* Dots Indicator */}
-      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-20 flex gap-2">
+      <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10 flex gap-2">
         {announcements.map((_, index) => (
           <button
             key={index}
