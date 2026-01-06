@@ -80,16 +80,23 @@ export function ColumnCustomizer({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <Card className="max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6 p-6 pb-4 border-b border-slate-200">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Customize Columns</h2>
-            <p className="text-sm text-slate-600 mt-1">
-              Show, hide, and reorder columns to match your workflow
-            </p>
+        <div className="flex items-center justify-between mb-6 p-6 pb-4 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-blue-100 rounded-lg">
+              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Customize Columns</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Show, hide, and reorder columns to match your workflow
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/80 rounded-lg transition-colors"
           >
             <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -106,34 +113,51 @@ export function ColumnCustomizer({
                 onDragStart={() => handleDragStart(index)}
                 onDragOver={(e) => handleDragOver(e, index)}
                 onDragEnd={handleDragEnd}
-                className={`flex items-center gap-3 p-3 rounded-lg border transition-all ${
+                className={`flex items-center gap-3 p-4 rounded-lg border-2 transition-all ${
                   draggedIndex === index
-                    ? "opacity-50 bg-blue-50 border-blue-300"
-                    : "bg-white border-slate-200 hover:border-slate-300 hover:shadow-sm"
-                } cursor-move`}
+                    ? "opacity-50 bg-blue-50 border-blue-400 shadow-md"
+                    : column.visible
+                    ? "bg-white border-slate-200 hover:border-blue-300 hover:shadow-md hover:bg-blue-50/30"
+                    : "bg-slate-50 border-slate-200 opacity-60 hover:opacity-80"
+                } cursor-move group`}
               >
                 {/* Drag handle */}
-                <div className="flex-shrink-0 text-slate-400">
+                <div className="flex-shrink-0 text-slate-400 group-hover:text-blue-600 transition-colors">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 8h16M4 16h16" />
                   </svg>
                 </div>
 
-                {/* Checkbox */}
-                <input
-                  type="checkbox"
-                  checked={column.visible}
-                  onChange={() => handleToggleVisibility(column.id)}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
-                />
+                {/* Checkbox with enhanced styling */}
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={column.visible}
+                    onChange={() => handleToggleVisibility(column.id)}
+                    className="w-5 h-5 rounded border-2 border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 cursor-pointer transition-all"
+                  />
+                  {column.visible && (
+                    <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                      <svg className="w-3 h-3 text-white" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    </div>
+                  )}
+                </div>
 
                 {/* Label */}
-                <label className="flex-1 text-sm font-medium text-slate-700 cursor-pointer">
+                <label className={`flex-1 text-sm font-medium cursor-pointer transition-colors ${
+                  column.visible ? "text-slate-900" : "text-slate-500 line-through"
+                }`}>
                   {column.label}
                 </label>
 
-                {/* Order indicator */}
-                <div className="flex-shrink-0 text-xs text-slate-400 bg-slate-100 px-2 py-1 rounded">
+                {/* Order indicator with enhanced styling */}
+                <div className={`flex-shrink-0 flex items-center justify-center w-7 h-7 text-xs font-bold rounded-full transition-all ${
+                  column.visible
+                    ? "bg-blue-100 text-blue-700 border-2 border-blue-300"
+                    : "bg-slate-200 text-slate-500 border-2 border-slate-300"
+                }`}>
                   {index + 1}
                 </div>
               </div>

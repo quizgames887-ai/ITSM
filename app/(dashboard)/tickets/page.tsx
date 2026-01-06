@@ -961,28 +961,49 @@ export default function TicketsPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowColumnCustomizer(true)}
-            className="text-slate-600 hover:text-slate-900"
+            className="relative text-slate-700 hover:text-slate-900 hover:bg-slate-50 border-slate-200 hover:border-slate-300 transition-all group"
           >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-            Columns
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <svg className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+                </svg>
+                {columns.filter(c => !c.visible).length > 0 && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border border-white"></span>
+                )}
+              </div>
+              <span className="font-medium">Columns</span>
+              {columns.filter(c => !c.visible).length > 0 && (
+                <span className="px-1.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">
+                  {columns.filter(c => !c.visible).length} hidden
+                </span>
+              )}
+            </div>
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowViewManager(true)}
-            className="text-slate-600 hover:text-slate-900"
+            className="relative text-slate-700 hover:text-slate-900 hover:bg-slate-50 border-slate-200 hover:border-slate-300 transition-all group"
           >
-            <svg className="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            Views
-            {currentView && currentView.id !== "default" && (
-              <span className="ml-1.5 px-1.5 py-0.5 text-xs bg-blue-100 text-blue-700 rounded">
-                {currentView.name}
-              </span>
-            )}
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <svg className="w-4 h-4 text-slate-600 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
+                {currentView && currentView.id !== "default" && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full border border-white"></span>
+                )}
+              </div>
+              <span className="font-medium">Views</span>
+              {currentView && currentView.id !== "default" ? (
+                <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full border border-purple-200">
+                  {currentView.name}
+                </span>
+              ) : (
+                <span className="text-xs text-slate-500">Default</span>
+              )}
+            </div>
           </Button>
         </div>
         

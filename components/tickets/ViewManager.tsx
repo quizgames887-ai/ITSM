@@ -137,16 +137,23 @@ export function ViewManager({
   return (
     <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
       <Card className="max-w-2xl w-full max-h-[80vh] flex flex-col" onClick={(e) => e.stopPropagation()}>
-        <div className="flex items-center justify-between mb-6 p-6 pb-4 border-b border-slate-200">
-          <div>
-            <h2 className="text-xl font-bold text-slate-900">Manage Views</h2>
-            <p className="text-sm text-slate-600 mt-1">
-              Save and manage your custom ticket views
-            </p>
+        <div className="flex items-center justify-between mb-6 p-6 pb-4 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-pink-50">
+          <div className="flex items-center gap-3">
+            <div className="p-2 bg-purple-100 rounded-lg">
+              <svg className="w-6 h-6 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+              </svg>
+            </div>
+            <div>
+              <h2 className="text-xl font-bold text-slate-900">Manage Views</h2>
+              <p className="text-sm text-slate-600 mt-1">
+                Save and manage your custom ticket views
+              </p>
+            </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 hover:bg-white/80 rounded-lg transition-colors"
           >
             <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
@@ -189,7 +196,7 @@ export function ViewManager({
                   setEditingViewId(null);
                   setShowSaveForm(true);
                 }}
-                className="w-full"
+                className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700"
               >
                 <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -207,40 +214,59 @@ export function ViewManager({
                   savedViews.map((view) => (
                     <div
                       key={view.id}
-                      className={`flex items-center justify-between p-3 rounded-lg border transition-all ${
+                      className={`flex items-center justify-between p-4 rounded-lg border-2 transition-all ${
                         currentView?.id === view.id
-                          ? "bg-blue-50 border-blue-300"
-                          : "bg-white border-slate-200 hover:border-slate-300"
+                          ? "bg-gradient-to-r from-purple-50 to-pink-50 border-purple-400 shadow-md"
+                          : "bg-white border-slate-200 hover:border-purple-300 hover:shadow-md"
                       }`}
                     >
                       <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-slate-900">{view.name}</h3>
+                        <div className="flex items-center gap-2 mb-2">
+                          <div className={`p-1.5 rounded-lg ${
+                            currentView?.id === view.id ? "bg-purple-100" : "bg-slate-100"
+                          }`}>
+                            <svg className={`w-4 h-4 ${
+                              currentView?.id === view.id ? "text-purple-600" : "text-slate-600"
+                            }`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                            </svg>
+                          </div>
+                          <h3 className="font-semibold text-slate-900">{view.name}</h3>
                           {currentView?.id === view.id && (
-                            <span className="text-xs px-2 py-0.5 bg-blue-600 text-white rounded-full">
+                            <span className="text-xs px-2 py-1 bg-purple-600 text-white rounded-full font-semibold border-2 border-purple-700">
                               Active
                             </span>
                           )}
                         </div>
-                        <p className="text-xs text-slate-500 mt-1">
-                          {view.filters.status !== "all" && `Status: ${view.filters.status} • `}
-                          {view.filters.priority !== "all" && `Priority: ${view.filters.priority} • `}
-                          {view.columns.filter((c) => c.visible).length} columns visible
-                        </p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-slate-600">
+                          {view.filters.status !== "all" && (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 rounded-full font-medium">
+                              Status: {view.filters.status}
+                            </span>
+                          )}
+                          {view.filters.priority !== "all" && (
+                            <span className="px-2 py-0.5 bg-orange-100 text-orange-700 rounded-full font-medium">
+                              Priority: {view.filters.priority}
+                            </span>
+                          )}
+                          <span className="px-2 py-0.5 bg-slate-100 text-slate-700 rounded-full font-medium">
+                            {view.columns.filter((c) => c.visible).length} columns
+                          </span>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() => onViewSelect(view)}
-                          className="p-2 hover:bg-slate-100 rounded text-slate-600 hover:text-slate-900"
+                          className="p-2 hover:bg-purple-100 rounded-lg text-slate-600 hover:text-purple-700 transition-all"
                           title="Load view"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4-4m0 0L8 8m4-4v12" />
                           </svg>
                         </button>
                         <button
                           onClick={() => handleEditView(view)}
-                          className="p-2 hover:bg-slate-100 rounded text-slate-600 hover:text-slate-900"
+                          className="p-2 hover:bg-blue-100 rounded-lg text-slate-600 hover:text-blue-700 transition-all"
                           title="Edit view"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -249,7 +275,7 @@ export function ViewManager({
                         </button>
                         <button
                           onClick={() => handleDeleteView(view.id)}
-                          className="p-2 hover:bg-red-50 rounded text-slate-600 hover:text-red-600"
+                          className="p-2 hover:bg-red-100 rounded-lg text-slate-600 hover:text-red-600 transition-all"
                           title="Delete view"
                         >
                           <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
