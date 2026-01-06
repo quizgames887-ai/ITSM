@@ -268,6 +268,7 @@ export const create = mutation({
     // Apply SLA policy to set deadline
     const slaDeadline = await applySLAPolicy(ctx, args.priority);
 
+    // Initialize approval fields (will be updated if approval stages exist)
     const ticketId = await ctx.db.insert("tickets", {
       title: args.title,
       description: args.description,
@@ -283,6 +284,8 @@ export const create = mutation({
       aiCategorySuggestion: null,
       aiPrioritySuggestion: null,
       formData: args.formData ?? undefined,
+      requiresApproval: false,
+      approvalStatus: "not_required",
       createdAt: now,
       updatedAt: now,
     });
@@ -334,6 +337,7 @@ export const create = mutation({
 
     // Increment request count for the service category
     // This is done asynchronously and won't block ticket creation
+    let serviceFormId: Id<"forms"> | null = null;
     try {
       // Find service by name and increment count
       const services = await ctx.db
@@ -342,15 +346,121 @@ export const create = mutation({
         .collect();
       
       if (services.length > 0) {
+        const service = services[0];
         // Update the first matching service
-        await ctx.db.patch(services[0]._id, {
-          requestCount: services[0].requestCount + 1,
+        await ctx.db.patch(service._id, {
+          requestCount: service.requestCount + 1,
           updatedAt: Date.now(),
         });
+        // Get formId from service for approval stages
+        if (service.formId) {
+          serviceFormId = service.formId;
+        }
       }
     } catch (error) {
       // Silently fail if service doesn't exist - not critical
       // This allows tickets to be created even if service catalog entry doesn't exist
+    }
+
+    // Handle approval stages for service requests
+    let requiresApproval = false;
+    let approvalStatus: "pending" | "approved" | "rejected" | "not_required" = "not_required";
+    
+    if (args.type === "service_request" && serviceFormId) {
+      try {
+        // Get approval stages for the form
+        const approvalStages = await ctx.db
+          .query("approvalStages")
+          .withIndex("by_formId", (q: any) => q.eq("formId", serviceFormId))
+          .collect();
+
+        const sortedStages = approvalStages.sort((a, b) => a.order - b.order);
+
+        if (sortedStages.length > 0) {
+          requiresApproval = true;
+          approvalStatus = "pending";
+
+          // Create approval requests for each stage
+          for (const stage of sortedStages) {
+            // Determine approver ID based on stage type
+            let approverId: Id<"users"> | null = null;
+
+            if (stage.approverType === "user" && stage.approverId) {
+              approverId = stage.approverId;
+            } else if (stage.approverType === "role" && stage.approverRole) {
+              // Find first user with the specified role
+              // Map common role names to schema values
+              const roleMap: Record<string, "user" | "admin" | "agent"> = {
+                "admin": "admin",
+                "agent": "agent",
+                "user": "user",
+                "manager": "admin", // Treat manager as admin
+                "administrator": "admin",
+              };
+              const mappedRole = roleMap[stage.approverRole.toLowerCase()] || stage.approverRole as "user" | "admin" | "agent";
+              
+              const usersWithRole = await ctx.db
+                .query("users")
+                .withIndex("by_role", (q: any) => q.eq("role", mappedRole))
+                .collect();
+              
+              if (usersWithRole.length > 0) {
+                approverId = usersWithRole[0]._id;
+              }
+            } else if (stage.approverType === "team" && stage.approverTeamId) {
+              // Get team leader or first team member
+              const team = await ctx.db.get(stage.approverTeamId);
+              if (team?.leaderId) {
+                approverId = team.leaderId;
+              } else {
+                const teamMember = await ctx.db
+                  .query("teamMembers")
+                  .withIndex("by_teamId", (q: any) => q.eq("teamId", stage.approverTeamId))
+                  .first();
+                if (teamMember) {
+                  approverId = teamMember.userId;
+                }
+              }
+            }
+
+            // Create approval request
+            const approvalRequestId = await ctx.db.insert("approvalRequests", {
+              ticketId,
+              stageId: stage._id,
+              status: "pending",
+              approverId: approverId,
+              comments: null,
+              requestedAt: now,
+              respondedAt: null,
+              createdAt: now,
+              updatedAt: now,
+            });
+
+            // Notify the approver if found
+            if (approverId) {
+              const approver = await ctx.db.get(approverId);
+              await createNotification(
+                ctx,
+                approverId,
+                "approval_requested",
+                "Approval Required",
+                `You have a pending approval request for ticket: "${args.title}" (Stage: ${stage.name})`,
+                ticketId
+              );
+            }
+          }
+
+          // Update ticket with approval status
+          await ctx.db.patch(ticketId, {
+            requiresApproval: true,
+            approvalStatus: "pending",
+            updatedAt: now,
+          });
+        }
+      } catch (error) {
+        // Log error but don't fail ticket creation
+        console.error("Error creating approval requests:", error);
+      }
     }
 
     return ticketId;
