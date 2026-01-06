@@ -384,40 +384,165 @@ export default function TicketsPage() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedTickets = filteredTickets.slice(startIndex, endIndex);
 
-  // Status badge colors
+  // Status badge colors with icons
   const getStatusBadge = (status: string) => {
-    const styles: Record<string, string> = {
-      new: "bg-blue-100 text-blue-700 border-blue-200",
-      in_progress: "bg-amber-100 text-amber-700 border-amber-200",
-      on_hold: "bg-orange-100 text-orange-700 border-orange-200",
-      resolved: "bg-green-100 text-green-700 border-green-200",
-      closed: "bg-slate-100 text-slate-600 border-slate-200",
+    const config: Record<string, { 
+      label: string; 
+      bg: string; 
+      text: string; 
+      border: string; 
+      icon: JSX.Element;
+    }> = {
+      new: {
+        label: "New",
+        bg: "bg-blue-50",
+        text: "text-blue-700",
+        border: "border-blue-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
+          </svg>
+        ),
+      },
+      need_approval: {
+        label: "Need Approval",
+        bg: "bg-yellow-50",
+        text: "text-yellow-700",
+        border: "border-yellow-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+      },
+      in_progress: {
+        label: "In Progress",
+        bg: "bg-amber-50",
+        text: "text-amber-700",
+        border: "border-amber-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+        ),
+      },
+      on_hold: {
+        label: "On Hold",
+        bg: "bg-orange-50",
+        text: "text-orange-700",
+        border: "border-orange-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+      },
+      resolved: {
+        label: "Resolved",
+        bg: "bg-green-50",
+        text: "text-green-700",
+        border: "border-green-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+          </svg>
+        ),
+      },
+      closed: {
+        label: "Closed",
+        bg: "bg-slate-100",
+        text: "text-slate-700",
+        border: "border-slate-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ),
+      },
+      rejected: {
+        label: "Rejected",
+        bg: "bg-red-50",
+        text: "text-red-700",
+        border: "border-red-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ),
+      },
     };
-    const labels: Record<string, string> = {
-      new: "New",
-      in_progress: "In Progress",
-      on_hold: "On Hold",
-      resolved: "Resolved",
-      closed: "Closed",
-    };
+    
+    const statusConfig = config[status] || config.new;
+    
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full border ${styles[status] || styles.new}`}>
-        {labels[status] || status}
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border} shadow-sm`}>
+        {statusConfig.icon}
+        <span>{statusConfig.label}</span>
       </span>
     );
   };
 
-  // Priority badge colors
+  // Priority badge colors with icons
   const getPriorityBadge = (priority: string) => {
-    const styles: Record<string, string> = {
-      low: "bg-slate-100 text-slate-600 border-slate-200",
-      medium: "bg-blue-100 text-blue-700 border-blue-200",
-      high: "bg-orange-100 text-orange-700 border-orange-200",
-      critical: "bg-red-100 text-red-700 border-red-200",
+    const config: Record<string, { 
+      label: string; 
+      bg: string; 
+      text: string; 
+      border: string; 
+      icon: JSX.Element;
+    }> = {
+      low: {
+        label: "Low",
+        bg: "bg-slate-50",
+        text: "text-slate-700",
+        border: "border-slate-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
+          </svg>
+        ),
+      },
+      medium: {
+        label: "Medium",
+        bg: "bg-blue-50",
+        text: "text-blue-700",
+        border: "border-blue-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+          </svg>
+        ),
+      },
+      high: {
+        label: "High",
+        bg: "bg-orange-50",
+        text: "text-orange-700",
+        border: "border-orange-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
+          </svg>
+        ),
+      },
+      critical: {
+        label: "Critical",
+        bg: "bg-red-50",
+        text: "text-red-700",
+        border: "border-red-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        ),
+      },
     };
+    
+    const priorityConfig = config[priority] || config.medium;
+    
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full border capitalize ${styles[priority] || styles.medium}`}>
-        {priority}
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border ${priorityConfig.bg} ${priorityConfig.text} ${priorityConfig.border} shadow-sm`}>
+        {priorityConfig.icon}
+        <span>{priorityConfig.label}</span>
       </span>
     );
   };
@@ -458,19 +583,54 @@ export default function TicketsPage() {
   };
   
   const getTypeBadge = (type: string) => {
-    const styles: Record<string, string> = {
-      incident: "bg-red-100 text-red-700 border-red-200",
-      service_request: "bg-blue-100 text-blue-700 border-blue-200",
-      inquiry: "bg-purple-100 text-purple-700 border-purple-200",
+    const config: Record<string, { 
+      label: string; 
+      bg: string; 
+      text: string; 
+      border: string; 
+      icon: JSX.Element;
+    }> = {
+      incident: {
+        label: "Incident",
+        bg: "bg-red-50",
+        text: "text-red-700",
+        border: "border-red-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        ),
+      },
+      service_request: {
+        label: "Service Request",
+        bg: "bg-blue-50",
+        text: "text-blue-700",
+        border: "border-blue-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+          </svg>
+        ),
+      },
+      inquiry: {
+        label: "Inquiry",
+        bg: "bg-purple-50",
+        text: "text-purple-700",
+        border: "border-purple-300",
+        icon: (
+          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+      },
     };
-    const labels: Record<string, string> = {
-      incident: "Incident",
-      service_request: "Service Request",
-      inquiry: "Inquiry",
-    };
+    
+    const typeConfig = config[type] || config.incident;
+    
     return (
-      <span className={`px-2 py-1 text-xs font-medium rounded-full border capitalize ${styles[type] || styles.incident}`}>
-        {labels[type] || type}
+      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border ${typeConfig.bg} ${typeConfig.text} ${typeConfig.border} shadow-sm`}>
+        {typeConfig.icon}
+        <span>{typeConfig.label}</span>
       </span>
     );
   };
