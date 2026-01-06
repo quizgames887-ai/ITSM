@@ -23,7 +23,7 @@ export default function TodosPage() {
     dueDate: "",
     priority: "medium" as "low" | "medium" | "high",
   });
-  const { showError, success } = useToastContext();
+  const { error: showError, success } = useToastContext();
 
   useEffect(() => {
     const id = localStorage.getItem("userId");
