@@ -100,12 +100,17 @@ export default function TicketDetailPage({
   );
 
   // Fetch approval requests for this ticket
-  const approvalRequests = useQuery(api.approvals.getByTicket, { ticketId });
+  // Handle case where the function might not be synced to Convex backend yet
+  const approvalsApi = (api as any).approvals;
+  const approvalRequests = useQuery(
+    approvalsApi?.getByTicket || "skip",
+    approvalsApi?.getByTicket ? { ticketId } : "skip"
+  ) as any[] | undefined;
 
-  // Approval mutations
-  const approveRequest = useMutation(api.approvals.approve);
-  const rejectRequest = useMutation(api.approvals.reject);
-  const needMoreInfoRequest = useMutation(api.approvals.needMoreInfo);
+  // Approval mutations - handle case where functions might not be synced yet
+  const approveRequest = useMutation(approvalsApi?.approve);
+  const rejectRequest = useMutation(approvalsApi?.reject);
+  const needMoreInfoRequest = useMutation(approvalsApi?.needMoreInfo);
 
   const [commentText, setCommentText] = useState("");
   const [commentVisibility, setCommentVisibility] = useState<"internal" | "external">("external");
@@ -147,6 +152,20 @@ export default function TicketDetailPage({
     if (!ticket.assignedTo || !users) return "Unassigned";
     const user = users.find((u) => u._id === ticket.assignedTo);
     return user?.name || "Unknown";
+  };
+
+  // Get creator information
+  const getCreatorInfo = () => {
+    if (!ticket.createdBy || !users) return null;
+    const user = users.find((u) => u._id === ticket.createdBy);
+    if (!user) return null;
+    return {
+      name: user.name || "Unknown",
+      email: user.email || "",
+      phone: (user as any).phone || "",
+      location: (user as any).location || "",
+      jobTitle: (user as any).jobTitle || "",
+    };
   };
 
   const handleStatusChange = async (newStatus: string) => {
@@ -363,7 +382,7 @@ export default function TicketDetailPage({
           </div>
 
           {/* Approval Status */}
-          {ticket.requiresApproval && approvalRequests !== undefined && (
+          {ticket.requiresApproval && approvalRequests !== undefined && approvalRequests !== null && (
             <div className="mb-8">
               <h2 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-3 flex items-center gap-2">
                 <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -572,7 +591,73 @@ export default function TicketDetailPage({
                   );
                 })}
                 
-                {/* System Fields */}
+                {/* System Fields - Creator with full details */}
+                {getCreatorInfo() && (
+                  <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200 col-span-full">
+                    <div className="flex items-center gap-3 mb-4">
+                      <div className="p-2 bg-blue-100 rounded-lg">
+                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                        </svg>
+                      </div>
+                      <div>
+                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide block">Creator</span>
+                        <h3 className="text-lg font-bold text-slate-900 mt-1">{getCreatorInfo()?.name}</h3>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-blue-200">
+                      {getCreatorInfo()?.email && (
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          <div>
+                            <span className="text-xs font-medium text-slate-500 block">Email</span>
+                            <a href={`mailto:${getCreatorInfo()?.email}`} className="text-sm font-semibold text-blue-700 hover:text-blue-800 hover:underline">
+                              {getCreatorInfo()?.email}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                      {getCreatorInfo()?.phone && (
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                          </svg>
+                          <div>
+                            <span className="text-xs font-medium text-slate-500 block">Phone</span>
+                            <a href={`tel:${getCreatorInfo()?.phone}`} className="text-sm font-semibold text-slate-900 hover:text-blue-600">
+                              {getCreatorInfo()?.phone}
+                            </a>
+                          </div>
+                        </div>
+                      )}
+                      {getCreatorInfo()?.location && (
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                          <div>
+                            <span className="text-xs font-medium text-slate-500 block">Location</span>
+                            <p className="text-sm font-semibold text-slate-900">{getCreatorInfo()?.location}</p>
+                          </div>
+                        </div>
+                      )}
+                      {getCreatorInfo()?.jobTitle && (
+                        <div className="flex items-start gap-2">
+                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                          </svg>
+                          <div>
+                            <span className="text-xs font-medium text-slate-500 block">Job Title</span>
+                            <p className="text-sm font-semibold text-slate-900">{getCreatorInfo()?.jobTitle}</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="bg-slate-50 rounded-xl p-4">
                   <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Assignee</span>
                   <p className="text-sm font-semibold text-slate-900">{getAssigneeName()}</p>
@@ -612,6 +697,72 @@ export default function TicketDetailPage({
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Urgency</span>
                 <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.urgency}</p>
               </div>
+              {getCreatorInfo() && (
+                <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-5 border-2 border-blue-200 col-span-2">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                      </svg>
+                    </div>
+                    <div>
+                      <span className="text-xs font-bold text-slate-500 uppercase tracking-wide block">Creator</span>
+                      <h3 className="text-lg font-bold text-slate-900 mt-1">{getCreatorInfo()?.name}</h3>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-blue-200">
+                    {getCreatorInfo()?.email && (
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <div>
+                          <span className="text-xs font-medium text-slate-500 block">Email</span>
+                          <a href={`mailto:${getCreatorInfo()?.email}`} className="text-sm font-semibold text-blue-700 hover:text-blue-800 hover:underline">
+                            {getCreatorInfo()?.email}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {getCreatorInfo()?.phone && (
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
+                        </svg>
+                        <div>
+                          <span className="text-xs font-medium text-slate-500 block">Phone</span>
+                          <a href={`tel:${getCreatorInfo()?.phone}`} className="text-sm font-semibold text-slate-900 hover:text-blue-600">
+                            {getCreatorInfo()?.phone}
+                          </a>
+                        </div>
+                      </div>
+                    )}
+                    {getCreatorInfo()?.location && (
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                        </svg>
+                        <div>
+                          <span className="text-xs font-medium text-slate-500 block">Location</span>
+                          <p className="text-sm font-semibold text-slate-900">{getCreatorInfo()?.location}</p>
+                        </div>
+                      </div>
+                    )}
+                    {getCreatorInfo()?.jobTitle && (
+                      <div className="flex items-start gap-2">
+                        <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                        </svg>
+                        <div>
+                          <span className="text-xs font-medium text-slate-500 block">Job Title</span>
+                          <p className="text-sm font-semibold text-slate-900">{getCreatorInfo()?.jobTitle}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
               <div className="bg-slate-50 rounded-xl p-4">
                 <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Assignee</span>
                 <p className="text-sm font-semibold text-slate-900">{getAssigneeName()}</p>
