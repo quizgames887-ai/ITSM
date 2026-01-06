@@ -117,6 +117,22 @@ export const approve = mutation({
       throw new Error("Ticket or stage not found");
     }
 
+    // Log approval action in audit
+    const approver = await ctx.db.get(args.approverId);
+    await ctx.db.insert("ticketHistory", {
+      ticketId: request.ticketId,
+      userId: args.approverId,
+      action: "approval_approved",
+      oldValue: { status: "pending", stageName: stage.name },
+      newValue: { 
+        status: "approved", 
+        stageName: stage.name,
+        approverName: approver?.name || "Unknown",
+        comments: args.comments || null
+      },
+      createdAt: now,
+    });
+
     // Check if all required stages are approved
     const allRequests = await ctx.db
       .query("approvalRequests")
@@ -126,12 +142,11 @@ export const approve = mutation({
     const allStages = await ctx.db
       .query("approvalStages")
       .withIndex("by_formId", (q) => {
-        // We need to get the formId from the stage
-        // Since we already have the stage, we can use it
         return q.eq("formId", stage.formId);
       })
       .collect();
 
+    const sortedStages = allStages.sort((a, b) => a.order - b.order);
     const requiredStages = allStages.filter((s) => s.isRequired);
     const requiredStageIds = new Set(requiredStages.map((s) => s._id));
 
@@ -149,16 +164,89 @@ export const approve = mutation({
     // Update ticket approval status
     let ticketApprovalStatus: "pending" | "approved" | "rejected" | "not_required" =
       "pending";
+    let ticketStatus: "need_approval" | "in_progress" | "rejected" = "need_approval";
+    
     if (anyRejected) {
       ticketApprovalStatus = "rejected";
+      ticketStatus = "rejected";
     } else if (allRequiredApproved) {
       ticketApprovalStatus = "approved";
+      ticketStatus = "in_progress";
     }
 
+    // Update ticket status and approval status
     await ctx.db.patch(request.ticketId, {
+      status: ticketStatus,
       approvalStatus: ticketApprovalStatus,
       updatedAt: now,
     });
+
+    // Log status change in audit if status changed
+    if (ticketStatus === "in_progress") {
+      await ctx.db.insert("ticketHistory", {
+        ticketId: request.ticketId,
+        userId: args.approverId,
+        action: "status_changed",
+        oldValue: { status: "need_approval" },
+        newValue: { status: "in_progress", reason: "All approvals completed" },
+        createdAt: now + 1,
+      });
+    } else if (ticketStatus === "rejected") {
+      await ctx.db.insert("ticketHistory", {
+        ticketId: request.ticketId,
+        userId: args.approverId,
+        action: "status_changed",
+        oldValue: { status: "need_approval" },
+        newValue: { status: "rejected", reason: "Approval rejected" },
+        createdAt: now + 1,
+      });
+    }
+
+    // If not all approvals are done, notify the next approver
+    if (!allRequiredApproved && !anyRejected) {
+      // Find the next pending approval request in order
+      // Get all pending requests sorted by stage order
+      const pendingRequests = allRequests
+        .filter((r) => r.status === "pending")
+        .map((r) => {
+          const stage = sortedStages.find((s) => s._id === r.stageId);
+          return { request: r, stage, order: stage?.order ?? 999 };
+        })
+        .sort((a, b) => a.order - b.order);
+
+      // Get the first pending request (next in sequence)
+      if (pendingRequests.length > 0) {
+        const nextPending = pendingRequests[0];
+        if (nextPending.request.approverId && nextPending.stage) {
+          const nextApprover = await ctx.db.get(nextPending.request.approverId);
+          if (nextApprover) {
+            await createNotification(
+              ctx,
+              nextPending.request.approverId,
+              "approval_requested",
+              "Approval Required",
+              `You have a pending approval request for ticket: "${ticket.title}" (Stage: ${nextPending.stage.name})`,
+              request.ticketId
+            );
+            
+            // Log next approval request in audit
+            await ctx.db.insert("ticketHistory", {
+              ticketId: request.ticketId,
+              userId: args.approverId,
+              action: "approval_requested",
+              oldValue: null,
+              newValue: { 
+                stageName: nextPending.stage.name,
+                approverId: nextPending.request.approverId,
+                approverName: nextApprover.name,
+                reason: "Previous stage approved"
+              },
+              createdAt: now + 2,
+            });
+          }
+        }
+      }
+    }
 
     // Notify ticket creator
     await createNotification(
@@ -166,7 +254,7 @@ export const approve = mutation({
       ticket.createdBy,
       "approval_approved",
       "Approval Approved",
-      `Your ticket "${ticket.title}" has been approved at stage: ${stage.name}`,
+      `Your ticket "${ticket.title}" has been approved at stage: ${stage.name}${allRequiredApproved ? ". All approvals completed - ticket is now in progress." : ""}`,
       request.ticketId
     );
 
@@ -214,10 +302,37 @@ export const reject = mutation({
       throw new Error("Ticket or stage not found");
     }
 
-    // Update ticket approval status to rejected
+    // Log rejection in audit
+    const approver = await ctx.db.get(args.approverId);
+    await ctx.db.insert("ticketHistory", {
+      ticketId: request.ticketId,
+      userId: args.approverId,
+      action: "approval_rejected",
+      oldValue: { status: "pending", stageName: stage.name },
+      newValue: { 
+        status: "rejected", 
+        stageName: stage.name,
+        approverName: approver?.name || "Unknown",
+        comments: args.comments || null
+      },
+      createdAt: now,
+    });
+
+    // Update ticket status to rejected and approval status
     await ctx.db.patch(request.ticketId, {
+      status: "rejected",
       approvalStatus: "rejected",
       updatedAt: now,
+    });
+
+    // Log status change in audit
+    await ctx.db.insert("ticketHistory", {
+      ticketId: request.ticketId,
+      userId: args.approverId,
+      action: "status_changed",
+      oldValue: { status: ticket.status },
+      newValue: { status: "rejected", reason: "Approval rejected" },
+      createdAt: now + 1,
     });
 
     // Notify ticket creator
@@ -280,6 +395,22 @@ export const needMoreInfo = mutation({
       throw new Error("Ticket or stage not found");
     }
 
+    // Log need more info request in audit
+    const approver = await ctx.db.get(args.approverId);
+    await ctx.db.insert("ticketHistory", {
+      ticketId: request.ticketId,
+      userId: args.approverId,
+      action: "approval_more_info_requested",
+      oldValue: { status: "pending", stageName: stage.name },
+      newValue: { 
+        status: "need_more_info", 
+        stageName: stage.name,
+        approverName: approver?.name || "Unknown",
+        comments: args.comments
+      },
+      createdAt: now,
+    });
+
     // Notify ticket creator
     await createNotification(
       ctx,
@@ -326,6 +457,16 @@ export const resubmit = mutation({
     if (!ticket || !stage) {
       throw new Error("Ticket or stage not found");
     }
+
+    // Log resubmission in audit
+    await ctx.db.insert("ticketHistory", {
+      ticketId: request.ticketId,
+      userId: ticket.createdBy,
+      action: "approval_resubmitted",
+      oldValue: { status: "need_more_info", stageName: stage.name },
+      newValue: { status: "pending", stageName: stage.name },
+      createdAt: now,
+    });
 
     // Notify the approver again
     if (request.approverId) {

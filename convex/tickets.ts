@@ -269,11 +269,14 @@ export const create = mutation({
     const slaDeadline = await applySLAPolicy(ctx, args.priority);
 
     // Initialize approval fields (will be updated if approval stages exist)
+    // Default status will be set based on whether approval is needed
+    let initialStatus: "new" | "need_approval" = "new";
+    
     const ticketId = await ctx.db.insert("tickets", {
       title: args.title,
       description: args.description,
       type: args.type,
-      status: "new",
+      status: initialStatus,
       priority: args.priority,
       urgency: args.urgency,
       category: args.category,
@@ -380,7 +383,27 @@ export const create = mutation({
           requiresApproval = true;
           approvalStatus = "pending";
 
+          // Update ticket status to need_approval
+          await ctx.db.patch(ticketId, {
+            status: "need_approval",
+            requiresApproval: true,
+            approvalStatus: "pending",
+            updatedAt: now,
+          });
+
+          // Create history entry for status change to need_approval
+          await ctx.db.insert("ticketHistory", {
+            ticketId,
+            userId: args.createdBy,
+            action: "status_changed",
+            oldValue: { status: "new" },
+            newValue: { status: "need_approval", reason: "Approval required" },
+            createdAt: now + 2,
+          });
+
           // Create approval requests for each stage
+          // Only notify the first approver initially
+          let isFirstStage = true;
           for (const stage of sortedStages) {
             // Determine approver ID based on stage type
             let approverId: Id<"users"> | null = null;
@@ -436,8 +459,8 @@ export const create = mutation({
               updatedAt: now,
             });
 
-            // Notify the approver if found
-            if (approverId) {
+            // Only notify the first approver initially
+            if (approverId && isFirstStage) {
               try {
                 const approver = await ctx.db.get(approverId);
                 if (approver) {
@@ -449,23 +472,32 @@ export const create = mutation({
                     `You have a pending approval request for ticket: "${args.title}" (Stage: ${stage.name})`,
                     ticketId
                   );
+                  
+                  // Log approval request in audit
+                  await ctx.db.insert("ticketHistory", {
+                    ticketId,
+                    userId: args.createdBy,
+                    action: "approval_requested",
+                    oldValue: null,
+                    newValue: { 
+                      stageName: stage.name,
+                      approverId: approverId,
+                      approverName: approver.name
+                    },
+                    createdAt: now + 3,
+                  });
                 } else {
                   console.warn(`Approver with ID ${approverId} not found for approval request`);
                 }
               } catch (error) {
                 console.error(`Error creating notification for approver ${approverId}:`, error);
               }
-            } else {
+            } else if (!approverId) {
               console.warn(`No approver found for approval stage: ${stage.name} (Type: ${stage.approverType})`);
             }
+            
+            isFirstStage = false;
           }
-
-          // Update ticket with approval status
-          await ctx.db.patch(ticketId, {
-            requiresApproval: true,
-            approvalStatus: "pending",
-            updatedAt: now,
-          });
         }
       } catch (error) {
         // Log error but don't fail ticket creation

@@ -26,10 +26,12 @@ export default defineSchema({
     ),
     status: v.union(
       v.literal("new"),
+      v.literal("need_approval"),
       v.literal("in_progress"),
       v.literal("on_hold"),
       v.literal("resolved"),
-      v.literal("closed")
+      v.literal("closed"),
+      v.literal("rejected")
     ),
     priority: v.union(
       v.literal("low"),

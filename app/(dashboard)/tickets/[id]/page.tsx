@@ -213,10 +213,12 @@ export default function TicketDetailPage({
 
   const statusStyles: Record<string, { bg: string; text: string; border: string }> = {
     new: { bg: "bg-blue-50", text: "text-blue-700", border: "border-blue-200" },
+    need_approval: { bg: "bg-yellow-50", text: "text-yellow-700", border: "border-yellow-200" },
     in_progress: { bg: "bg-amber-50", text: "text-amber-700", border: "border-amber-200" },
     on_hold: { bg: "bg-orange-50", text: "text-orange-700", border: "border-orange-200" },
     resolved: { bg: "bg-green-50", text: "text-green-700", border: "border-green-200" },
     closed: { bg: "bg-slate-100", text: "text-slate-600", border: "border-slate-300" },
+    rejected: { bg: "bg-red-50", text: "text-red-700", border: "border-red-200" },
   };
 
   const priorityStyles: Record<string, { bg: string; text: string; border: string }> = {
@@ -231,10 +233,12 @@ export default function TicketDetailPage({
 
   const statusLabels: Record<string, string> = {
     new: "New",
+    need_approval: "Need Approval",
     in_progress: "In Progress",
     on_hold: "On Hold",
     resolved: "Resolved",
     closed: "Closed",
+    rejected: "Rejected",
   };
 
   const handleApprovalAction = async () => {
@@ -320,13 +324,22 @@ export default function TicketDetailPage({
               <label className="block text-xs font-medium text-slate-500 mb-2">Update Status</label>
               <Select
                 value={ticket.status}
-                onChange={(e) => handleStatusChange(e.target.value)}
+                onChange={(e) => {
+                  // Prevent manual changes to system-managed statuses
+                  if (e.target.value === "need_approval" || e.target.value === "rejected") {
+                    showError("This status is system-managed and cannot be changed manually");
+                    return;
+                  }
+                  handleStatusChange(e.target.value);
+                }}
                 options={[
                   { value: "new", label: "New" },
+                  { value: "need_approval", label: "Need Approval" },
                   { value: "in_progress", label: "In Progress" },
                   { value: "on_hold", label: "On Hold" },
                   { value: "resolved", label: "Resolved" },
                   { value: "closed", label: "Closed" },
+                  { value: "rejected", label: "Rejected" },
                 ]}
                 className="w-full lg:w-48"
               />
