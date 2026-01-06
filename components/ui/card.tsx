@@ -6,7 +6,7 @@ interface CardProps {
   padding?: "none" | "sm" | "md" | "lg";
   hover?: boolean;
   style?: React.CSSProperties;
-  onClick?: () => void;
+  onClick?: (e: React.MouseEvent) => void;
   variant?: "default" | "elevated" | "outlined";
   id?: string;
 }
