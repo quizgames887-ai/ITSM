@@ -73,33 +73,22 @@ const defaultIcons = {
 
 export function StatsCard({ title, value, color = "default", icon, onClick }: StatsCardProps) {
   const config = colorConfig[color];
-  const displayIcon = icon || defaultIcons[color];
 
   return (
     <Card 
-      hover 
-      variant="elevated"
-      className={`${config.bg} ${config.border} border animate-fade-in group ${onClick ? "cursor-pointer" : ""} overflow-hidden relative`} 
+      hover={!!onClick}
+      variant="default"
+      className={`${onClick ? "cursor-pointer" : ""}`} 
       padding="sm"
       onClick={onClick}
     >
-      {/* Subtle gradient overlay on hover */}
-      <div className="absolute inset-0 bg-gradient-to-br from-white/0 to-white/20 opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-      
-      <div className="flex items-center justify-between gap-4 relative z-10">
-        <div className="flex-1 min-w-0">
-          <p className="text-xs sm:text-sm font-medium text-slate-500 mb-2 truncate group-hover:text-slate-600 transition-colors uppercase tracking-wide">
-            {title}
-          </p>
-          <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${config.text} transition-all duration-300 group-hover:scale-105`}>
-            {value.toLocaleString()}
-          </p>
-        </div>
-        <div className={`${config.iconBg} p-3 sm:p-3.5 rounded-xl ${config.text} flex-shrink-0 transition-all duration-300 group-hover:scale-110 group-hover:rotate-3 group-hover:shadow-lg`}>
-          <div className="w-5 h-5 sm:w-6 sm:h-6">
-            {displayIcon}
-          </div>
-        </div>
+      <div className="flex flex-col">
+        <p className="text-xs font-medium text-slate-500 mb-1 uppercase tracking-wide">
+          {title}
+        </p>
+        <p className={`text-2xl font-semibold ${config.text}`}>
+          {value.toLocaleString()}
+        </p>
       </div>
     </Card>
   );

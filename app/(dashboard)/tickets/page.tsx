@@ -384,165 +384,93 @@ export default function TicketsPage() {
   const endIndex = startIndex + itemsPerPage;
   const paginatedTickets = filteredTickets.slice(startIndex, endIndex);
 
-  // Status badge colors with icons
+  // Status badge colors
   const getStatusBadge = (status: string) => {
     const config: Record<string, { 
       label: string; 
       bg: string; 
       text: string; 
-      border: string; 
-      icon: React.ReactElement;
     }> = {
       new: {
         label: "New",
         bg: "bg-blue-50",
         text: "text-blue-700",
-        border: "border-blue-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
-          </svg>
-        ),
       },
       need_approval: {
         label: "Need Approval",
         bg: "bg-yellow-50",
         text: "text-yellow-700",
-        border: "border-yellow-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
       },
       in_progress: {
         label: "In Progress",
         bg: "bg-amber-50",
         text: "text-amber-700",
-        border: "border-amber-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-          </svg>
-        ),
       },
       on_hold: {
         label: "On Hold",
         bg: "bg-orange-50",
         text: "text-orange-700",
-        border: "border-orange-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 9v6m4-6v6m7-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
       },
       resolved: {
         label: "Resolved",
         bg: "bg-green-50",
         text: "text-green-700",
-        border: "border-green-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
-          </svg>
-        ),
       },
       closed: {
         label: "Closed",
         bg: "bg-slate-100",
         text: "text-slate-700",
-        border: "border-slate-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ),
       },
       rejected: {
         label: "Rejected",
         bg: "bg-red-50",
         text: "text-red-700",
-        border: "border-red-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ),
       },
     };
     
     const statusConfig = config[status] || config.new;
     
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border ${statusConfig.bg} ${statusConfig.text} ${statusConfig.border} shadow-sm`}>
-        {statusConfig.icon}
-        <span>{statusConfig.label}</span>
+      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded ${statusConfig.bg} ${statusConfig.text}`}>
+        {statusConfig.label}
       </span>
     );
   };
 
-  // Priority badge colors with icons
+  // Priority badge colors
   const getPriorityBadge = (priority: string) => {
     const config: Record<string, { 
       label: string; 
       bg: string; 
       text: string; 
-      border: string; 
-      icon: React.ReactElement;
     }> = {
       low: {
         label: "Low",
         bg: "bg-slate-50",
         text: "text-slate-700",
-        border: "border-slate-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 12h14" />
-          </svg>
-        ),
       },
       medium: {
         label: "Medium",
         bg: "bg-blue-50",
         text: "text-blue-700",
-        border: "border-blue-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
-          </svg>
-        ),
       },
       high: {
         label: "High",
         bg: "bg-orange-50",
         text: "text-orange-700",
-        border: "border-orange-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 17h8m0 0V9m0 8l-8-8-4 4-6-6" />
-          </svg>
-        ),
       },
       critical: {
         label: "Critical",
         bg: "bg-red-50",
         text: "text-red-700",
-        border: "border-red-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        ),
       },
     };
     
     const priorityConfig = config[priority] || config.medium;
     
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border ${priorityConfig.bg} ${priorityConfig.text} ${priorityConfig.border} shadow-sm`}>
-        {priorityConfig.icon}
-        <span>{priorityConfig.label}</span>
+      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded ${priorityConfig.bg} ${priorityConfig.text}`}>
+        {priorityConfig.label}
       </span>
     );
   };
@@ -587,50 +515,29 @@ export default function TicketsPage() {
       label: string; 
       bg: string; 
       text: string; 
-      border: string; 
-      icon: React.ReactElement;
     }> = {
       incident: {
         label: "Incident",
         bg: "bg-red-50",
         text: "text-red-700",
-        border: "border-red-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-          </svg>
-        ),
       },
       service_request: {
         label: "Service Request",
         bg: "bg-blue-50",
         text: "text-blue-700",
-        border: "border-blue-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        ),
       },
       inquiry: {
         label: "Inquiry",
         bg: "bg-purple-50",
         text: "text-purple-700",
-        border: "border-purple-300",
-        icon: (
-          <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-        ),
       },
     };
     
     const typeConfig = config[type] || config.incident;
     
     return (
-      <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border ${typeConfig.bg} ${typeConfig.text} ${typeConfig.border} shadow-sm`}>
-        {typeConfig.icon}
-        <span>{typeConfig.label}</span>
+      <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded ${typeConfig.bg} ${typeConfig.text}`}>
+        {typeConfig.label}
       </span>
     );
   };
@@ -913,195 +820,81 @@ export default function TicketsPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-2 border-b border-slate-200">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg shadow-sm">
-            <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-          </div>
-          <div>
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Tickets</h1>
-            <p className="text-sm text-slate-600 mt-1">
-              Manage and track all your support tickets
-            </p>
-          </div>
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pb-4 border-b border-slate-200">
+        <div>
+          <h1 className="text-2xl font-semibold text-slate-900">Tickets</h1>
+          <p className="text-sm text-slate-500 mt-1">
+            Manage and track support tickets
+          </p>
         </div>
         <Button 
-          variant="gradient" 
+          variant="primary" 
           onClick={() => setShowCreateForm(true)}
-          className="shadow-md hover:shadow-lg transition-all duration-200 flex items-center gap-2 px-4 py-2.5"
+          className="flex items-center gap-2"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          <span className="font-semibold">New Ticket</span>
+          New Ticket
         </Button>
       </div>
 
       {/* KPI Dashboard for Agents and Admins */}
       {(userRole === "agent" || userRole === "admin") && kpiMetrics && (
-        <div className="space-y-4">
-          <div>
-            <h2 className="text-lg font-semibold text-slate-900 mb-4">Ticket Overview</h2>
-          </div>
-          
-          {/* Main KPI Cards */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <StatsCard
-              title="Total Tickets"
-              value={kpiMetrics.total}
-              color="default"
-              onClick={() => {
-                setStatusFilter("all");
-                setPriorityFilter("all");
-              }}
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-              }
-            />
-            <StatsCard
-              title="Open"
-              value={kpiMetrics.openTickets}
-              color="blue"
-              onClick={() => {
-                setStatusFilter("new");
-                setPriorityFilter("all");
-              }}
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-            />
-            <StatsCard
-              title="In Progress"
-              value={kpiMetrics.inProgress}
-              color="yellow"
-              onClick={() => {
-                setStatusFilter("in_progress");
-                setPriorityFilter("all");
-              }}
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              }
-            />
-            <StatsCard
-              title="Resolved"
-              value={kpiMetrics.resolved}
-              color="green"
-              onClick={() => {
-                setStatusFilter("resolved");
-                setPriorityFilter("all");
-              }}
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                </svg>
-              }
-            />
-            <StatsCard
-              title="Critical"
-              value={kpiMetrics.critical}
-              color="red"
-              onClick={() => {
-                setStatusFilter("all");
-                setPriorityFilter("critical");
-              }}
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
-                </svg>
-              }
-            />
-            <StatsCard
-              title="Unassigned"
-              value={kpiMetrics.unassigned}
-              color="yellow"
-              icon={
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z" />
-                </svg>
-              }
-            />
-          </div>
-
-          {/* Secondary Metrics */}
-          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-            <Card 
-              padding="sm" 
-              className="text-center cursor-pointer hover:bg-blue-50 transition-colors"
-              onClick={() => {
-                setStatusFilter("new");
-                setPriorityFilter("all");
-              }}
-            >
-              <div className="text-xl font-bold text-blue-600">{kpiMetrics.newTickets}</div>
-              <div className="text-xs text-slate-500 mt-1">New</div>
-            </Card>
-            <Card 
-              padding="sm" 
-              className="text-center cursor-pointer hover:bg-orange-50 transition-colors"
-              onClick={() => {
-                setStatusFilter("on_hold");
-                setPriorityFilter("all");
-              }}
-            >
-              <div className="text-xl font-bold text-orange-600">{kpiMetrics.onHold}</div>
-              <div className="text-xs text-slate-500 mt-1">On Hold</div>
-            </Card>
-            <Card 
-              padding="sm" 
-              className="text-center cursor-pointer hover:bg-slate-50 transition-colors"
-              onClick={() => {
-                setStatusFilter("closed");
-                setPriorityFilter("all");
-              }}
-            >
-              <div className="text-xl font-bold text-slate-600">{kpiMetrics.closed}</div>
-              <div className="text-xs text-slate-500 mt-1">Closed</div>
-            </Card>
-            <Card 
-              padding="sm" 
-              className="text-center cursor-pointer hover:bg-red-50 transition-colors"
-              onClick={() => {
-                setStatusFilter("all");
-                setPriorityFilter("high");
-              }}
-            >
-              <div className="text-xl font-bold text-red-600">{kpiMetrics.high}</div>
-              <div className="text-xs text-slate-500 mt-1">High Priority</div>
-            </Card>
-            <Card 
-              padding="sm" 
-              className="text-center cursor-pointer hover:bg-blue-50 transition-colors"
-              onClick={() => {
-                setStatusFilter("all");
-                setPriorityFilter("medium");
-              }}
-            >
-              <div className="text-xl font-bold text-blue-600">{kpiMetrics.medium}</div>
-              <div className="text-xs text-slate-500 mt-1">Medium Priority</div>
-            </Card>
-            <Card padding="sm" className="text-center">
-              <div className="text-xl font-bold text-slate-600">
-                {kpiMetrics.avgResolutionTime > 0 ? `${kpiMetrics.avgResolutionTime}d` : "N/A"}
-              </div>
-              <div className="text-xs text-slate-500 mt-1">Avg Resolution</div>
-            </Card>
-          </div>
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
+          <StatsCard
+            title="Total"
+            value={kpiMetrics.total}
+            color="default"
+            onClick={() => {
+              setStatusFilter("all");
+              setPriorityFilter("all");
+            }}
+          />
+          <StatsCard
+            title="Open"
+            value={kpiMetrics.openTickets}
+            color="blue"
+            onClick={() => {
+              setStatusFilter("new");
+              setPriorityFilter("all");
+            }}
+          />
+          <StatsCard
+            title="In Progress"
+            value={kpiMetrics.inProgress}
+            color="yellow"
+            onClick={() => {
+              setStatusFilter("in_progress");
+              setPriorityFilter("all");
+            }}
+          />
+          <StatsCard
+            title="Resolved"
+            value={kpiMetrics.resolved}
+            color="green"
+            onClick={() => {
+              setStatusFilter("resolved");
+              setPriorityFilter("all");
+            }}
+          />
+          <StatsCard
+            title="Critical"
+            value={kpiMetrics.critical}
+            color="red"
+            onClick={() => {
+              setStatusFilter("all");
+              setPriorityFilter("critical");
+            }}
+          />
         </div>
       )}
 
       {/* Create Ticket Form */}
       {showCreateForm && (
-        <Card padding="lg" className="border-2 border-blue-200 bg-blue-50/30">
+        <Card padding="lg">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-semibold text-slate-900 text-lg">Create New Ticket</h3>
+            <h3 className="font-semibold text-slate-900">Create New Ticket</h3>
             <button
               onClick={() => setShowCreateForm(false)}
               className="p-1 text-slate-400 hover:text-slate-600 rounded"
@@ -1148,48 +941,38 @@ export default function TicketsPage() {
 
       {/* Tabs for Agents */}
       {userRole === "agent" && (
-        <div className="border-b border-slate-200 bg-white rounded-t-lg">
+        <div className="border-b border-slate-200">
           <div className="flex gap-1">
             <button
               onClick={() => setActiveTab("created")}
-              className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all duration-200 relative ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === "created"
-                  ? "border-blue-600 text-blue-600 bg-blue-50/50"
-                  : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  ? "border-slate-900 text-slate-900"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                </svg>
-                My Tickets
-              </span>
+              My Tickets
             </button>
             <button
               onClick={() => setActiveTab("assigned")}
-              className={`px-5 py-3 text-sm font-semibold border-b-2 transition-all duration-200 relative ${
+              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
                 activeTab === "assigned"
-                  ? "border-blue-600 text-blue-600 bg-blue-50/50"
-                  : "border-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                  ? "border-slate-900 text-slate-900"
+                  : "border-transparent text-slate-600 hover:text-slate-900"
               }`}
             >
-              <span className="flex items-center gap-2">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-                Assigned to Me
-              </span>
+              Assigned to Me
             </button>
           </div>
         </div>
       )}
 
       {/* Filters and Bulk Actions */}
-      <div className="flex flex-wrap gap-3 items-center">
+        <div className="flex flex-wrap gap-3 items-center">
         <select
           value={statusFilter}
           onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          className="px-3 py-2 text-sm border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-slate-500 focus:border-slate-500"
         >
           <option value="all">All Status</option>
           <option value="new">New</option>
@@ -1201,7 +984,7 @@ export default function TicketsPage() {
         <select
           value={priorityFilter}
           onChange={(e) => setPriorityFilter(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+          className="px-3 py-2 text-sm border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-slate-500 focus:border-slate-500"
         >
           <option value="all">All Priority</option>
           <option value="low">Low</option>
@@ -1216,49 +999,20 @@ export default function TicketsPage() {
             variant="outline"
             size="sm"
             onClick={() => setShowColumnCustomizer(true)}
-            className="relative text-slate-700 hover:text-slate-900 hover:bg-slate-50 border-slate-200 hover:border-slate-300 transition-all group"
+            className="text-slate-700"
           >
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <svg className="w-4 h-4 text-slate-600 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 10h16M4 14h16M4 18h16" />
-                </svg>
-                {columns.filter(c => !c.visible).length > 0 && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-blue-500 rounded-full border border-white"></span>
-                )}
-              </div>
-              <span className="font-medium">Columns</span>
-              {columns.filter(c => !c.visible).length > 0 && (
-                <span className="px-1.5 py-0.5 text-xs font-semibold bg-blue-100 text-blue-700 rounded-full">
-                  {columns.filter(c => !c.visible).length} hidden
-                </span>
-              )}
-            </div>
+            Columns
           </Button>
           <Button
             variant="outline"
             size="sm"
             onClick={() => setShowViewManager(true)}
-            className="relative text-slate-700 hover:text-slate-900 hover:bg-slate-50 border-slate-200 hover:border-slate-300 transition-all group"
+            className="text-slate-700"
           >
-            <div className="flex items-center gap-2">
-              <div className="relative">
-                <svg className="w-4 h-4 text-slate-600 group-hover:text-purple-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
-                </svg>
-                {currentView && currentView.id !== "default" && (
-                  <span className="absolute -top-1 -right-1 w-2 h-2 bg-purple-500 rounded-full border border-white"></span>
-                )}
-              </div>
-              <span className="font-medium">Views</span>
-              {currentView && currentView.id !== "default" ? (
-                <span className="px-2 py-0.5 text-xs font-semibold bg-purple-100 text-purple-700 rounded-full border border-purple-200">
-                  {currentView.name}
-                </span>
-              ) : (
-                <span className="text-xs text-slate-500">Default</span>
-              )}
-            </div>
+            Views
+            {currentView && currentView.id !== "default" && (
+              <span className="ml-1 text-xs">({currentView.name})</span>
+            )}
           </Button>
         </div>
         
@@ -1267,35 +1021,15 @@ export default function TicketsPage() {
             variant="outline"
             onClick={handleDeleteSelected}
             disabled={isDeleting}
-            className="text-red-600 border-red-200 hover:bg-red-50 hover:border-red-300"
+            className="text-red-600 border-red-300 hover:bg-red-50"
           >
-            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-            </svg>
-            {isDeleting ? "Deleting..." : `Delete ${selectedTickets.size} Selected`}
+            {isDeleting ? "Deleting..." : `Delete ${selectedTickets.size}`}
           </Button>
         )}
-        <div className="ml-auto flex items-center gap-4">
-          <div className="flex items-center gap-2 text-sm text-slate-600 bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
-            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-            </svg>
-            <span className="font-semibold text-slate-700">{filteredTickets.length}</span>
-            <span className="text-slate-500">ticket{filteredTickets.length !== 1 ? "s" : ""}</span>
-            {totalPages > 1 && (
-              <span className="text-slate-400">•</span>
-            )}
-            {totalPages > 1 && (
-              <span className="text-slate-500">Page {currentPage} of {totalPages}</span>
-            )}
-          </div>
-          {userRole === "admin" && selectedTickets.size > 0 && (
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg">
-              <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-              <span className="text-sm font-semibold text-blue-700">{selectedTickets.size} selected</span>
-            </div>
+        <div className="ml-auto flex items-center gap-3 text-sm text-slate-600">
+          <span>{filteredTickets.length} ticket{filteredTickets.length !== 1 ? "s" : ""}</span>
+          {totalPages > 1 && (
+            <span>Page {currentPage} of {totalPages}</span>
           )}
         </div>
       </div>
@@ -1345,30 +1079,28 @@ export default function TicketsPage() {
           )}
         </Card>
       ) : (
-        <Card padding="none" className="overflow-hidden shadow-lg border border-slate-200">
+        <Card padding="none" className="overflow-hidden border border-slate-200">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b-2 border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+                <tr className="border-b border-slate-200 bg-slate-50">
                   {visibleColumns.map((column) => {
                     if (column.id === "select" && userRole !== "admin") return null;
                     const isSortable = ["title", "status", "priority", "createdAt", "updatedAt", "category"].includes(column.id);
                     return (
                       <th
                         key={column.id}
-                        className={`px-6 py-4 text-xs font-bold text-slate-700 uppercase tracking-wider ${
+                        className={`px-4 py-3 text-xs font-semibold text-slate-700 uppercase tracking-wider ${
                           column.id === "action" ? "text-right" : "text-left"
                         } ${column.id === "select" ? "w-12" : ""}`}
                       >
                         {isSortable ? (
                           <button
                             onClick={() => handleSort(column.id)}
-                            className="flex items-center gap-2 hover:text-blue-600 transition-colors group"
+                            className="flex items-center gap-2 hover:text-slate-900 transition-colors"
                           >
                             {column.label}
-                            <span className={`${sortBy === column.id ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'} transition-opacity`}>
-                              {getSortIcon(column.id)}
-                            </span>
+                            {sortBy === column.id && getSortIcon(column.id)}
                           </button>
                         ) : (
                           column.label
@@ -1382,20 +1114,20 @@ export default function TicketsPage() {
                 {paginatedTickets.map((ticket) => (
                   <tr
                     key={ticket._id}
-                    className={`group hover:bg-gradient-to-r hover:from-blue-50/50 hover:to-indigo-50/30 transition-all duration-200 ${
-                      selectedTickets.has(ticket._id) ? "bg-gradient-to-r from-blue-50 to-indigo-50 border-l-4 border-blue-500" : ""
+                    className={`hover:bg-slate-50 transition-colors ${
+                      selectedTickets.has(ticket._id) ? "bg-blue-50" : ""
                     }`}
                   >
                     {visibleColumns.map((column) => {
                       if (column.id === "select") {
                         if (userRole !== "admin") return null;
                         return (
-                          <td key={column.id} className="px-6 py-4">
+                          <td key={column.id} className="px-4 py-3">
                             <input
                               type="checkbox"
                               checked={selectedTickets.has(ticket._id)}
                               onChange={() => handleSelectTicket(ticket._id)}
-                              className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-2 focus:ring-blue-500 cursor-pointer transition-all hover:scale-110"
+                              className="w-4 h-4 rounded border-slate-300 text-slate-600 focus:ring-2 focus:ring-slate-500 cursor-pointer"
                             />
                           </td>
                         );
@@ -1403,19 +1135,16 @@ export default function TicketsPage() {
                       
                       if (column.id === "ticket") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
+                          <td key={column.id} className="px-4 py-3">
                             <div className="flex flex-col gap-1">
                               <Link
                                 href={`/tickets/${ticket._id}`}
-                                className="font-semibold text-slate-900 hover:text-blue-600 transition-colors inline-flex items-center gap-2 group-hover:underline"
+                                className="font-medium text-slate-900 hover:text-slate-700"
                               >
                                 {ticket.title}
-                                <svg className="w-4 h-4 opacity-0 group-hover:opacity-100 transition-opacity text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                                </svg>
                               </Link>
-                              <span className="text-xs font-medium text-slate-500 bg-slate-100 px-2 py-0.5 rounded w-fit">
-                                #TK-{ticket._id.slice(-6).toUpperCase()}
+                              <span className="text-xs text-slate-500">
+                                #{ticket._id.slice(-6).toUpperCase()}
                               </span>
                             </div>
                           </td>
@@ -1424,9 +1153,9 @@ export default function TicketsPage() {
                       
                       if (column.id === "description") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
+                          <td key={column.id} className="px-4 py-3">
                             <p className="text-sm text-slate-600 line-clamp-2 max-w-md">
-                              {ticket.description || <span className="text-slate-400 italic">No description</span>}
+                              {ticket.description || <span className="text-slate-400">—</span>}
                             </p>
                           </td>
                         );
@@ -1434,7 +1163,7 @@ export default function TicketsPage() {
                       
                       if (column.id === "status") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
+                          <td key={column.id} className="px-4 py-3">
                             {getStatusBadge(ticket.status)}
                           </td>
                         );
@@ -1442,7 +1171,7 @@ export default function TicketsPage() {
                       
                       if (column.id === "priority") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
+                          <td key={column.id} className="px-4 py-3">
                             {getPriorityBadge(ticket.priority)}
                           </td>
                         );
@@ -1450,7 +1179,7 @@ export default function TicketsPage() {
                       
                       if (column.id === "type") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
+                          <td key={column.id} className="px-4 py-3">
                             {getTypeBadge(ticket.type)}
                           </td>
                         );
@@ -1458,9 +1187,9 @@ export default function TicketsPage() {
                       
                       if (column.id === "assignee") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
-                            <span className="text-sm font-medium text-slate-700">
-                              {getUserName(ticket.assignedTo) || <span className="text-slate-400 italic">Unassigned</span>}
+                          <td key={column.id} className="px-4 py-3">
+                            <span className="text-sm text-slate-700">
+                              {getUserName(ticket.assignedTo) || <span className="text-slate-400">Unassigned</span>}
                             </span>
                           </td>
                         );
@@ -1468,8 +1197,8 @@ export default function TicketsPage() {
                       
                       if (column.id === "reporter") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
-                            <span className="text-sm font-medium text-slate-700">
+                          <td key={column.id} className="px-4 py-3">
+                            <span className="text-sm text-slate-700">
                               {getUserName(ticket.createdBy)}
                             </span>
                           </td>
@@ -1478,8 +1207,8 @@ export default function TicketsPage() {
                       
                       if (column.id === "category") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
-                            <span className="text-sm font-medium text-slate-700 bg-slate-100 px-2.5 py-1 rounded-md capitalize inline-block">
+                          <td key={column.id} className="px-4 py-3">
+                            <span className="text-sm text-slate-600 capitalize">
                               {ticket.category}
                             </span>
                           </td>
@@ -1488,9 +1217,9 @@ export default function TicketsPage() {
                       
                       if (column.id === "created") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-sm font-medium text-slate-700">
+                          <td key={column.id} className="px-4 py-3">
+                            <div className="flex flex-col">
+                              <span className="text-sm text-slate-700">
                                 {formatDate(ticket.createdAt)}
                               </span>
                               <span className="text-xs text-slate-500">
@@ -1503,9 +1232,9 @@ export default function TicketsPage() {
                       
                       if (column.id === "updated") {
                         return (
-                          <td key={column.id} className="px-6 py-4">
-                            <div className="flex flex-col gap-0.5">
-                              <span className="text-sm font-medium text-slate-700">
+                          <td key={column.id} className="px-4 py-3">
+                            <div className="flex flex-col">
+                              <span className="text-sm text-slate-700">
                                 {formatDate(ticket.updatedAt)}
                               </span>
                               <span className="text-xs text-slate-500">
@@ -1519,19 +1248,16 @@ export default function TicketsPage() {
                       if (column.id === "sla") {
                         const slaStatus = getSLAStatus(ticket);
                         return (
-                          <td key={column.id} className="px-6 py-4">
+                          <td key={column.id} className="px-4 py-3">
                             {!slaStatus ? (
-                              <span className="text-xs text-slate-400 italic">No SLA</span>
+                              <span className="text-xs text-slate-400">—</span>
                             ) : (
-                              <div className="flex flex-col gap-1">
-                                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg border shadow-sm ${slaStatus.color}`}>
-                                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                  </svg>
+                              <div className="flex flex-col">
+                                <span className={`inline-flex items-center px-2 py-0.5 text-xs font-medium rounded ${slaStatus.color.replace('border-', '')}`}>
                                   {slaStatus.text}
                                 </span>
                                 {slaStatus.policyName && (
-                                  <span className="text-xs text-slate-500 truncate max-w-[120px] font-medium" title={slaStatus.policyName}>
+                                  <span className="text-xs text-slate-500 truncate max-w-[120px] mt-1" title={slaStatus.policyName}>
                                     {slaStatus.policyName}
                                   </span>
                                 )}
@@ -1543,15 +1269,12 @@ export default function TicketsPage() {
                       
                       if (column.id === "action") {
                         return (
-                          <td key={column.id} className="px-6 py-4 text-right">
+                          <td key={column.id} className="px-4 py-3 text-right">
                             <Link
                               href={`/tickets/${ticket._id}`}
-                              className="inline-flex items-center gap-2 px-4 py-2 text-sm font-semibold text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-all duration-200 border border-transparent hover:border-blue-200 shadow-sm hover:shadow"
+                              className="text-sm text-slate-600 hover:text-slate-900"
                             >
                               View
-                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                              </svg>
                             </Link>
                           </td>
                         );
@@ -1566,10 +1289,10 @@ export default function TicketsPage() {
           </div>
           {/* Pagination Controls */}
           {totalPages > 1 && (
-            <div className="px-4 py-3 border-t border-slate-200 bg-slate-50">
+            <div className="px-4 py-3 border-t border-slate-200 bg-white">
               <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
                 <div className="text-sm text-slate-600">
-                  Showing {startIndex + 1} to {Math.min(endIndex, filteredTickets.length)} of {filteredTickets.length} tickets
+                  Showing {startIndex + 1} to {Math.min(endIndex, filteredTickets.length)} of {filteredTickets.length}
                 </div>
                 <div className="flex items-center gap-2">
                   <Button
@@ -1579,9 +1302,6 @@ export default function TicketsPage() {
                     disabled={currentPage === 1}
                     className="disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-                    </svg>
                     Previous
                   </Button>
                   
@@ -1603,10 +1323,10 @@ export default function TicketsPage() {
                         <button
                           key={pageNum}
                           onClick={() => setCurrentPage(pageNum)}
-                          className={`px-3 py-1.5 text-sm font-medium rounded-lg transition-colors ${
+                          className={`px-3 py-1.5 text-sm font-medium rounded transition-colors ${
                             currentPage === pageNum
-                              ? "bg-blue-600 text-white"
-                              : "bg-white text-slate-700 hover:bg-slate-100 border border-slate-200"
+                              ? "bg-slate-900 text-white"
+                              : "bg-white text-slate-700 hover:bg-slate-50 border border-slate-300"
                           }`}
                         >
                           {pageNum}
@@ -1623,18 +1343,9 @@ export default function TicketsPage() {
                     className="disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
-                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-                    </svg>
                   </Button>
                 </div>
               </div>
-            </div>
-          )}
-          {/* Table footer */}
-          {totalPages <= 1 && (
-            <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 text-sm text-slate-500">
-              Showing {filteredTickets.length} of {ticketsToDisplay.length} {userRole === "agent" ? (activeTab === "created" ? "created" : "assigned") : ""} tickets
             </div>
           )}
         </Card>
