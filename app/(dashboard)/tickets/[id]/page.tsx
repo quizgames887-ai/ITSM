@@ -387,12 +387,13 @@ export default function TicketDetailPage({
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="space-y-6">
-
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Main Content Area */}
+          <div className="lg:col-span-2 space-y-6">
       {/* Main Ticket Card */}
-      <Card padding="none" className="overflow-hidden shadow-lg border border-slate-200">
+      <Card padding="none" className="overflow-hidden border border-slate-200">
         {/* Header */}
-        <div className="bg-gradient-to-r from-slate-50 to-slate-100 px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200">
+        <div className="bg-slate-50 px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200">
           <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-4">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-3">
@@ -695,153 +696,6 @@ export default function TicketDetailPage({
                   </div>
                 </div>
               </div>
-              
-              {/* People & Dates Section for Fallback */}
-              <div className="mb-8 pb-8 border-b border-slate-200">
-              <div className="flex items-center gap-2 mb-6">
-                <div className="p-2 bg-indigo-100 rounded-lg">
-                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
-                  </svg>
-                </div>
-                <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">People & Dates</h2>
-              </div>
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Creator Card */}
-                {getCreatorInfo() && (
-                  <Card padding="md" className="bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200">
-                    <div className="flex items-center gap-3 mb-4">
-                      <div className="p-2 bg-blue-100 rounded-lg">
-                        <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                      </div>
-                      <div>
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide block">Creator</span>
-                        <h3 className="text-lg font-bold text-slate-900 mt-1">{getCreatorInfo()?.name}</h3>
-                      </div>
-                    </div>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4 pt-4 border-t border-blue-200">
-                      {getCreatorInfo()?.email && (
-                        <div className="flex items-start gap-2">
-                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                          <div>
-                            <span className="text-xs font-medium text-slate-500 block">Email</span>
-                            <a href={`mailto:${getCreatorInfo()?.email}`} className="text-sm font-semibold text-blue-700 hover:text-blue-800 hover:underline">
-                              {getCreatorInfo()?.email}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                      {getCreatorInfo()?.phone && (
-                        <div className="flex items-start gap-2">
-                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" />
-                          </svg>
-                          <div>
-                            <span className="text-xs font-medium text-slate-500 block">Phone</span>
-                            <a href={`tel:${getCreatorInfo()?.phone}`} className="text-sm font-semibold text-slate-900 hover:text-blue-600">
-                              {getCreatorInfo()?.phone}
-                            </a>
-                          </div>
-                        </div>
-                      )}
-                      {getCreatorInfo()?.location && (
-                        <div className="flex items-start gap-2">
-                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                          <div>
-                            <span className="text-xs font-medium text-slate-500 block">Location</span>
-                            <p className="text-sm font-semibold text-slate-900">{getCreatorInfo()?.location}</p>
-                          </div>
-                        </div>
-                      )}
-                      {getCreatorInfo()?.jobTitle && (
-                        <div className="flex items-start gap-2">
-                          <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-                          </svg>
-                          <div>
-                            <span className="text-xs font-medium text-slate-500 block">Job Title</span>
-                            <p className="text-sm font-semibold text-slate-900">{getCreatorInfo()?.jobTitle}</p>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  </Card>
-                )}
-                
-                {/* Assignee & Dates Card */}
-                <Card padding="md" className="bg-slate-50 border border-slate-200">
-                  <div className="space-y-4">
-                    {/* Assignee */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                        </svg>
-                        <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Assignee</span>
-                      </div>
-                      <p className="text-sm font-semibold text-slate-900 ml-6">{getAssigneeName()}</p>
-                    </div>
-                    
-                    <div className="border-t border-slate-200 pt-4 space-y-3">
-                      {/* Created Date */}
-                      <div>
-                        <div className="flex items-center gap-2 mb-2">
-                          <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Created</span>
-                        </div>
-                        <p className="text-sm font-semibold text-slate-900 ml-6">
-                          {new Date(ticket.createdAt).toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                            year: "numeric",
-                          })}
-                        </p>
-                        <p className="text-xs text-slate-500 ml-6 mt-1">
-                          {new Date(ticket.createdAt).toLocaleTimeString("en-US", {
-                            hour: "numeric",
-                            minute: "2-digit",
-                          })}
-                        </p>
-                      </div>
-                      
-                      {/* Resolved Date */}
-                      {ticket.resolvedAt && (
-                        <div>
-                          <div className="flex items-center gap-2 mb-2">
-                            <svg className="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span className="text-xs font-bold text-green-600 uppercase tracking-wide">Resolved</span>
-                          </div>
-                          <p className="text-sm font-semibold text-green-900 ml-6">
-                            {new Date(ticket.resolvedAt).toLocaleDateString("en-US", {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric",
-                            })}
-                          </p>
-                          <p className="text-xs text-green-600 ml-6 mt-1">
-                            {new Date(ticket.resolvedAt).toLocaleTimeString("en-US", {
-                              hour: "numeric",
-                              minute: "2-digit",
-                            })}
-                          </p>
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </Card>
-              </div>
-            </div>
             </>
           )}
 
@@ -931,9 +785,9 @@ export default function TicketDetailPage({
         </div>
       </Card>
 
-      {/* Comments Card */}
-      <Card padding="none" className="shadow-lg border border-slate-200">
-        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b-2 border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+              {/* Comments Card */}
+      <Card padding="none" className="border border-slate-200">
+        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-blue-100 rounded-lg">
               <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1064,9 +918,9 @@ export default function TicketDetailPage({
         </div>
       </Card>
 
-      {/* Audit History Card */}
-      <Card padding="none" className="shadow-lg border border-slate-200">
-        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b-2 border-slate-200 bg-gradient-to-r from-slate-50 to-slate-100">
+          {/* Audit History Card */}
+      <Card padding="none" className="border border-slate-200">
+        <div className="px-6 py-5 sm:px-8 sm:py-6 border-b border-slate-200 bg-slate-50">
           <div className="flex items-center gap-3">
             <div className="p-2 bg-slate-100 rounded-lg">
               <svg className="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -1080,6 +934,136 @@ export default function TicketDetailPage({
           <TicketAudit ticketId={ticketId} />
         </div>
       </Card>
+          </div>
+
+          {/* Right Sidebar - Requester Information */}
+          <div className="lg:col-span-1">
+            <div className="sticky top-24 space-y-6">
+              {/* Requester Information Card */}
+              {getCreatorInfo() && (
+                <Card padding="md" className="border border-slate-200">
+                  <div className="mb-4">
+                    <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4">Requester</h3>
+                    <div className="flex items-center gap-3 mb-4">
+                      <UserAvatar
+                        userId={ticket.createdBy}
+                        name={getCreatorInfo()?.name || "Unknown"}
+                        size="md"
+                      />
+                      <div>
+                        <p className="text-base font-semibold text-slate-900">{getCreatorInfo()?.name}</p>
+                        {getCreatorInfo()?.jobTitle && (
+                          <p className="text-xs text-slate-500 mt-0.5">{getCreatorInfo()?.jobTitle}</p>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-3 pt-4 border-t border-slate-200">
+                    {getCreatorInfo()?.email && (
+                      <div>
+                        <span className="text-xs font-medium text-slate-500 block mb-1">Email</span>
+                        <a 
+                          href={`mailto:${getCreatorInfo()?.email}`} 
+                          className="text-sm text-slate-700 hover:text-slate-900 break-all"
+                        >
+                          {getCreatorInfo()?.email}
+                        </a>
+                      </div>
+                    )}
+                    {getCreatorInfo()?.phone && (
+                      <div>
+                        <span className="text-xs font-medium text-slate-500 block mb-1">Phone</span>
+                        <a 
+                          href={`tel:${getCreatorInfo()?.phone}`} 
+                          className="text-sm text-slate-700 hover:text-slate-900"
+                        >
+                          {getCreatorInfo()?.phone}
+                        </a>
+                      </div>
+                    )}
+                    {getCreatorInfo()?.location && (
+                      <div>
+                        <span className="text-xs font-medium text-slate-500 block mb-1">Location</span>
+                        <p className="text-sm text-slate-700">{getCreatorInfo()?.location}</p>
+                      </div>
+                    )}
+                  </div>
+                </Card>
+              )}
+
+              {/* Assignee & Dates Card */}
+              <Card padding="md" className="border border-slate-200">
+                <h3 className="text-sm font-semibold text-slate-900 uppercase tracking-wide mb-4">Details</h3>
+                <div className="space-y-4">
+                  {/* Assignee */}
+                  <div>
+                    <span className="text-xs font-medium text-slate-500 block mb-1">Assignee</span>
+                    <p className="text-sm font-medium text-slate-900">{getAssigneeName()}</p>
+                  </div>
+                  
+                  <div className="pt-4 border-t border-slate-200 space-y-4">
+                    {/* Created Date */}
+                    <div>
+                      <span className="text-xs font-medium text-slate-500 block mb-1">Created</span>
+                      <p className="text-sm font-medium text-slate-900">
+                        {new Date(ticket.createdAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {new Date(ticket.createdAt).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    
+                    {/* Updated Date */}
+                    <div>
+                      <span className="text-xs font-medium text-slate-500 block mb-1">Last Updated</span>
+                      <p className="text-sm font-medium text-slate-900">
+                        {new Date(ticket.updatedAt).toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {new Date(ticket.updatedAt).toLocaleTimeString("en-US", {
+                          hour: "numeric",
+                          minute: "2-digit",
+                        })}
+                      </p>
+                    </div>
+                    
+                    {/* Resolved Date */}
+                    {ticket.resolvedAt && (
+                      <div>
+                        <span className="text-xs font-medium text-green-600 block mb-1">Resolved</span>
+                        <p className="text-sm font-medium text-green-900">
+                          {new Date(ticket.resolvedAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                            year: "numeric",
+                          })}
+                        </p>
+                        <p className="text-xs text-green-600 mt-0.5">
+                          {new Date(ticket.resolvedAt).toLocaleTimeString("en-US", {
+                            hour: "numeric",
+                            minute: "2-digit",
+                          })}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </Card>
+            </div>
+          </div>
+        </div>
 
       {/* Approval Action Modal */}
       {selectedApprovalRequest && approvalActionType && (
