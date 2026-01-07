@@ -763,8 +763,10 @@ export const update = mutation({
         // Send email notification if configured
         const user = await ctx.db.get(userId as Id<"users">);
         if (user?.email) {
-          // Determine recipient type (use updated ticket to check if user is current assignee)
-          const recipientType = userId === ticket.createdBy ? "creator" : (updatedTicket.assignedTo === userId ? "assignee" : "creator");
+          // Determine recipient type: check if user is creator, or if they are/were an assignee
+          const isCreator = userId === ticket.createdBy;
+          const isAssignee = updatedTicket.assignedTo === userId || ticket.assignedTo === userId;
+          const recipientType = isCreator ? "creator" : (isAssignee ? "assignee" : "creator");
           
           const shouldNotify = shouldNotifyOnStatusChange(notificationSettings, ticket.type, changes.status.new, recipientType);
           console.log("[STATUS CHANGE] Email check:", {
@@ -773,8 +775,16 @@ export const update = mutation({
             ticketType: ticket.type,
             newStatus: changes.status.new,
             recipientType,
+            isCreator,
+            isAssignee,
+            oldAssignee: ticket.assignedTo,
+            newAssignee: updatedTicket.assignedTo,
             shouldNotify,
-            hasSettings: !!notificationSettings
+            hasSettings: !!notificationSettings,
+            settingsEnabled: notificationSettings?.enabled,
+            notifyOnStatusChange: notificationSettings?.notifyOnStatusChange,
+            notifyCreator: notificationSettings?.notifyCreator,
+            notifyAssignee: notificationSettings?.notifyAssignee
           });
           
           if (shouldNotify) {
@@ -815,8 +825,10 @@ export const update = mutation({
         // Send email notification if configured
         const user = await ctx.db.get(userId as Id<"users">);
         if (user?.email) {
-          // Determine recipient type (use updated ticket to check if user is current assignee)
-          const recipientType = userId === ticket.createdBy ? "creator" : (updatedTicket.assignedTo === userId ? "assignee" : "creator");
+          // Determine recipient type: check if user is creator, or if they are/were an assignee
+          const isCreator = userId === ticket.createdBy;
+          const isAssignee = updatedTicket.assignedTo === userId || ticket.assignedTo === userId;
+          const recipientType = isCreator ? "creator" : (isAssignee ? "assignee" : "creator");
           
           const shouldNotify = shouldNotifyOnPriorityChange(notificationSettings, ticket.type, changes.priority.new, recipientType);
           console.log("[PRIORITY CHANGE] Email check:", {
@@ -825,8 +837,16 @@ export const update = mutation({
             ticketType: ticket.type,
             newPriority: changes.priority.new,
             recipientType,
+            isCreator,
+            isAssignee,
+            oldAssignee: ticket.assignedTo,
+            newAssignee: updatedTicket.assignedTo,
             shouldNotify,
-            hasSettings: !!notificationSettings
+            hasSettings: !!notificationSettings,
+            settingsEnabled: notificationSettings?.enabled,
+            notifyOnPriorityChange: notificationSettings?.notifyOnPriorityChange,
+            notifyCreator: notificationSettings?.notifyCreator,
+            notifyAssignee: notificationSettings?.notifyAssignee
           });
           
           if (shouldNotify) {
