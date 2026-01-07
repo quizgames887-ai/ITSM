@@ -334,7 +334,8 @@ export default function UsersPage() {
     localStorage.setItem("isImpersonating", "true");
 
     success(`Now viewing as ${userName}. You can exit impersonation from the navigation bar.`);
-    router.push(`/profile?impersonate=true`);
+    // Redirect to workplace/dashboard so user can navigate anywhere in the portal
+    router.push(`/workplace`);
   };
 
   // Team management handlers
