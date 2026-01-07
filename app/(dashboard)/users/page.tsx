@@ -53,7 +53,8 @@ export default function UsersPage() {
   const [activeTab, setActiveTab] = useState<"users" | "teams">("users");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "createdAt">("name");
+  const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "createdAt" | "status">("name");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [editingUser, setEditingUser] = useState<Id<"users"> | null>(null);
   const [editingField, setEditingField] = useState<EditingField>(null);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -382,6 +383,17 @@ export default function UsersPage() {
     }
   };
 
+  const handleSort = (column: typeof sortBy) => {
+    if (sortBy === column) {
+      // Toggle direction if clicking the same column
+      setSortDirection(sortDirection === "asc" ? "desc" : "asc");
+    } else {
+      // Set new column and default to ascending
+      setSortBy(column);
+      setSortDirection("asc");
+    }
+  };
+
   const filteredAndSortedUsers = users && Array.isArray(users)
     ? users.filter((user) => {
         const searchLower = searchTerm.toLowerCase();
@@ -395,13 +407,27 @@ export default function UsersPage() {
         return matchesSearch && matchesRole;
       })
       .sort((a, b) => {
+        let result = 0;
         switch (sortBy) {
-          case "name": return a.name.localeCompare(b.name);
-          case "email": return a.email.localeCompare(b.email);
-          case "role": return a.role.localeCompare(b.role);
-          case "createdAt": return b.createdAt - a.createdAt;
-          default: return 0;
+          case "name": 
+            result = a.name.localeCompare(b.name);
+            break;
+          case "email": 
+            result = a.email.localeCompare(b.email);
+            break;
+          case "role": 
+            result = a.role.localeCompare(b.role);
+            break;
+          case "createdAt": 
+            result = a.createdAt - b.createdAt;
+            break;
+          case "status":
+            result = (a.onboardingCompleted ? 1 : 0) - (b.onboardingCompleted ? 1 : 0);
+            break;
+          default: 
+            result = 0;
         }
+        return sortDirection === "asc" ? result : -result;
       })
     : [];
 
@@ -522,11 +548,15 @@ export default function UsersPage() {
               <Select
                 label="Sort By"
                 value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as typeof sortBy)}
+                onChange={(e) => {
+                  setSortBy(e.target.value as typeof sortBy);
+                  setSortDirection("asc");
+                }}
                 options={[
                   { value: "name", label: "Name" },
                   { value: "email", label: "Email" },
                   { value: "role", label: "Role" },
+                  { value: "status", label: "Status" },
                   { value: "createdAt", label: "Date Joined" },
                 ]}
               />
@@ -754,12 +784,116 @@ export default function UsersPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 border-b border-slate-200">
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 uppercase">User</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 uppercase">Role</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 uppercase hidden md:table-cell">Status</th>
-                    <th className="text-left py-3 px-4 text-xs font-semibold text-slate-600 uppercase hidden lg:table-cell">Joined</th>
-                    <th className="text-right py-3 px-4 text-xs font-semibold text-slate-600 uppercase">Actions</th>
+                  <tr className="bg-slate-50 border-b-2 border-slate-200">
+                    <th 
+                      className="text-left py-3 px-4 text-xs font-bold text-slate-700 uppercase cursor-pointer hover:bg-slate-100 transition-colors select-none group"
+                      onClick={() => handleSort("name")}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>User</span>
+                        {sortBy === "name" ? (
+                          <svg 
+                            className={`w-4 h-4 text-blue-600 transition-transform ${sortDirection === "desc" ? "rotate-180" : ""}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                          </svg>
+                        ) : (
+                          <svg 
+                            className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                          </svg>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="text-left py-3 px-4 text-xs font-bold text-slate-700 uppercase cursor-pointer hover:bg-slate-100 transition-colors select-none group"
+                      onClick={() => handleSort("role")}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>Role</span>
+                        {sortBy === "role" ? (
+                          <svg 
+                            className={`w-4 h-4 text-blue-600 transition-transform ${sortDirection === "desc" ? "rotate-180" : ""}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                          </svg>
+                        ) : (
+                          <svg 
+                            className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                          </svg>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="text-left py-3 px-4 text-xs font-bold text-slate-700 uppercase hidden md:table-cell cursor-pointer hover:bg-slate-100 transition-colors select-none group"
+                      onClick={() => handleSort("status")}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>Status</span>
+                        {sortBy === "status" ? (
+                          <svg 
+                            className={`w-4 h-4 text-blue-600 transition-transform ${sortDirection === "desc" ? "rotate-180" : ""}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                          </svg>
+                        ) : (
+                          <svg 
+                            className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                          </svg>
+                        )}
+                      </div>
+                    </th>
+                    <th 
+                      className="text-left py-3 px-4 text-xs font-bold text-slate-700 uppercase hidden lg:table-cell cursor-pointer hover:bg-slate-100 transition-colors select-none group"
+                      onClick={() => handleSort("createdAt")}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>Joined</span>
+                        {sortBy === "createdAt" ? (
+                          <svg 
+                            className={`w-4 h-4 text-blue-600 transition-transform ${sortDirection === "desc" ? "rotate-180" : ""}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                          </svg>
+                        ) : (
+                          <svg 
+                            className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                          </svg>
+                        )}
+                      </div>
+                    </th>
+                    <th className="text-right py-3 px-4 text-xs font-bold text-slate-700 uppercase">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100">
