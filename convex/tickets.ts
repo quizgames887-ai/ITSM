@@ -38,21 +38,39 @@ async function sendEmailNotification(
   htmlContent: string,
   ticketId?: Id<"tickets">
 ) {
+    // #region agent log
+    await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tickets.ts:34',message:'sendEmailNotification called',data:{userId,subject,ticketId,htmlContentLength:htmlContent.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
+    console.log("[SEND EMAIL NOTIFICATION] Called:", { userId, subject, ticketId });
   try {
     // Get user email
     const user = await ctx.db.get(userId);
     if (!user || !user.email) {
+      // #region agent log
+      await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tickets.ts:44',message:'User not found or no email',data:{userId,hasUser:!!user,hasEmail:!!user?.email},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+      // #endregion
       console.warn(`User ${userId} not found or has no email address`);
       return;
     }
 
+    // #region agent log
+    await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tickets.ts:49',message:'Scheduling email via scheduler',data:{userId,userEmail:user.email,subject},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    console.log("[SEND EMAIL NOTIFICATION] Scheduling email:", { userId, userEmail: user.email, subject });
     // Schedule email sending (sendEmail is an action, so we schedule it)
     await ctx.scheduler.runAfter(0, api.email.sendEmail, {
       to: user.email,
       subject: subject,
       html: htmlContent,
     });
+    // #region agent log
+    await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tickets.ts:55',message:'Email scheduled successfully',data:{userId,userEmail:user.email,subject},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    console.log("[SEND EMAIL NOTIFICATION] Email scheduled successfully:", { userId, userEmail: user.email, subject });
   } catch (error) {
+    // #region agent log
+    await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'tickets.ts:58',message:'Failed to send email notification',data:{userId,subject,error:error instanceof Error ? error.message : String(error),errorStack:error instanceof Error ? error.stack : undefined},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+    // #endregion
     // Don't fail the mutation if email sending fails
     console.error("Failed to send email notification:", error);
   }
@@ -732,6 +750,22 @@ export const update = mutation({
       ? notificationSettingsList.sort((a, b) => b.updatedAt - a.updatedAt)[0] 
       : null;
     
+    console.log("[TICKET UPDATE] Notification settings retrieved:", {
+      hasSettings: !!notificationSettings,
+      settingsCount: notificationSettingsList.length,
+      enabled: notificationSettings?.enabled,
+      notifyOnStatusChange: notificationSettings?.notifyOnStatusChange,
+      notifyOnPriorityChange: notificationSettings?.notifyOnPriorityChange,
+      notifyOnAssignment: notificationSettings?.notifyOnAssignment,
+      notifyCreator: notificationSettings?.notifyCreator,
+      notifyAssignee: notificationSettings?.notifyAssignee,
+      notifyForIncidents: notificationSettings?.notifyForIncidents,
+      notifyForServiceRequests: notificationSettings?.notifyForServiceRequests,
+      notifyForInquiries: notificationSettings?.notifyForInquiries,
+      changes: Object.keys(changes),
+      ticketType: ticket.type
+    });
+    
     const templateConfigList = await ctx.db.query("emailTemplateConfig").collect();
     const templateConfig = templateConfigList.length > 0 
       ? templateConfigList.sort((a, b) => b.updatedAt - a.updatedAt)[0] 
@@ -948,6 +982,16 @@ export const update = mutation({
         }
       }
     }
+
+    console.log("[TICKET UPDATE] Completed:", {
+      ticketId: id,
+      changesProcessed: Object.keys(changes),
+      emailsAttempted: {
+        status: changes.status ? "attempted" : "skipped",
+        priority: changes.priority ? "attempted" : "skipped",
+        assignment: changes.assignedTo ? "attempted" : "skipped"
+      }
+    });
 
     return id;
   },

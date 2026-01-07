@@ -19,28 +19,41 @@ function validateEmailSettings(settings: any): { valid: boolean; error?: string 
     return { valid: false, error: "Email integration is disabled" };
   }
   
-  if (!settings.smtpEnabled) {
-    return { valid: false, error: "SMTP is not enabled" };
-  }
-  
-  if (!settings.smtpHost || settings.smtpHost.trim() === "") {
-    return { valid: false, error: "SMTP host is not configured" };
-  }
-  
-  if (!settings.smtpUser || settings.smtpUser.trim() === "") {
-    return { valid: false, error: "SMTP username is not configured" };
-  }
-  
-  if (!settings.smtpPassword || settings.smtpPassword.trim() === "") {
-    return { valid: false, error: "SMTP password is not configured" };
-  }
-  
+  // Check if we have a "from" email address (required for all sending methods)
   if (!settings.smtpFromEmail || !isValidEmail(settings.smtpFromEmail)) {
     return { valid: false, error: "Invalid or missing 'from' email address" };
   }
   
-  if (settings.smtpPort < 1 || settings.smtpPort > 65535) {
-    return { valid: false, error: "Invalid SMTP port number" };
+  // Check if SMTP is enabled - if so, validate SMTP settings
+  if (settings.smtpEnabled) {
+    if (!settings.smtpHost || settings.smtpHost.trim() === "") {
+      return { valid: false, error: "SMTP host is not configured" };
+    }
+    
+    if (!settings.smtpUser || settings.smtpUser.trim() === "") {
+      return { valid: false, error: "SMTP username is not configured" };
+    }
+    
+    if (!settings.smtpPassword || settings.smtpPassword.trim() === "") {
+      return { valid: false, error: "SMTP password is not configured" };
+    }
+    
+    if (settings.smtpPort < 1 || settings.smtpPort > 65535) {
+      return { valid: false, error: "Invalid SMTP port number" };
+    }
+  }
+  
+  // If SMTP is not enabled, check if we have API-based email service (Resend, Mailgun, etc.)
+  // These use environment variables, so we don't need to validate SMTP settings
+  const hasApiService = !!(
+    process.env.RESEND_API_KEY ||
+    process.env.MAILGUN_API_KEY ||
+    process.env.SENDGRID_API_KEY ||
+    process.env.SMTP2GO_API_KEY
+  );
+  
+  if (!settings.smtpEnabled && !hasApiService) {
+    return { valid: false, error: "Either SMTP must be enabled or an email API key (RESEND_API_KEY, MAILGUN_API_KEY, etc.) must be configured" };
   }
   
   return { valid: true };
@@ -505,6 +518,10 @@ export const sendEmail = action({
     text: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
+    // #region agent log
+    await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:507',message:'sendEmail action called',data:{to:args.to,subject:args.subject,htmlLength:args.html.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+    // #endregion
+    console.log("[SEND EMAIL ACTION] Called:", { to: args.to, subject: args.subject });
     const now = Date.now();
     let messageId: string | undefined;
     let status: "sent" | "failed" = "failed";
@@ -514,6 +531,9 @@ export const sendEmail = action({
     try {
       // Validate recipient email address
       if (!args.to || !isValidEmail(args.to)) {
+        // #region agent log
+        await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:516',message:'Invalid recipient email',data:{to:args.to},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         errorMessage = `Invalid recipient email address: ${args.to}`;
         await ctx.runMutation(api.email.logEmail, {
           to: args.to || "unknown",
@@ -542,10 +562,36 @@ export const sendEmail = action({
       // Get and validate email settings
       const settings = await ctx.runQuery(api.email.getSettings, {});
       const validation = validateEmailSettings(settings);
+      const hasApiService = !!(
+        process.env.RESEND_API_KEY ||
+        process.env.MAILGUN_API_KEY ||
+        process.env.SENDGRID_API_KEY ||
+        process.env.SMTP2GO_API_KEY
+      );
+      // #region agent log
+      await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:549',message:'Email settings validation',data:{hasSettings:!!settings,validationValid:validation.valid,validationError:validation.error,settingsEnabled:settings?.enabled,smtpEnabled:settings?.smtpEnabled,hasApiService,hasResend:!!process.env.RESEND_API_KEY,hasMailgun:!!process.env.MAILGUN_API_KEY,hasSendGrid:!!process.env.SENDGRID_API_KEY},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      // #endregion
+      
+      console.log("[SEND EMAIL] Validation result:", {
+        valid: validation.valid,
+        error: validation.error,
+        hasSettings: !!settings,
+        settingsEnabled: settings?.enabled,
+        smtpEnabled: settings?.smtpEnabled,
+        hasApiService,
+        hasResend: !!process.env.RESEND_API_KEY,
+        hasMailgun: !!process.env.MAILGUN_API_KEY,
+        hasSendGrid: !!process.env.SENDGRID_API_KEY,
+        to: args.to,
+        subject: args.subject
+      });
       
       if (!validation.valid) {
         errorMessage = validation.error || "Email settings validation failed";
         fromEmail = settings?.smtpFromEmail || "system";
+        // #region agent log
+        await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:546',message:'Email settings validation failed',data:{errorMessage,validationError:validation.error},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+        // #endregion
         
         // Log the failure
         await ctx.runMutation(api.email.logEmail, {
@@ -634,36 +680,42 @@ export const sendEmail = action({
       // Fallback to SMTP if Exchange not used or failed
       if (!exchangeUsed) {
         try {
-          // Read SMTP configuration from settings
-          const smtpConfig = {
+          // Get from email and name from settings (required for all sending methods)
+          const fromEmail = settings.smtpFromEmail;
+          const fromName = settings.smtpFromName || "ITSM";
+          
+          // Read SMTP configuration from settings (only if SMTP is enabled)
+          const smtpConfig = settings.smtpEnabled ? {
             host: settings.smtpHost,
             port: settings.smtpPort,
             secure: settings.smtpSecure,
             user: settings.smtpUser,
             password: settings.smtpPassword,
-            from: settings.smtpFromEmail,
-            fromName: settings.smtpFromName || "ITSM",
+            from: fromEmail,
+            fromName: fromName,
+          } : {
+            from: fromEmail,
+            fromName: fromName,
           };
           
-          console.log("Attempting to send email using SMTP configuration:", {
-            host: smtpConfig.host,
-            port: smtpConfig.port,
-            secure: smtpConfig.secure,
-            from: smtpConfig.from,
+          console.log("Attempting to send email:", {
+            smtpEnabled: settings.smtpEnabled,
+            from: fromEmail,
             to: args.to,
+            hasResend: !!process.env.RESEND_API_KEY,
+            hasMailgun: !!process.env.MAILGUN_API_KEY,
+            hasSendGrid: !!process.env.SENDGRID_API_KEY,
           });
           
-          // Try to send email using SMTP configuration via HTTP-based services
-          // First, try Resend API (supports custom SMTP)
+          // Try to send email using HTTP-based services (Resend, Mailgun, SendGrid)
+          // First, try Resend API (recommended)
         const resendApiKey = process.env.RESEND_API_KEY;
         
         if (resendApiKey) {
           // Resend supports custom SMTP domains
           const resendUrl = "https://api.resend.com/emails";
           
-          // Use Resend's default domain if custom domain might not be verified
-          // Resend allows sending from onboarding@resend.dev without verification
-          let fromEmail = smtpConfig.from;
+          // Use the from email from settings
           const emailDomain = fromEmail.split('@')[1];
           
           // If domain is not likely verified (palmware.co), try Resend's default first
@@ -677,7 +729,7 @@ export const sendEmail = action({
               "Content-Type": "application/json",
             },
             body: JSON.stringify({
-              from: `${smtpConfig.fromName} <${fromEmail}>`,
+              from: `${fromName} <${fromEmail}>`,
               to: [args.to],
               subject: args.subject,
               html: args.html,
@@ -690,8 +742,16 @@ export const sendEmail = action({
             messageId = data.id || `resend-${now}`;
             status = "sent";
             isSimulated = false;
+            // #region agent log
+            await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:694',message:'Email sent via Resend',data:{messageId,to:args.to,subject:args.subject},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+            // #endregion
             console.log("Email sent successfully via Resend:", { messageId, to: args.to });
           } else {
+            // #region agent log
+            const errorData: any = await response.json().catch(() => ({}));
+            await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:700',message:'Resend API error',data:{status:response.status,statusText:response.statusText,errorData,to:args.to},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+            // #endregion
+            const errorMsg = errorData.message || errorData.error?.message || `Resend API error: ${response.status}`;
             const errorData: any = await response.json().catch(() => ({}));
             const errorMsg = errorData.message || errorData.error?.message || `Resend API error: ${response.status}`;
             const isDomainError = errorMsg.toLowerCase().includes('domain') || 
@@ -702,14 +762,14 @@ export const sendEmail = action({
               status: response.status,
               statusText: response.statusText,
               error: errorData,
-              from: smtpConfig.from,
+              from: fromEmail,
               to: args.to,
               isDomainError,
             });
             
             let helpfulMessage = errorMsg;
             if (isDomainError) {
-              helpfulMessage += ` To send from ${smtpConfig.from}, verify your domain in Resend dashboard (resend.com/domains). For testing, you can temporarily use "onboarding@resend.dev" as the From Email.`;
+              helpfulMessage += ` To send from ${fromEmail}, verify your domain in Resend dashboard (resend.com/domains). For testing, you can temporarily use "onboarding@resend.dev" as the From Email.`;
             } else if (response.status === 401 || response.status === 403) {
               helpfulMessage += ` Check that your RESEND_API_KEY is correct in Convex Dashboard → Settings → Environment Variables.`;
             }
@@ -733,7 +793,7 @@ export const sendEmail = action({
               body: JSON.stringify({
                 api_key: smtp2goApiKey,
                 to: [args.to],
-                sender: `${smtpConfig.fromName} <${smtpConfig.from}>`,
+                sender: `${fromName} <${fromEmail}>`,
                 subject: args.subject,
                 html_body: args.html,
                 text_body: args.text || args.html.replace(/<[^>]*>/g, ""),
@@ -753,14 +813,14 @@ export const sendEmail = action({
             console.log("Email sent successfully via SMTP2GO:", {
               messageId,
               to: args.to,
-              smtpHost: smtpConfig.host,
+              from: fromEmail,
             });
           } else {
             // Try using a generic SMTP HTTP relay endpoint
             // This allows you to set up your own SMTP relay service
             const smtpRelayUrl = process.env.SMTP_RELAY_URL;
             
-            if (smtpRelayUrl) {
+            if (smtpRelayUrl && settings.smtpEnabled) {
             const relayResponse: Response = await fetch(smtpRelayUrl, {
               method: "POST",
               headers: {
@@ -768,15 +828,15 @@ export const sendEmail = action({
               },
               body: JSON.stringify({
                 smtp: {
-                  host: smtpConfig.host,
-                  port: smtpConfig.port,
-                  secure: smtpConfig.secure,
+                  host: settings.smtpHost,
+                  port: settings.smtpPort,
+                  secure: settings.smtpSecure,
                   auth: {
-                    user: smtpConfig.user,
-                    pass: smtpConfig.password,
+                    user: settings.smtpUser,
+                    pass: settings.smtpPassword,
                   },
                 },
-                from: `${smtpConfig.fromName} <${smtpConfig.from}>`,
+                from: `${fromName} <${fromEmail}>`,
                 to: args.to,
                 subject: args.subject,
                 html: args.html,
@@ -804,7 +864,7 @@ export const sendEmail = action({
               const auth = Buffer.from(`api:${mailgunApiKey}`).toString('base64');
               
               const formData = new URLSearchParams();
-              formData.append('from', `${smtpConfig.fromName} <${smtpConfig.from}>`);
+              formData.append('from', `${fromName} <${fromEmail}>`);
               formData.append('to', args.to);
               formData.append('subject', args.subject);
               formData.append('html', args.html);
@@ -860,6 +920,10 @@ export const sendEmail = action({
         if (process.env.SENDGRID_API_KEY) availableServices.push("SendGrid");
         if (process.env.SMTP_RELAY_URL) availableServices.push("Custom Relay");
         
+        // #region agent log
+        await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:867',message:'Email simulated - no working service',data:{to:args.to,subject:args.subject,fromEmail,errorMessage,availableServices:availableServices.length > 0 ? availableServices.join(", ") : "None",hasResend:!!process.env.RESEND_API_KEY,hasMailgun:!!process.env.MAILGUN_API_KEY,hasSendGrid:!!process.env.SENDGRID_API_KEY},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+        // #endregion
+        
         console.log("Email simulated - No working email service:", {
           to: args.to,
           subject: args.subject,
@@ -888,6 +952,9 @@ export const sendEmail = action({
         sentAt: now,
         isSimulated,
       });
+      // #region agent log
+      await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:893',message:'Email logged successfully',data:{to:args.to,subject:args.subject,status,messageId,isSimulated,fromEmail},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+      // #endregion
       
       return {
         success: true,
@@ -900,6 +967,9 @@ export const sendEmail = action({
         errorMessage = error.message || "Failed to send email";
         status = "failed";
       }
+      // #region agent log
+      await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:909',message:'Email sending failed with exception',data:{to:args.to,subject:args.subject,errorMessage,error:error.message,errorStack:error.stack},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+      // #endregion
       
       // Log the failure
       await ctx.runMutation(api.email.logEmail, {
