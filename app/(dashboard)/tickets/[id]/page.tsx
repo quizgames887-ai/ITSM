@@ -1146,7 +1146,6 @@ export default function TicketDetailPage({
           </Card>
         </div>
       )}
-        </div>
       </div>
     </div>
   );
