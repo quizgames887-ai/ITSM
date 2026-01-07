@@ -19,6 +19,7 @@ type User = {
   name: string;
   role: "user" | "admin" | "agent";
   onboardingCompleted: boolean;
+  lastSessionAt?: number;
   createdAt: number;
   updatedAt: number;
 };
@@ -424,6 +425,11 @@ export default function UsersPage() {
           case "status":
             result = (a.onboardingCompleted ? 1 : 0) - (b.onboardingCompleted ? 1 : 0);
             break;
+          case "lastSessionAt":
+            const aSession = a.lastSessionAt || 0;
+            const bSession = b.lastSessionAt || 0;
+            result = aSession - bSession;
+            break;
           default: 
             result = 0;
         }
@@ -558,6 +564,7 @@ export default function UsersPage() {
                   { value: "role", label: "Role" },
                   { value: "status", label: "Status" },
                   { value: "createdAt", label: "Date Joined" },
+                  { value: "lastSessionAt", label: "Last Session" },
                 ]}
               />
             </div>
@@ -932,6 +939,20 @@ export default function UsersPage() {
                         </td>
                         <td className="py-3 px-4 hidden lg:table-cell text-sm text-slate-600">
                           {new Date(user.createdAt).toLocaleDateString()}
+                        </td>
+                        <td className="py-3 px-4 hidden xl:table-cell text-sm text-slate-600">
+                          {user.lastSessionAt ? (
+                            <div className="flex flex-col">
+                              <span className="font-medium text-slate-900">
+                                {new Date(user.lastSessionAt).toLocaleDateString()}
+                              </span>
+                              <span className="text-xs text-slate-500">
+                                {new Date(user.lastSessionAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </span>
+                            </div>
+                          ) : (
+                            <span className="text-slate-400 italic">Never</span>
+                          )}
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-end gap-1">

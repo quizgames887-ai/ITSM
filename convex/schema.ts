@@ -13,6 +13,7 @@ export default defineSchema({
     phone: v.optional(v.string()), // Phone number
     location: v.optional(v.string()), // Location/address
     jobTitle: v.optional(v.string()), // Job title
+    lastSessionAt: v.optional(v.number()), // Last session/login timestamp
     createdAt: v.number(),
     updatedAt: v.number(),
   })

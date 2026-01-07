@@ -16,6 +16,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
 
   const signIn = useMutation(api.authHelpers.signIn);
+  const updateLastSession = useMutation(api.auth.updateLastSession);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +30,14 @@ export default function LoginPage() {
       localStorage.setItem("userEmail", result.email);
       localStorage.setItem("userName", result.name);
       localStorage.setItem("userRole", result.role || "user");
+      
+      // Update last session timestamp
+      try {
+        await updateLastSession({ userId: result.userId });
+      } catch (err) {
+        // Non-critical error, continue with login
+        console.warn("Failed to update last session:", err);
+      }
       
       // Redirect to onboarding if user hasn't completed it, otherwise to workplace
       if (result.onboardingCompleted === false) {

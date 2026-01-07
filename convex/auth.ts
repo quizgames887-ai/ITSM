@@ -72,3 +72,20 @@ export const updateOnboardingStatus = mutation({
     });
   },
 });
+
+export const updateLastSession = mutation({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    await ctx.db.patch(args.userId, {
+      lastSessionAt: Date.now(),
+      updatedAt: Date.now(),
+    });
+  },
+});
