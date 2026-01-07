@@ -900,6 +900,33 @@ export default function UsersPage() {
                         )}
                       </div>
                     </th>
+                    <th 
+                      className="text-left py-3 px-4 text-xs font-bold text-slate-700 uppercase hidden xl:table-cell cursor-pointer hover:bg-slate-100 transition-colors select-none group"
+                      onClick={() => handleSort("lastSessionAt")}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>Last Session</span>
+                        {sortBy === "lastSessionAt" ? (
+                          <svg 
+                            className={`w-4 h-4 text-blue-600 transition-transform ${sortDirection === "desc" ? "rotate-180" : ""}`}
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M5 15l7-7 7 7" />
+                          </svg>
+                        ) : (
+                          <svg 
+                            className="w-4 h-4 text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity"
+                            fill="none" 
+                            stroke="currentColor" 
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+                          </svg>
+                        )}
+                      </div>
+                    </th>
                     <th className="text-right py-3 px-4 text-xs font-bold text-slate-700 uppercase">Actions</th>
                   </tr>
                 </thead>
