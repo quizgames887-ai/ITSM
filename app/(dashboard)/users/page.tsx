@@ -56,6 +56,7 @@ export default function UsersPage() {
   const [activeTab, setActiveTab] = useState<"users" | "teams">("users");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
+  const [kpiFilter, setKpiFilter] = useState<"all" | "admin" | "agent" | "user" | "teams">("all");
   const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "createdAt" | "status" | "lastSessionAt">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [editingUser, setEditingUser] = useState<Id<"users"> | null>(null);
@@ -420,7 +421,9 @@ export default function UsersPage() {
           user.email.toLowerCase().includes(searchLower) ||
           user.role.toLowerCase().includes(searchLower);
         
-        const matchesRole = roleFilter === "all" || user.role === roleFilter;
+        // Apply KPI filter if set (overrides roleFilter)
+        const activeRoleFilter = kpiFilter !== "all" && kpiFilter !== "teams" ? kpiFilter : roleFilter;
+        const matchesRole = activeRoleFilter === "all" || user.role === activeRoleFilter;
         
         return matchesSearch && matchesRole;
       })
@@ -499,23 +502,82 @@ export default function UsersPage() {
 
       {/* Statistics */}
       <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-        <Card padding="sm" className="text-center">
+        <Card 
+          padding="sm" 
+          className={`text-center cursor-pointer transition-all hover:shadow-md ${
+            kpiFilter === "all" 
+              ? "ring-2 ring-blue-500 ring-offset-2 bg-blue-50" 
+              : "hover:bg-slate-50"
+          }`}
+          onClick={() => {
+            setKpiFilter("all");
+            setRoleFilter("all");
+            setActiveTab("users");
+          }}
+        >
           <div className="text-2xl font-bold text-slate-900">{stats.total}</div>
           <div className="text-xs text-slate-600">Total Users</div>
         </Card>
-        <Card padding="sm" className="text-center">
+        <Card 
+          padding="sm" 
+          className={`text-center cursor-pointer transition-all hover:shadow-md ${
+            kpiFilter === "admin" 
+              ? "ring-2 ring-purple-500 ring-offset-2 bg-purple-50" 
+              : "hover:bg-slate-50"
+          }`}
+          onClick={() => {
+            setKpiFilter("admin");
+            setRoleFilter("admin");
+            setActiveTab("users");
+          }}
+        >
           <div className="text-2xl font-bold text-purple-700">{stats.admins}</div>
           <div className="text-xs text-slate-600">Admins</div>
         </Card>
-        <Card padding="sm" className="text-center">
+        <Card 
+          padding="sm" 
+          className={`text-center cursor-pointer transition-all hover:shadow-md ${
+            kpiFilter === "agent" 
+              ? "ring-2 ring-blue-500 ring-offset-2 bg-blue-50" 
+              : "hover:bg-slate-50"
+          }`}
+          onClick={() => {
+            setKpiFilter("agent");
+            setRoleFilter("agent");
+            setActiveTab("users");
+          }}
+        >
           <div className="text-2xl font-bold text-blue-700">{stats.agents}</div>
           <div className="text-xs text-slate-600">Agents</div>
         </Card>
-        <Card padding="sm" className="text-center">
+        <Card 
+          padding="sm" 
+          className={`text-center cursor-pointer transition-all hover:shadow-md ${
+            kpiFilter === "user" 
+              ? "ring-2 ring-slate-500 ring-offset-2 bg-slate-50" 
+              : "hover:bg-slate-50"
+          }`}
+          onClick={() => {
+            setKpiFilter("user");
+            setRoleFilter("user");
+            setActiveTab("users");
+          }}
+        >
           <div className="text-2xl font-bold text-slate-700">{stats.regularUsers}</div>
           <div className="text-xs text-slate-600">Users</div>
         </Card>
-        <Card padding="sm" className="text-center">
+        <Card 
+          padding="sm" 
+          className={`text-center cursor-pointer transition-all hover:shadow-md ${
+            kpiFilter === "teams" 
+              ? "ring-2 ring-teal-500 ring-offset-2 bg-teal-50" 
+              : "hover:bg-slate-50"
+          }`}
+          onClick={() => {
+            setKpiFilter("teams");
+            setActiveTab("teams");
+          }}
+        >
           <div className="text-2xl font-bold text-teal-700">{stats.teams}</div>
           <div className="text-xs text-slate-600">Teams</div>
         </Card>
@@ -524,7 +586,14 @@ export default function UsersPage() {
       {/* Tabs */}
       <div className="flex gap-2 border-b border-slate-200">
         <button
-          onClick={() => setActiveTab("users")}
+          onClick={() => {
+            setActiveTab("users");
+            // Reset KPI filter when manually switching to users tab (unless it's a role filter)
+            if (kpiFilter === "teams") {
+              setKpiFilter("all");
+              setRoleFilter("all");
+            }
+          }}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "users"
               ? "border-blue-600 text-blue-600"
@@ -534,7 +603,10 @@ export default function UsersPage() {
           Users
         </button>
         <button
-          onClick={() => setActiveTab("teams")}
+          onClick={() => {
+            setActiveTab("teams");
+            setKpiFilter("teams");
+          }}
           className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
             activeTab === "teams"
               ? "border-blue-600 text-blue-600"
@@ -787,7 +859,15 @@ export default function UsersPage() {
               <Select
                 label="Filter by Role"
                 value={roleFilter}
-                onChange={(e) => setRoleFilter(e.target.value)}
+                onChange={(e) => {
+                  setRoleFilter(e.target.value);
+                  // Reset KPI filter when manually changing role filter
+                  if (e.target.value === "all") {
+                    setKpiFilter("all");
+                  } else {
+                    setKpiFilter(e.target.value as "admin" | "agent" | "user");
+                  }
+                }}
                 options={[
                   { value: "all", label: "All Roles" },
                   { value: "admin", label: "Admin" },
