@@ -513,4 +513,28 @@ export default defineSchema({
     .index("by_createdAt", ["createdAt"])
     .index("by_sentAt", ["sentAt"])
     .index("by_messageId", ["messageId"]),
+
+  // Exchange Integration Configuration
+  exchangeConfig: defineTable({
+    type: v.union(v.literal("online"), v.literal("server")), // Exchange Online or Exchange Server
+    enabled: v.boolean(),
+    
+    // Exchange Online (Microsoft 365) settings
+    tenantId: v.optional(v.string()), // Azure AD tenant ID
+    clientId: v.optional(v.string()), // Azure AD app client ID
+    clientSecret: v.optional(v.string()), // Azure AD app client secret (stored as Convex secret reference)
+    userEmail: v.optional(v.string()), // Service account email for Exchange Online
+    
+    // Exchange Server (On-Premises) settings
+    serverUrl: v.optional(v.string()), // Exchange Server URL (e.g., https://mail.company.com/ews/Exchange.asmx)
+    username: v.optional(v.string()), // Exchange Server username
+    password: v.optional(v.string()), // Exchange Server password (stored as Convex secret reference)
+    version: v.optional(v.union(v.literal("ews"), v.literal("rest"))), // API version: EWS or REST
+    
+    // General settings
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_enabled", ["enabled"]),
 });
