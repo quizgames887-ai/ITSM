@@ -717,8 +717,13 @@ export const update = mutation({
     // Notify users about ticket updates
     const usersToNotify = new Set<string>();
     usersToNotify.add(ticket.createdBy);
+    // Include old assignee if exists
     if (ticket.assignedTo) {
       usersToNotify.add(ticket.assignedTo);
+    }
+    // Include new assignee if assignment changed
+    if (changes.assignedTo && changes.assignedTo.new) {
+      usersToNotify.add(changes.assignedTo.new);
     }
 
     // Get notification settings and template config
@@ -758,8 +763,8 @@ export const update = mutation({
         // Send email notification if configured
         const user = await ctx.db.get(userId as Id<"users">);
         if (user?.email) {
-          // Determine recipient type
-          const recipientType = userId === ticket.createdBy ? "creator" : "assignee";
+          // Determine recipient type (use updated ticket to check if user is current assignee)
+          const recipientType = userId === ticket.createdBy ? "creator" : (updatedTicket.assignedTo === userId ? "assignee" : "creator");
           
           if (shouldNotifyOnStatusChange(notificationSettings, ticket.type, changes.status.new, recipientType)) {
             const emailHtml = buildEmailTemplate(
@@ -798,8 +803,8 @@ export const update = mutation({
         // Send email notification if configured
         const user = await ctx.db.get(userId as Id<"users">);
         if (user?.email) {
-          // Determine recipient type
-          const recipientType = userId === ticket.createdBy ? "creator" : "assignee";
+          // Determine recipient type (use updated ticket to check if user is current assignee)
+          const recipientType = userId === ticket.createdBy ? "creator" : (updatedTicket.assignedTo === userId ? "assignee" : "creator");
           
           if (shouldNotifyOnPriorityChange(notificationSettings, ticket.type, changes.priority.new, recipientType)) {
             const emailHtml = buildEmailTemplate(
@@ -824,10 +829,12 @@ export const update = mutation({
     }
 
     // Assignment change notification
-    if (changes.assignedTo && updates.assignedTo) {
+    // Check if assignment changed AND there's a new assignee (not unassigning)
+    if (changes.assignedTo && changes.assignedTo.new) {
+      const newAssigneeId = changes.assignedTo.new as Id<"users">;
       await createNotification(
         ctx,
-        updates.assignedTo as Id<"users">,
+        newAssigneeId,
         "ticket_assigned",
         "Ticket Assigned to You",
         `You have been assigned to ticket: "${ticket.title}"`,
@@ -835,7 +842,7 @@ export const update = mutation({
       );
 
       // Send email notification to assignee if configured
-      const newAssignee = await ctx.db.get(updates.assignedTo);
+      const newAssignee = await ctx.db.get(newAssigneeId);
       if (newAssignee?.email && shouldNotifyOnAssignment(notificationSettings, ticket.type, "assignee")) {
         const emailHtml = buildEmailTemplate(
           templateConfig,
@@ -848,31 +855,33 @@ export const update = mutation({
         );
         await sendEmailNotification(
           ctx,
-          updates.assignedTo,
+          newAssigneeId,
           `Ticket Assigned: ${ticket.title}`,
           emailHtml,
           id
         );
       }
       
-      // Notify creator if configured
-      if (creator?.email && shouldNotifyOnAssignment(notificationSettings, ticket.type, "creator")) {
-        const emailHtml = buildEmailTemplate(
-          templateConfig,
-          updatedTicket,
-          "assigned",
-          { old: { assignedTo: changes.assignedTo.old }, new: { assignedTo: changes.assignedTo.new } },
-          creator,
-          newAssignee,
-          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
-        );
-        await sendEmailNotification(
-          ctx,
-          ticket.createdBy,
-          `Ticket Assigned: ${ticket.title}`,
-          emailHtml,
-          id
-        );
+      // Notify creator if configured (only if assignment actually changed to a different user)
+      if (ticket.createdBy !== newAssigneeId) {
+        if (creator?.email && shouldNotifyOnAssignment(notificationSettings, ticket.type, "creator")) {
+          const emailHtml = buildEmailTemplate(
+            templateConfig,
+            updatedTicket,
+            "assigned",
+            { old: { assignedTo: changes.assignedTo.old }, new: { assignedTo: changes.assignedTo.new } },
+            creator,
+            newAssignee,
+            process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+          );
+          await sendEmailNotification(
+            ctx,
+            ticket.createdBy,
+            `Ticket Assigned: ${ticket.title}`,
+            emailHtml,
+            id
+          );
+        }
       }
     }
 
