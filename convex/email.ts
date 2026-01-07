@@ -825,6 +825,7 @@ export const sendEmail = action({
         errorMessage = `Email service error: ${apiError.message}`;
         // Will be logged as simulated below
       }
+      }
       
       // If sending failed, log as simulated
       if (isSimulated) {
