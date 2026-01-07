@@ -752,8 +752,6 @@ export const sendEmail = action({
             await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:700',message:'Resend API error',data:{status:response.status,statusText:response.statusText,errorData,to:args.to},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
             // #endregion
             const errorMsg = errorData.message || errorData.error?.message || `Resend API error: ${response.status}`;
-            const errorData: any = await response.json().catch(() => ({}));
-            const errorMsg = errorData.message || errorData.error?.message || `Resend API error: ${response.status}`;
             const isDomainError = errorMsg.toLowerCase().includes('domain') || 
                                   errorMsg.toLowerCase().includes('verify') ||
                                   errorMsg.toLowerCase().includes('unauthorized');
