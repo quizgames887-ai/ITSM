@@ -23,6 +23,34 @@ async function createNotification(
   });
 }
 
+// Helper function to send email notification via Resend
+async function sendEmailNotification(
+  ctx: any,
+  userId: Id<"users">,
+  subject: string,
+  htmlContent: string,
+  ticketId?: Id<"tickets">
+) {
+  try {
+    // Get user email
+    const user = await ctx.db.get(userId);
+    if (!user || !user.email) {
+      console.warn(`User ${userId} not found or has no email address`);
+      return;
+    }
+
+    // Schedule email sending (sendEmail is an action, so we schedule it)
+    await ctx.scheduler.runAfter(0, api.email.sendEmail, {
+      to: user.email,
+      subject: subject,
+      html: htmlContent,
+    });
+  } catch (error) {
+    // Don't fail the mutation if email sending fails
+    console.error("Failed to send email notification:", error);
+  }
+}
+
 // Helper function to apply SLA policy and set deadline
 async function applySLAPolicy(
   ctx: any,
@@ -325,6 +353,31 @@ export const create = mutation({
       ticketId
     );
 
+    // Send email notification to creator
+    const creator = await ctx.db.get(args.createdBy);
+    if (creator?.email) {
+      const emailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb;">Ticket Created Successfully</h2>
+          <p>Your ticket <strong>"${args.title}"</strong> has been created successfully.</p>
+          <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Category:</strong> ${args.category}</p>
+            <p><strong>Priority:</strong> ${args.priority}</p>
+            <p><strong>Type:</strong> ${args.type}</p>
+            ${assignedTo ? "<p><strong>Status:</strong> An agent has been automatically assigned.</p>" : ""}
+          </div>
+          <p>You can view and track your ticket in the system.</p>
+        </div>
+      `;
+      await sendEmailNotification(
+        ctx,
+        args.createdBy,
+        `Ticket Created: ${args.title}`,
+        emailHtml,
+        ticketId
+      );
+    }
+
     // If assigned to someone (manual or auto), notify them
     if (assignedTo) {
       const assignmentType = autoAssignRuleName ? "auto-assigned" : "assigned";
@@ -336,6 +389,32 @@ export const create = mutation({
         `You have been ${assignmentType} a new ticket: "${args.title}"${autoAssignRuleName ? ` (Rule: ${autoAssignRuleName})` : ""}`,
         ticketId
       );
+
+      // Send email notification to assignee
+      const assignee = await ctx.db.get(assignedTo);
+      if (assignee?.email) {
+        const assigneeEmailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #2563eb;">New Ticket Assigned</h2>
+            <p>You have been ${assignmentType} a new ticket: <strong>"${args.title}"</strong></p>
+            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p><strong>Category:</strong> ${args.category}</p>
+              <p><strong>Priority:</strong> ${args.priority}</p>
+              <p><strong>Type:</strong> ${args.type}</p>
+              <p><strong>Description:</strong> ${args.description.substring(0, 200)}${args.description.length > 200 ? '...' : ''}</p>
+              ${autoAssignRuleName ? `<p><strong>Assignment Rule:</strong> ${autoAssignRuleName}</p>` : ""}
+            </div>
+            <p>Please review and respond to this ticket as soon as possible.</p>
+          </div>
+        `;
+        await sendEmailNotification(
+          ctx,
+          assignedTo,
+          `New Ticket Assigned: ${args.title}`,
+          assigneeEmailHtml,
+          ticketId
+        );
+      }
     }
 
     // Increment request count for the service category
@@ -613,6 +692,29 @@ export const update = mutation({
           `Ticket "${ticket.title}" ${statusMessage}`,
           id
         );
+
+        // Send email notification
+        const user = await ctx.db.get(userId as Id<"users">);
+        if (user?.email) {
+          const emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #2563eb;">Ticket Status Updated</h2>
+              <p>Ticket <strong>"${ticket.title}"</strong> ${statusMessage}</p>
+              <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p><strong>Previous Status:</strong> ${changes.status.old}</p>
+                <p><strong>New Status:</strong> ${changes.status.new}</p>
+              </div>
+              <p>You can view the updated ticket in the system.</p>
+            </div>
+          `;
+          await sendEmailNotification(
+            ctx,
+            userId as Id<"users">,
+            `Ticket Status Updated: ${ticket.title}`,
+            emailHtml,
+            id
+          );
+        }
       }
     }
 
@@ -627,6 +729,29 @@ export const update = mutation({
           `Ticket "${ticket.title}" priority changed from ${changes.priority.old} to ${changes.priority.new}`,
           id
         );
+
+        // Send email notification
+        const user = await ctx.db.get(userId as Id<"users">);
+        if (user?.email) {
+          const emailHtml = `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+              <h2 style="color: #2563eb;">Ticket Priority Changed</h2>
+              <p>Ticket <strong>"${ticket.title}"</strong> priority has been changed.</p>
+              <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+                <p><strong>Previous Priority:</strong> ${changes.priority.old}</p>
+                <p><strong>New Priority:</strong> ${changes.priority.new}</p>
+              </div>
+              <p>You can view the updated ticket in the system.</p>
+            </div>
+          `;
+          await sendEmailNotification(
+            ctx,
+            userId as Id<"users">,
+            `Ticket Priority Changed: ${ticket.title}`,
+            emailHtml,
+            id
+          );
+        }
       }
     }
 
@@ -640,6 +765,30 @@ export const update = mutation({
         `You have been assigned to ticket: "${ticket.title}"`,
         id
       );
+
+      // Send email notification
+      const assignee = await ctx.db.get(updates.assignedTo);
+      if (assignee?.email) {
+        const emailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #2563eb;">Ticket Assigned to You</h2>
+            <p>You have been assigned to ticket: <strong>"${ticket.title}"</strong></p>
+            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+              <p><strong>Category:</strong> ${ticket.category}</p>
+              <p><strong>Priority:</strong> ${ticket.priority}</p>
+              <p><strong>Status:</strong> ${ticket.status}</p>
+            </div>
+            <p>Please review and respond to this ticket as soon as possible.</p>
+          </div>
+        `;
+        await sendEmailNotification(
+          ctx,
+          updates.assignedTo,
+          `Ticket Assigned: ${ticket.title}`,
+          emailHtml,
+          id
+        );
+      }
     }
 
     return id;
@@ -701,9 +850,32 @@ export const assign = mutation({
       args.id
     );
 
+    // Send email notification to assignee
+    const assignee = await ctx.db.get(args.assignedTo);
+    if (assignee?.email) {
+      const assigneeEmailHtml = `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+          <h2 style="color: #2563eb;">Ticket Assigned to You</h2>
+          <p>You have been assigned to ticket: <strong>"${ticket.title}"</strong></p>
+          <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
+            <p><strong>Category:</strong> ${ticket.category}</p>
+            <p><strong>Priority:</strong> ${ticket.priority}</p>
+            <p><strong>Status:</strong> ${ticket.status}</p>
+          </div>
+          <p>Please review and respond to this ticket as soon as possible.</p>
+        </div>
+      `;
+      await sendEmailNotification(
+        ctx,
+        args.assignedTo,
+        `Ticket Assigned: ${ticket.title}`,
+        assigneeEmailHtml,
+        args.id
+      );
+    }
+
     // Notify the ticket creator
     if (ticket.createdBy !== args.assignedTo) {
-      const assignee = await ctx.db.get(args.assignedTo);
       await createNotification(
         ctx,
         ticket.createdBy,
@@ -712,6 +884,25 @@ export const assign = mutation({
         `Your ticket "${ticket.title}" has been assigned to ${assignee?.name || "an agent"}`,
         args.id
       );
+
+      // Send email notification to creator
+      const creator = await ctx.db.get(ticket.createdBy);
+      if (creator?.email) {
+        const creatorEmailHtml = `
+          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
+            <h2 style="color: #2563eb;">Ticket Assignment Updated</h2>
+            <p>Your ticket <strong>"${ticket.title}"</strong> has been assigned to ${assignee?.name || "an agent"}.</p>
+            <p>You will be notified of any updates to this ticket.</p>
+          </div>
+        `;
+        await sendEmailNotification(
+          ctx,
+          ticket.createdBy,
+          `Ticket Assignment Updated: ${ticket.title}`,
+          creatorEmailHtml,
+          args.id
+        );
+      }
     }
 
     return args.id;
