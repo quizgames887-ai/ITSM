@@ -44,6 +44,8 @@ export default function UsersPage() {
   const dbStatus = useQuery(api.users.getDatabaseStatus, {});
   const updateUser = useMutation(api.users.update);
   const resetUserPassword = useMutation(api.users.resetUserPassword);
+  const createUser = useMutation(api.users.createUser);
+  const deleteUser = useMutation(api.users.deleteUser);
   const createTeam = useMutation(api.teams.create);
   const updateTeam = useMutation(api.teams.update);
   const removeTeam = useMutation(api.teams.remove);
@@ -68,6 +70,21 @@ export default function UsersPage() {
     newPassword?: string;
     confirmPassword?: string;
   }>({});
+
+  // User creation state
+  const [showCreateUser, setShowCreateUser] = useState(false);
+  const [newUser, setNewUser] = useState({
+    name: "",
+    email: "",
+    password: "",
+    confirmPassword: "",
+    role: "user" as "user" | "admin" | "agent",
+    workplace: "",
+    phone: "",
+    location: "",
+    jobTitle: "",
+  });
+  const [deletingUserId, setDeletingUserId] = useState<Id<"users"> | null>(null);
 
   // Team management state
   const [showCreateTeam, setShowCreateTeam] = useState(false);
@@ -531,6 +548,233 @@ export default function UsersPage() {
       {/* Users Tab */}
       {activeTab === "users" && (
         <>
+          {/* Create User Button */}
+          {isAdmin && (
+            <div className="flex justify-end mb-4">
+              <Button
+                variant="gradient"
+                onClick={() => {
+                  setNewUser({
+                    name: "",
+                    email: "",
+                    password: "",
+                    confirmPassword: "",
+                    role: "user",
+                    workplace: "",
+                    phone: "",
+                    location: "",
+                    jobTitle: "",
+                  });
+                  setShowCreateUser(true);
+                }}
+                className="inline-flex items-center gap-2"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                </svg>
+                Create User
+              </Button>
+            </div>
+          )}
+
+          {/* Create User Modal */}
+          {showCreateUser && isAdmin && (
+            <Card padding="lg" className="border-2 border-blue-200 bg-blue-50/30 mb-4">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-semibold text-slate-900 text-lg">Create New User</h3>
+                <button
+                  onClick={() => {
+                    setShowCreateUser(false);
+                    setNewUser({
+                      name: "",
+                      email: "",
+                      password: "",
+                      confirmPassword: "",
+                      role: "user",
+                      workplace: "",
+                      phone: "",
+                      location: "",
+                      jobTitle: "",
+                    });
+                  }}
+                  className="p-1 text-slate-400 hover:text-slate-600 rounded"
+                >
+                  <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Input
+                    label="Name *"
+                    value={newUser.name}
+                    onChange={(e) => setNewUser({ ...newUser, name: e.target.value })}
+                    placeholder="Enter full name"
+                    required
+                  />
+                  <Input
+                    label="Email *"
+                    type="email"
+                    value={newUser.email}
+                    onChange={(e) => setNewUser({ ...newUser, email: e.target.value })}
+                    placeholder="user@example.com"
+                    required
+                  />
+                  <Input
+                    label="Password *"
+                    type="password"
+                    value={newUser.password}
+                    onChange={(e) => setNewUser({ ...newUser, password: e.target.value })}
+                    placeholder="Minimum 8 characters"
+                    required
+                  />
+                  <Input
+                    label="Confirm Password *"
+                    type="password"
+                    value={newUser.confirmPassword}
+                    onChange={(e) => setNewUser({ ...newUser, confirmPassword: e.target.value })}
+                    placeholder="Confirm password"
+                    required
+                  />
+                  <Select
+                    label="Role *"
+                    value={newUser.role}
+                    onChange={(e) => setNewUser({ ...newUser, role: e.target.value as typeof newUser.role })}
+                    options={[
+                      { value: "user", label: "User - Regular user access" },
+                      { value: "agent", label: "Agent - Support agent access" },
+                      { value: "admin", label: "Admin - Full administrative access" },
+                    ]}
+                  />
+                  <Input
+                    label="Workplace"
+                    value={newUser.workplace}
+                    onChange={(e) => setNewUser({ ...newUser, workplace: e.target.value })}
+                    placeholder="Organization name"
+                  />
+                  <Input
+                    label="Phone"
+                    value={newUser.phone}
+                    onChange={(e) => setNewUser({ ...newUser, phone: e.target.value })}
+                    placeholder="Phone number"
+                  />
+                  <Input
+                    label="Location"
+                    value={newUser.location}
+                    onChange={(e) => setNewUser({ ...newUser, location: e.target.value })}
+                    placeholder="City, Country"
+                  />
+                  <Input
+                    label="Job Title"
+                    value={newUser.jobTitle}
+                    onChange={(e) => setNewUser({ ...newUser, jobTitle: e.target.value })}
+                    placeholder="Job title"
+                    className="sm:col-span-2"
+                  />
+                </div>
+
+                {newUser.password && newUser.password.length > 0 && newUser.password.length < 8 && (
+                  <p className="text-sm text-amber-600">Password must be at least 8 characters long</p>
+                )}
+                {newUser.password && newUser.confirmPassword && newUser.password !== newUser.confirmPassword && (
+                  <p className="text-sm text-red-600">Passwords do not match</p>
+                )}
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    variant="gradient"
+                    onClick={async () => {
+                      if (!currentUserId) {
+                        showError("Authentication required");
+                        return;
+                      }
+
+                      if (!newUser.name.trim()) {
+                        showError("Name is required");
+                        return;
+                      }
+                      if (!newUser.email.trim()) {
+                        showError("Email is required");
+                        return;
+                      }
+                      if (!newUser.password) {
+                        showError("Password is required");
+                        return;
+                      }
+                      if (newUser.password.length < 8) {
+                        showError("Password must be at least 8 characters long");
+                        return;
+                      }
+                      if (newUser.password !== newUser.confirmPassword) {
+                        showError("Passwords do not match");
+                        return;
+                      }
+
+                      try {
+                        await createUser({
+                          email: newUser.email,
+                          name: newUser.name,
+                          password: newUser.password,
+                          role: newUser.role,
+                          currentUserId: currentUserId as Id<"users">,
+                          workplace: newUser.workplace || undefined,
+                          phone: newUser.phone || undefined,
+                          location: newUser.location || undefined,
+                          jobTitle: newUser.jobTitle || undefined,
+                        });
+                        success(`User ${newUser.name} created successfully!`);
+                        setShowCreateUser(false);
+                        setNewUser({
+                          name: "",
+                          email: "",
+                          password: "",
+                          confirmPassword: "",
+                          role: "user",
+                          workplace: "",
+                          phone: "",
+                          location: "",
+                          jobTitle: "",
+                        });
+                      } catch (err: any) {
+                        showError(err.message || "Failed to create user");
+                      }
+                    }}
+                    disabled={
+                      !newUser.name.trim() ||
+                      !newUser.email.trim() ||
+                      !newUser.password ||
+                      newUser.password.length < 8 ||
+                      newUser.password !== newUser.confirmPassword
+                    }
+                  >
+                    Create User
+                  </Button>
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowCreateUser(false);
+                      setNewUser({
+                        name: "",
+                        email: "",
+                        password: "",
+                        confirmPassword: "",
+                        role: "user",
+                        workplace: "",
+                        phone: "",
+                        location: "",
+                        jobTitle: "",
+                      });
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            </Card>
+          )}
+
           {/* Filters */}
           <Card padding="md">
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
@@ -1014,6 +1258,17 @@ export default function UsersPage() {
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
                                   </svg>
                                 </button>
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => setDeletingUserId(user._id)}
+                                    className="p-1.5 text-slate-400 hover:text-red-600 hover:bg-red-50 rounded-lg"
+                                    title="Delete user"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
+                                )}
                               </>
                             )}
                           </div>
@@ -1028,6 +1283,71 @@ export default function UsersPage() {
               Showing {filteredAndSortedUsers.length} of {users?.length || 0} users
             </div>
           </Card>
+
+          {/* Delete User Confirmation Modal */}
+          {deletingUserId && isAdmin && (
+            <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+              <Card className="max-w-md w-full">
+                <div className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <svg className="w-6 h-6 text-red-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                      </svg>
+                    </div>
+                    <h3 className="text-lg font-bold text-slate-900">Delete User</h3>
+                  </div>
+                  
+                  {users && users.find(u => u._id === deletingUserId) && (
+                    <div className="mb-4">
+                      <p className="text-slate-700 mb-2">
+                        Are you sure you want to delete <span className="font-semibold">{users.find(u => u._id === deletingUserId)?.name}</span>?
+                      </p>
+                      <p className="text-sm text-slate-600">
+                        This action cannot be undone. This will permanently delete the user account and all associated data including:
+                      </p>
+                      <ul className="text-sm text-slate-600 mt-2 ml-4 list-disc">
+                        <li>User profile and settings</li>
+                        <li>All tickets created by this user</li>
+                        <li>All comments and activity history</li>
+                        <li>Team memberships</li>
+                        <li>Service favorites and todos</li>
+                      </ul>
+                    </div>
+                  )}
+
+                  <div className="flex gap-3 pt-4">
+                    <Button
+                      variant="outline"
+                      onClick={() => setDeletingUserId(null)}
+                      className="flex-1"
+                    >
+                      Cancel
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        if (!currentUserId || !deletingUserId) return;
+                        
+                        try {
+                          await deleteUser({
+                            userId: deletingUserId,
+                            currentUserId: currentUserId as Id<"users">,
+                          });
+                          success("User deleted successfully");
+                          setDeletingUserId(null);
+                        } catch (err: any) {
+                          showError(err.message || "Failed to delete user");
+                        }
+                      }}
+                      className="flex-1 bg-red-600 hover:bg-red-700 text-white border-red-600"
+                    >
+                      Delete User
+                    </Button>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
         </>
       )}
 

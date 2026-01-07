@@ -521,3 +521,239 @@ export const removeProfilePicture = mutation({
     };
   },
 });
+
+// Admin-only: Create a new user with password
+export const createUser = mutation({
+  args: {
+    email: v.string(),
+    name: v.string(),
+    password: v.string(),
+    role: v.union(v.literal("user"), v.literal("admin"), v.literal("agent")),
+    currentUserId: v.id("users"), // Admin user creating the user
+    workplace: v.optional(v.string()),
+    phone: v.optional(v.string()),
+    location: v.optional(v.string()),
+    jobTitle: v.optional(v.string()),
+  },
+  handler: async (ctx, args) => {
+    // Verify the current user exists and is admin
+    const currentUser = await ctx.db.get(args.currentUserId);
+    if (!currentUser) {
+      throw new Error("Authentication required");
+    }
+    
+    if (currentUser.role !== "admin") {
+      throw new Error("Only admins can create users");
+    }
+
+    // Validate and sanitize inputs
+    const sanitizedEmail = args.email.trim().toLowerCase();
+    const sanitizedName = args.name.trim();
+    
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(sanitizedEmail) || sanitizedEmail.length > 254) {
+      throw new Error("Invalid email address");
+    }
+    
+    // Name validation
+    if (sanitizedName.length === 0) {
+      throw new Error("Name cannot be empty");
+    }
+    if (sanitizedName.length > 100) {
+      throw new Error("Name must be less than 100 characters");
+    }
+
+    // Password validation
+    if (args.password.length < 8) {
+      throw new Error("Password must be at least 8 characters long");
+    }
+
+    // Check if user already exists
+    const existingUser = await ctx.db
+      .query("users")
+      .withIndex("by_email", (q) => q.eq("email", sanitizedEmail))
+      .first();
+
+    if (existingUser) {
+      throw new Error("User with this email already exists");
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(args.password);
+
+    // Create user
+    const now = Date.now();
+    const userId = await ctx.db.insert("users", {
+      email: sanitizedEmail,
+      name: sanitizedName,
+      role: args.role,
+      onboardingCompleted: false,
+      profilePictureId: null,
+      language: undefined,
+      workplace: args.workplace?.trim() || undefined,
+      phone: args.phone?.trim() || undefined,
+      location: args.location?.trim() || undefined,
+      jobTitle: args.jobTitle?.trim() || undefined,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    // Store password hash
+    await ctx.db.insert("userPasswords", {
+      userId,
+      passwordHash: hashedPassword,
+    });
+
+    return {
+      success: true,
+      userId,
+      message: `User ${sanitizedName} created successfully`,
+    };
+  },
+});
+
+// Admin-only: Delete a user and all related data
+export const deleteUser = mutation({
+  args: {
+    userId: v.id("users"),
+    currentUserId: v.id("users"), // Admin user making the deletion
+  },
+  handler: async (ctx, args) => {
+    // Verify the current user exists and is admin
+    const currentUser = await ctx.db.get(args.currentUserId);
+    if (!currentUser) {
+      throw new Error("Authentication required");
+    }
+    
+    if (currentUser.role !== "admin") {
+      throw new Error("Only admins can delete users");
+    }
+
+    // Prevent deleting yourself
+    if (args.userId === args.currentUserId) {
+      throw new Error("You cannot delete your own account");
+    }
+
+    // Verify the target user exists
+    const user = await ctx.db.get(args.userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+
+    // Delete related data
+    // 1. Delete password record
+    const passwordRecord = await ctx.db
+      .query("userPasswords")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .first();
+    if (passwordRecord) {
+      await ctx.db.delete(passwordRecord._id);
+    }
+
+    // 2. Delete profile picture if exists
+    if (user.profilePictureId) {
+      try {
+        await ctx.storage.delete(user.profilePictureId);
+      } catch (error) {
+        console.warn("Could not delete profile picture:", error);
+      }
+    }
+
+    // 3. Delete tickets created by this user (or reassign - for now we'll delete)
+    const userTickets = await ctx.db
+      .query("tickets")
+      .withIndex("by_createdBy", (q) => q.eq("createdBy", args.userId))
+      .collect();
+    
+    for (const ticket of userTickets) {
+      // Delete ticket comments
+      const comments = await ctx.db
+        .query("ticketComments")
+        .withIndex("by_ticketId", (q) => q.eq("ticketId", ticket._id))
+        .collect();
+      for (const comment of comments) {
+        await ctx.db.delete(comment._id);
+      }
+
+      // Delete ticket history
+      const history = await ctx.db
+        .query("ticketHistory")
+        .withIndex("by_ticketId", (q) => q.eq("ticketId", ticket._id))
+        .collect();
+      for (const entry of history) {
+        await ctx.db.delete(entry._id);
+      }
+
+      // Delete the ticket
+      await ctx.db.delete(ticket._id);
+    }
+
+    // 4. Delete tickets assigned to this user
+    const assignedTickets = await ctx.db
+      .query("tickets")
+      .withIndex("by_assignedTo", (q) => q.eq("assignedTo", args.userId))
+      .collect();
+    
+    for (const ticket of assignedTickets) {
+      // Unassign the ticket (set to null)
+      await ctx.db.patch(ticket._id, {
+        assignedTo: null,
+        updatedAt: Date.now(),
+      });
+    }
+
+    // 5. Delete comments by this user
+    const userComments = await ctx.db
+      .query("ticketComments")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const comment of userComments) {
+      await ctx.db.delete(comment._id);
+    }
+
+    // 6. Delete notifications for this user
+    const notifications = await ctx.db
+      .query("notifications")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const notification of notifications) {
+      await ctx.db.delete(notification._id);
+    }
+
+    // 7. Remove user from teams
+    const teamMemberships = await ctx.db
+      .query("teamMembers")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const membership of teamMemberships) {
+      await ctx.db.delete(membership._id);
+    }
+
+    // 8. Delete service favorites
+    const favorites = await ctx.db
+      .query("serviceFavorites")
+      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
+      .collect();
+    for (const favorite of favorites) {
+      await ctx.db.delete(favorite._id);
+    }
+
+    // 9. Delete todos
+    const todos = await ctx.db
+      .query("todos")
+      .withIndex("by_createdBy", (q) => q.eq("createdBy", args.userId))
+      .collect();
+    for (const todo of todos) {
+      await ctx.db.delete(todo._id);
+    }
+
+    // Finally, delete the user
+    await ctx.db.delete(args.userId);
+
+    return {
+      success: true,
+      message: `User ${user.name} deleted successfully`,
+    };
+  },
+});
