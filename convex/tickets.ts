@@ -766,7 +766,18 @@ export const update = mutation({
           // Determine recipient type (use updated ticket to check if user is current assignee)
           const recipientType = userId === ticket.createdBy ? "creator" : (updatedTicket.assignedTo === userId ? "assignee" : "creator");
           
-          if (shouldNotifyOnStatusChange(notificationSettings, ticket.type, changes.status.new, recipientType)) {
+          const shouldNotify = shouldNotifyOnStatusChange(notificationSettings, ticket.type, changes.status.new, recipientType);
+          console.log("[STATUS CHANGE] Email check:", {
+            userId,
+            userEmail: user.email,
+            ticketType: ticket.type,
+            newStatus: changes.status.new,
+            recipientType,
+            shouldNotify,
+            hasSettings: !!notificationSettings
+          });
+          
+          if (shouldNotify) {
             const emailHtml = buildEmailTemplate(
               templateConfig,
               updatedTicket,
@@ -776,6 +787,7 @@ export const update = mutation({
               assignee,
               process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
             );
+            console.log("[STATUS CHANGE] Sending email notification to:", user.email);
             await sendEmailNotification(
               ctx,
               userId as Id<"users">,
@@ -806,7 +818,18 @@ export const update = mutation({
           // Determine recipient type (use updated ticket to check if user is current assignee)
           const recipientType = userId === ticket.createdBy ? "creator" : (updatedTicket.assignedTo === userId ? "assignee" : "creator");
           
-          if (shouldNotifyOnPriorityChange(notificationSettings, ticket.type, changes.priority.new, recipientType)) {
+          const shouldNotify = shouldNotifyOnPriorityChange(notificationSettings, ticket.type, changes.priority.new, recipientType);
+          console.log("[PRIORITY CHANGE] Email check:", {
+            userId,
+            userEmail: user.email,
+            ticketType: ticket.type,
+            newPriority: changes.priority.new,
+            recipientType,
+            shouldNotify,
+            hasSettings: !!notificationSettings
+          });
+          
+          if (shouldNotify) {
             const emailHtml = buildEmailTemplate(
               templateConfig,
               updatedTicket,
@@ -816,6 +839,7 @@ export const update = mutation({
               assignee,
               process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
             );
+            console.log("[PRIORITY CHANGE] Sending email notification to:", user.email);
             await sendEmailNotification(
               ctx,
               userId as Id<"users">,
@@ -843,7 +867,16 @@ export const update = mutation({
 
       // Send email notification to assignee if configured
       const newAssignee = await ctx.db.get(newAssigneeId);
-      if (newAssignee?.email && shouldNotifyOnAssignment(notificationSettings, ticket.type, "assignee")) {
+      const shouldNotifyAssignee = newAssignee?.email ? shouldNotifyOnAssignment(notificationSettings, ticket.type, "assignee") : false;
+      console.log("[ASSIGNMENT CHANGE] Email check for assignee:", {
+        assigneeId: newAssigneeId,
+        assigneeEmail: newAssignee?.email,
+        ticketType: ticket.type,
+        shouldNotify: shouldNotifyAssignee,
+        hasSettings: !!notificationSettings
+      });
+      
+      if (newAssignee?.email && shouldNotifyAssignee) {
         const emailHtml = buildEmailTemplate(
           templateConfig,
           updatedTicket,
@@ -853,6 +886,7 @@ export const update = mutation({
           newAssignee,
           process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
         );
+        console.log("[ASSIGNMENT CHANGE] Sending email notification to assignee:", newAssignee.email);
         await sendEmailNotification(
           ctx,
           newAssigneeId,
@@ -864,7 +898,16 @@ export const update = mutation({
       
       // Notify creator if configured (only if assignment actually changed to a different user)
       if (ticket.createdBy !== newAssigneeId) {
-        if (creator?.email && shouldNotifyOnAssignment(notificationSettings, ticket.type, "creator")) {
+        const shouldNotifyCreator = creator?.email ? shouldNotifyOnAssignment(notificationSettings, ticket.type, "creator") : false;
+        console.log("[ASSIGNMENT CHANGE] Email check for creator:", {
+          creatorId: ticket.createdBy,
+          creatorEmail: creator?.email,
+          ticketType: ticket.type,
+          shouldNotify: shouldNotifyCreator,
+          hasSettings: !!notificationSettings
+        });
+        
+        if (creator?.email && shouldNotifyCreator) {
           const emailHtml = buildEmailTemplate(
             templateConfig,
             updatedTicket,
@@ -874,6 +917,7 @@ export const update = mutation({
             newAssignee,
             process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
           );
+          console.log("[ASSIGNMENT CHANGE] Sending email notification to creator:", creator.email);
           await sendEmailNotification(
             ctx,
             ticket.createdBy,

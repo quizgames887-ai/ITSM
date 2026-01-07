@@ -115,6 +115,11 @@ export function shouldNotifyOnStatusChange(
   recipientType: "creator" | "assignee"
 ): boolean {
   if (!settings || !settings.enabled || !settings.notifyOnStatusChange) {
+    console.log("[shouldNotifyOnStatusChange] Early return:", {
+      hasSettings: !!settings,
+      enabled: settings?.enabled,
+      notifyOnStatusChange: settings?.notifyOnStatusChange
+    });
     return false;
   }
 
@@ -149,9 +154,16 @@ export function shouldNotifyOnStatusChange(
   }
 
   // Check recipient filters
-  if (recipientType === "creator" && !settings.notifyCreator) return false;
-  if (recipientType === "assignee" && !settings.notifyAssignee) return false;
+  if (recipientType === "creator" && !settings.notifyCreator) {
+    console.log("[shouldNotifyOnStatusChange] Recipient filter failed: creator not enabled");
+    return false;
+  }
+  if (recipientType === "assignee" && !settings.notifyAssignee) {
+    console.log("[shouldNotifyOnStatusChange] Recipient filter failed: assignee not enabled");
+    return false;
+  }
 
+  console.log("[shouldNotifyOnStatusChange] Returning true");
   return true;
 }
 
@@ -162,6 +174,11 @@ export function shouldNotifyOnAssignment(
   recipientType: "assignee" | "creator"
 ): boolean {
   if (!settings || !settings.enabled || !settings.notifyOnAssignment) {
+    console.log("[shouldNotifyOnAssignment] Early return:", {
+      hasSettings: !!settings,
+      enabled: settings?.enabled,
+      notifyOnAssignment: settings?.notifyOnAssignment
+    });
     return false;
   }
 
@@ -171,9 +188,16 @@ export function shouldNotifyOnAssignment(
   if (ticketType === "inquiry" && !settings.notifyForInquiries) return false;
 
   // Check recipient type
-  if (recipientType === "assignee" && !settings.notifyOnAssignmentToAssignee) return false;
-  if (recipientType === "creator" && !settings.notifyOnAssignmentToCreator) return false;
+  if (recipientType === "assignee" && !settings.notifyOnAssignmentToAssignee) {
+    console.log("[shouldNotifyOnAssignment] Recipient filter failed: assignee not enabled");
+    return false;
+  }
+  if (recipientType === "creator" && !settings.notifyOnAssignmentToCreator) {
+    console.log("[shouldNotifyOnAssignment] Recipient filter failed: creator not enabled");
+    return false;
+  }
 
+  console.log("[shouldNotifyOnAssignment] Returning true");
   return true;
 }
 
@@ -185,6 +209,11 @@ export function shouldNotifyOnPriorityChange(
   recipientType: "creator" | "assignee"
 ): boolean {
   if (!settings || !settings.enabled || !settings.notifyOnPriorityChange) {
+    console.log("[shouldNotifyOnPriorityChange] Early return:", {
+      hasSettings: !!settings,
+      enabled: settings?.enabled,
+      notifyOnPriorityChange: settings?.notifyOnPriorityChange
+    });
     return false;
   }
 
@@ -210,9 +239,16 @@ export function shouldNotifyOnPriorityChange(
   }
 
   // Check recipient filters
-  if (recipientType === "creator" && !settings.notifyCreator) return false;
-  if (recipientType === "assignee" && !settings.notifyAssignee) return false;
+  if (recipientType === "creator" && !settings.notifyCreator) {
+    console.log("[shouldNotifyOnPriorityChange] Recipient filter failed: creator not enabled");
+    return false;
+  }
+  if (recipientType === "assignee" && !settings.notifyAssignee) {
+    console.log("[shouldNotifyOnPriorityChange] Recipient filter failed: assignee not enabled");
+    return false;
+  }
 
+  console.log("[shouldNotifyOnPriorityChange] Returning true");
   return true;
 }
 
