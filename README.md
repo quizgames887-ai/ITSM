@@ -167,31 +167,70 @@ Make sure to set environment variables in your deployment platform.
 - `OPENAI_API_KEY`: Your OpenAI API key (optional, for AI features)
 
 ### Backend (Convex Dashboard)
-To enable real email sending using your Exchange SMTP configuration, configure one of the following in your Convex dashboard:
 
-**Option 1: SMTP2GO (Recommended - Works directly with Exchange SMTP)**
-1. Go to your [Convex Dashboard](https://dashboard.convex.dev)
-2. Select your project
-3. Navigate to **Settings** → **Environment Variables**
-4. Add environment variable:
-   - **Name**: `SMTP2GO_API_KEY` - Your SMTP2GO API key
+To enable email notifications for ticket creation and updates, configure email settings:
 
-**Option 2: Custom SMTP Relay URL**
-1. Set up your own SMTP HTTP relay endpoint (accepts SMTP credentials via HTTP)
+#### Email Service Provider (Choose One)
+
+**Option 1: Resend (Recommended - Free tier available)**
+1. Sign up at [resend.com](https://resend.com)
+2. Get your API key from Resend dashboard
+3. Add to Convex Dashboard → Settings → Environment Variables:
+   - **Name**: `RESEND_API_KEY`
+   - **Value**: `re_xxxxxxxxxxxxx` (your Resend API key)
+4. **Complete Setup Guide**: See [RESEND_SETUP.md](./RESEND_SETUP.md)
+
+**Option 2: SMTP2GO (Works with Exchange SMTP)**
+1. Sign up at [smtp2go.com](https://www.smtp2go.com)
+2. Create an API key
+3. Add to Convex Dashboard → Settings → Environment Variables:
+   - **Name**: `SMTP2GO_API_KEY`
+   - **Value**: Your SMTP2GO API key
+
+**Option 3: Mailgun**
+1. Sign up at [mailgun.com](https://www.mailgun.com)
+2. Get your API key and domain
+3. Add to Convex Dashboard → Settings → Environment Variables:
+   - **Name**: `MAILGUN_API_KEY`
+   - **Value**: Your Mailgun API key
+   - **Name**: `MAILGUN_DOMAIN`
+   - **Value**: Your verified Mailgun domain
+
+**Option 4: Custom SMTP Relay URL**
+1. Set up your own SMTP HTTP relay endpoint
 2. Add to Convex environment variables:
-   - **Name**: `SMTP_RELAY_URL` - URL of your SMTP relay endpoint
+   - **Name**: `SMTP_RELAY_URL`
+   - **Value**: URL of your SMTP relay endpoint
 
-**How to get SMTP2GO credentials:**
-1. Sign up for a free account at [smtp2go.com](https://www.smtp2go.com)
-2. Go to Settings → API Keys
-3. Create an API key
-4. Add it to Convex environment variables as `SMTP2GO_API_KEY`
+#### Configure Email Settings in Your App
 
-**Note**: 
-- Configure your Exchange SMTP settings (host, port, username, password) in the Email Settings page
-- The system reads your SMTP configuration and uses it with SMTP2GO or your custom relay to send emails
-- Without a relay service configured, emails will be simulated (logged but not actually sent)
-- Check the email logs to see if emails are marked as "Simulated" or "Real"
+After setting up the email service provider, configure SMTP settings in your application:
+
+1. **Log in as Admin** user
+2. **Navigate to Settings → Email Settings**
+3. **Configure SMTP Settings**:
+   - Email Integration Enabled: ✅ ON
+   - SMTP Enabled: ✅ ON
+   - SMTP Host: Your SMTP server (e.g., `mail.yourdomain.com`)
+   - SMTP Port: `465` (SSL) or `587` (STARTTLS)
+   - Use TLS/SSL: ✅ ON
+   - SMTP Username: Your email address
+   - SMTP Password: Your email password
+   - From Email: Sender email address
+   - From Name: Display name (optional)
+
+**📖 Complete Configuration Guide**: See [EMAIL_SETTINGS_CONFIGURATION.md](./EMAIL_SETTINGS_CONFIGURATION.md)
+
+**📖 Troubleshooting**: See [EMAIL_TROUBLESHOOTING.md](./EMAIL_TROUBLESHOOTING.md)
+
+#### Important Notes
+
+- **Resend is Recommended**: Free tier includes 3,000 emails/month
+- **SMTP Settings Required**: Even with Resend, you need to configure SMTP settings in the app
+- **Domain Verification**: For custom domains, verify in Resend dashboard
+- **Testing**: Use `onboarding@resend.dev` for testing without domain verification
+- **Redeploy**: After adding environment variables, run `npx convex deploy`
+- **Email Logs**: Check Email Settings → Email Logs to verify emails are being sent
 
 ## License
 

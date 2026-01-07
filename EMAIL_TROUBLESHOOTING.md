@@ -64,16 +64,41 @@ In the Email Logs table, look at the **Error Message** column. Common errors:
 
 ### ✅ Check SMTP Settings
 
-In Email Settings page, verify:
+In Email Settings page, verify all settings are configured correctly:
+
+**Required Settings:**
+- **Email Integration Enabled**: ✅ Toggled ON (Master switch)
 - **SMTP Enabled**: ✅ Toggled ON
-- **Email Integration Enabled**: ✅ Toggled ON
-- **SMTP Host**: `mail.palmware.co` (or your SMTP server)
-- **SMTP Port**: `465` (or `587`)
-- **Use TLS/SSL**: ✅ Checked
-- **SMTP Username**: Your email address
-- **SMTP Password**: Your email password
-- **From Email**: `info@palmware.co` (or verified domain)
-- **From Name**: Your name/company
+- **SMTP Host**: Your SMTP server (e.g., `mail.yourdomain.com`, `smtp.gmail.com`)
+- **SMTP Port**: `465` (SSL/TLS) or `587` (STARTTLS)
+- **Use TLS/SSL**: ✅ Checked (Required for security)
+- **SMTP Username**: Your full email address (e.g., `info@yourdomain.com`)
+- **SMTP Password**: Your email account password
+- **From Email**: Valid email address (e.g., `info@yourdomain.com` or `onboarding@resend.dev` for testing)
+- **From Name**: Display name (optional but recommended)
+
+**Provider-Specific Examples:**
+
+**HostGator:**
+```
+SMTP Host: mail.yourdomain.com
+SMTP Port: 465
+Use TLS/SSL: ✅
+SMTP Username: your-email@yourdomain.com
+From Email: your-email@yourdomain.com
+```
+
+**Gmail:**
+```
+SMTP Host: smtp.gmail.com
+SMTP Port: 465
+Use TLS/SSL: ✅
+SMTP Username: your-email@gmail.com
+SMTP Password: [App-specific password - see EMAIL_SETTINGS_CONFIGURATION.md]
+From Email: your-email@gmail.com
+```
+
+**For detailed configuration instructions, see: [EMAIL_SETTINGS_CONFIGURATION.md](./EMAIL_SETTINGS_CONFIGURATION.md)**
 
 ### ✅ Redeploy After Changes
 

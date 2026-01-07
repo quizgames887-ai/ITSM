@@ -59,22 +59,73 @@ Or if you're using Convex dev:
 npx convex dev
 ```
 
-## Step 6: Test Email Sending
+## Step 6: Configure Email Settings in Your App
 
-1. Go to your application's **Email Settings** page
-2. Make sure your SMTP settings are configured:
-   - **SMTP Host**: `mail.palmware.co`
-   - **SMTP Port**: `465`
-   - **Use TLS/SSL**: ✅ Checked
-   - **SMTP Username**: `info@palmware.co`
-   - **SMTP Password**: (your email password)
-   - **From Email**: `info@palmware.co`
-   - **From Name**: `Palmware`
-3. Click **"Test SMTP"**
-4. Enter a test email address
-5. Click **"Test SMTP"** button
+**⚠️ IMPORTANT**: After setting up Resend API key, you must configure email settings in your application.
 
-You should see: **"SMTP test email sent successfully via Resend"** ✅
+### Detailed Configuration Guide
+
+For complete step-by-step instructions, see: **[EMAIL_SETTINGS_CONFIGURATION.md](./EMAIL_SETTINGS_CONFIGURATION.md)**
+
+### Quick Configuration Steps
+
+1. **Access Email Settings**:
+   - Log in to your application as an **Admin** user
+   - Navigate to **Settings** → **Email Settings** (or similar page)
+
+2. **Enable Email Integration**:
+   - ✅ **Email Integration Enabled**: Turn ON
+   - ✅ **SMTP Enabled**: Turn ON
+
+3. **Configure SMTP Settings**:
+   - **SMTP Host**: `mail.yourdomain.com` (replace with your actual domain)
+     - For HostGator: `mail.yourdomain.com`
+     - For Gmail: `smtp.gmail.com`
+     - For Outlook: `smtp-mail.outlook.com`
+   
+   - **SMTP Port**: `465` (recommended) or `587`
+   
+   - **Use TLS/SSL**: ✅ Checked (required for security)
+   
+   - **SMTP Username**: Your full email address
+     - Example: `info@yourdomain.com`
+   
+   - **SMTP Password**: Your email account password
+     - For Gmail: Use an app-specific password (see [EMAIL_SETTINGS_CONFIGURATION.md](./EMAIL_SETTINGS_CONFIGURATION.md))
+   
+   - **From Email**: The email address that will appear as sender
+     - Example: `info@yourdomain.com`
+     - For testing: `onboarding@resend.dev` (doesn't require domain verification)
+   
+   - **From Name**: Display name (optional but recommended)
+     - Example: `Your Company Name` or `ITSM Support`
+
+4. **Save Settings**: Click "Save" or "Update Settings" button
+
+### Example Configuration (HostGator)
+
+```
+Email Integration Enabled: ✅ ON
+SMTP Enabled: ✅ ON
+SMTP Host: mail.yourdomain.com
+SMTP Port: 465
+Use TLS/SSL: ✅ ON
+SMTP Username: info@yourdomain.com
+SMTP Password: [Your email password]
+From Email: info@yourdomain.com
+From Name: Your Company Name
+```
+
+## Step 7: Test Email Sending
+
+1. In Email Settings page, scroll to **"Test SMTP Connection"** section
+2. Enter a test email address (use your own email for testing)
+3. Click **"Test SMTP"** button
+4. Wait for the result message
+
+**Expected Result**: **"SMTP test email sent successfully via Resend"** ✅
+
+5. Check your email inbox (and spam folder) for the test email
 
 ## How It Works
 
