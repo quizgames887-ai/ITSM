@@ -537,4 +537,100 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_enabled", ["enabled"]),
+
+  // Email Notification Settings - Controls which events trigger emails
+  notificationSettings: defineTable({
+    // Ticket creation events
+    notifyOnTicketCreated: v.boolean(), // Notify when ticket is created
+    notifyOnTicketCreatedForCreator: v.boolean(), // Notify ticket creator
+    notifyOnTicketCreatedForAssignee: v.boolean(), // Notify assigned agent
+    
+    // Ticket status change events
+    notifyOnStatusChange: v.boolean(), // Notify on any status change
+    notifyOnStatusChangeToNew: v.boolean(),
+    notifyOnStatusChangeToInProgress: v.boolean(),
+    notifyOnStatusChangeToOnHold: v.boolean(),
+    notifyOnStatusChangeToResolved: v.boolean(),
+    notifyOnStatusChangeToClosed: v.boolean(),
+    notifyOnStatusChangeToRejected: v.boolean(),
+    notifyOnStatusChangeToNeedApproval: v.boolean(),
+    
+    // Ticket assignment events
+    notifyOnAssignment: v.boolean(), // Notify when ticket is assigned
+    notifyOnAssignmentToAssignee: v.boolean(), // Notify the assigned agent
+    notifyOnAssignmentToCreator: v.boolean(), // Notify the ticket creator
+    
+    // Ticket priority change events
+    notifyOnPriorityChange: v.boolean(), // Notify on priority change
+    notifyOnPriorityChangeToLow: v.boolean(),
+    notifyOnPriorityChangeToMedium: v.boolean(),
+    notifyOnPriorityChangeToHigh: v.boolean(),
+    notifyOnPriorityChangeToCritical: v.boolean(),
+    
+    // Ticket type filters (only send for these types)
+    notifyForIncidents: v.boolean(), // Send notifications for incidents
+    notifyForServiceRequests: v.boolean(), // Send notifications for service requests
+    notifyForInquiries: v.boolean(), // Send notifications for inquiries
+    
+    // Recipient filters
+    notifyCreator: v.boolean(), // Always notify ticket creator
+    notifyAssignee: v.boolean(), // Always notify assigned agent
+    notifyWatchers: v.boolean(), // Notify users watching the ticket (future feature)
+    
+    // General settings
+    enabled: v.boolean(), // Master switch for all notifications
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_enabled", ["enabled"]),
+
+  // Email Template Configuration - Controls what information is included in emails
+  emailTemplateConfig: defineTable({
+    // Basic ticket information
+    includeTicketTitle: v.boolean(), // Include ticket title
+    includeTicketDescription: v.boolean(), // Include ticket description
+    includeTicketId: v.boolean(), // Include ticket ID
+    includeTicketNumber: v.boolean(), // Include ticket number (if different from ID)
+    
+    // Ticket metadata
+    includeCategory: v.boolean(), // Include category
+    includePriority: v.boolean(), // Include priority
+    includeStatus: v.boolean(), // Include status
+    includeType: v.boolean(), // Include ticket type (incident/service request/inquiry)
+    includeUrgency: v.boolean(), // Include urgency level
+    includeSlaDeadline: v.boolean(), // Include SLA deadline
+    includeCreatedDate: v.boolean(), // Include creation date
+    includeUpdatedDate: v.boolean(), // Include last update date
+    includeResolvedDate: v.boolean(), // Include resolution date (if resolved)
+    
+    // User information
+    includeCreatorName: v.boolean(), // Include creator name
+    includeCreatorEmail: v.boolean(), // Include creator email
+    includeAssigneeName: v.boolean(), // Include assignee name
+    includeAssigneeEmail: v.boolean(), // Include assignee email
+    
+    // Change information (for update notifications)
+    includeStatusChange: v.boolean(), // Include old and new status
+    includePriorityChange: v.boolean(), // Include old and new priority
+    includeAssignmentChange: v.boolean(), // Include assignment change details
+    
+    // Additional information
+    includeTicketLink: v.boolean(), // Include link to view ticket
+    includeComments: v.boolean(), // Include recent comments (future feature)
+    includeAttachments: v.boolean(), // Include attachment list (future feature)
+    includeFormData: v.boolean(), // Include form data for service requests
+    
+    // Email formatting
+    emailHeaderText: v.optional(v.string()), // Custom header text
+    emailFooterText: v.optional(v.string()), // Custom footer text
+    emailSignature: v.optional(v.string()), // Email signature
+    
+    // General settings
+    enabled: v.boolean(), // Master switch for template configuration
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_enabled", ["enabled"]),
 });

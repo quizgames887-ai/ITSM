@@ -289,8 +289,22 @@ export const testSMTP = action({
         // Try Resend API first (recommended)
         const resendApiKey = process.env.RESEND_API_KEY;
         
+        // #region agent log
+        await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:290',message:'Checking Resend API key',data:{hasResendApiKey:!!resendApiKey,resendApiKeyLength:resendApiKey?.length,fromEmail:smtpConfig.from,toEmail:args.testEmail},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A'})}).catch(()=>{});
+        // #endregion
+        
         if (resendApiKey) {
           const resendUrl = "https://api.resend.com/emails";
+          
+          // #region agent log
+          const requestBody = {
+            from: smtpConfig.from,
+            to: [args.testEmail],
+            subject: testSubject,
+            html: "<p>This is a test email to verify your SMTP configuration.</p>",
+          };
+          await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:295',message:'Sending Resend API request',data:{url:resendUrl,from:requestBody.from,to:requestBody.to,hasApiKey:!!resendApiKey},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'B'})}).catch(()=>{});
+          // #endregion
           
           const response: Response = await fetch(resendUrl, {
             method: "POST",
@@ -298,13 +312,14 @@ export const testSMTP = action({
               "Authorization": `Bearer ${resendApiKey}`,
               "Content-Type": "application/json",
             },
-            body: JSON.stringify({
-              from: smtpConfig.from,
-              to: [args.testEmail],
-              subject: testSubject,
-              html: "<p>This is a test email to verify your SMTP configuration.</p>",
-            }),
+            body: JSON.stringify(requestBody),
           });
+          
+          // #region agent log
+          const responseStatus = response.status;
+          const responseOk = response.ok;
+          await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:308',message:'Resend API response received',data:{status:responseStatus,ok:responseOk,statusText:response.statusText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+          // #endregion
           
           if (response.ok) {
             const data: { id?: string } = await response.json();
@@ -312,8 +327,14 @@ export const testSMTP = action({
             isSimulated = false;
             successMessage = "SMTP test email sent successfully via Resend";
             console.log("Test email sent successfully via Resend:", { messageId, to: args.testEmail });
+            // #region agent log
+            await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:314',message:'Resend API success',data:{messageId,to:args.testEmail},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
+            // #endregion
           } else {
             const errorData: any = await response.json();
+            // #region agent log
+            await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:317',message:'Resend API error response',data:{status:responseStatus,errorData,errorMessage:errorData?.message,fullError:JSON.stringify(errorData)},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'E'})}).catch(()=>{});
+            // #endregion
             throw new Error(errorData.message || `Resend error: ${response.status}`);
           }
         } else {
@@ -386,6 +407,9 @@ export const testSMTP = action({
         }
       } catch (apiError: any) {
         console.warn("SMTP test failed, will be simulated:", apiError.message);
+        // #region agent log
+        await fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'email.ts:387',message:'API error caught, simulating email',data:{errorMessage:apiError.message,errorStack:apiError.stack,willSimulate:true},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'F'})}).catch(()=>{});
+        // #endregion
         successMessage = `SMTP test simulated: ${apiError.message}`;
         // Continue to simulation
       }

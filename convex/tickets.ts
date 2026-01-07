@@ -2,6 +2,13 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 import { api } from "./_generated/api";
+import {
+  shouldNotifyOnTicketCreated,
+  shouldNotifyOnStatusChange,
+  shouldNotifyOnAssignment,
+  shouldNotifyOnPriorityChange,
+  buildEmailTemplate,
+} from "./emailHelpers";
 
 // Helper function to create notification
 async function createNotification(
@@ -378,6 +385,27 @@ export const create = mutation({
       );
     }
 
+    // Get notification settings and template config
+    const notificationSettingsList = await ctx.db.query("notificationSettings").collect();
+    const notificationSettings = notificationSettingsList.length > 0 
+      ? notificationSettingsList.sort((a, b) => b.updatedAt - a.updatedAt)[0] 
+      : null;
+    
+    const templateConfigList = await ctx.db.query("emailTemplateConfig").collect();
+    const templateConfig = templateConfigList.length > 0 
+      ? templateConfigList.sort((a, b) => b.updatedAt - a.updatedAt)[0] 
+      : null;
+    
+    // Get ticket for template building
+    const createdTicket = await ctx.db.get(ticketId);
+    if (!createdTicket) {
+      throw new Error("Failed to retrieve created ticket");
+    }
+    
+    // Get creator and assignee for template
+    const creator = await ctx.db.get(args.createdBy);
+    const assignee = assignedTo ? await ctx.db.get(assignedTo) : null;
+
     // If assigned to someone (manual or auto), notify them
     if (assignedTo) {
       const assignmentType = autoAssignRuleName ? "auto-assigned" : "assigned";
@@ -390,31 +418,45 @@ export const create = mutation({
         ticketId
       );
 
-      // Send email notification to assignee
-      const assignee = await ctx.db.get(assignedTo);
-      if (assignee?.email) {
-        const assigneeEmailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #2563eb;">New Ticket Assigned</h2>
-            <p>You have been ${assignmentType} a new ticket: <strong>"${args.title}"</strong></p>
-            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p><strong>Category:</strong> ${args.category}</p>
-              <p><strong>Priority:</strong> ${args.priority}</p>
-              <p><strong>Type:</strong> ${args.type}</p>
-              <p><strong>Description:</strong> ${args.description.substring(0, 200)}${args.description.length > 200 ? '...' : ''}</p>
-              ${autoAssignRuleName ? `<p><strong>Assignment Rule:</strong> ${autoAssignRuleName}</p>` : ""}
-            </div>
-            <p>Please review and respond to this ticket as soon as possible.</p>
-          </div>
-        `;
+      // Send email notification to assignee if configured
+      if (assignee?.email && shouldNotifyOnTicketCreated(notificationSettings, args.type, "assignee")) {
+        const emailHtml = buildEmailTemplate(
+          templateConfig,
+          createdTicket,
+          "created",
+          undefined,
+          creator || undefined,
+          assignee,
+          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+        );
         await sendEmailNotification(
           ctx,
           assignedTo,
           `New Ticket Assigned: ${args.title}`,
-          assigneeEmailHtml,
+          emailHtml,
           ticketId
         );
       }
+    }
+    
+    // Notify creator if configured
+    if (creator?.email && shouldNotifyOnTicketCreated(notificationSettings, args.type, "creator")) {
+      const emailHtml = buildEmailTemplate(
+        templateConfig,
+        createdTicket,
+        "created",
+        undefined,
+        creator,
+        assignee,
+        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+      );
+      await sendEmailNotification(
+        ctx,
+        args.createdBy,
+        `Ticket Created: ${args.title}`,
+        emailHtml,
+        ticketId
+      );
     }
 
     // Increment request count for the service category
@@ -680,6 +722,27 @@ export const update = mutation({
       usersToNotify.add(ticket.assignedTo);
     }
 
+    // Get notification settings and template config
+    const notificationSettingsList = await ctx.db.query("notificationSettings").collect();
+    const notificationSettings = notificationSettingsList.length > 0 
+      ? notificationSettingsList.sort((a, b) => b.updatedAt - a.updatedAt)[0] 
+      : null;
+    
+    const templateConfigList = await ctx.db.query("emailTemplateConfig").collect();
+    const templateConfig = templateConfigList.length > 0 
+      ? templateConfigList.sort((a, b) => b.updatedAt - a.updatedAt)[0] 
+      : null;
+    
+    // Get updated ticket
+    const updatedTicket = await ctx.db.get(id);
+    if (!updatedTicket) {
+      throw new Error("Failed to retrieve updated ticket");
+    }
+    
+    // Get creator and assignee for template
+    const creator = await ctx.db.get(ticket.createdBy);
+    const assignee = updatedTicket.assignedTo ? await ctx.db.get(updatedTicket.assignedTo) : null;
+
     // Status change notification
     if (changes.status) {
       const statusMessage = getStatusMessage(changes.status.new);
@@ -693,27 +756,30 @@ export const update = mutation({
           id
         );
 
-        // Send email notification
+        // Send email notification if configured
         const user = await ctx.db.get(userId as Id<"users">);
         if (user?.email) {
-          const emailHtml = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #2563eb;">Ticket Status Updated</h2>
-              <p>Ticket <strong>"${ticket.title}"</strong> ${statusMessage}</p>
-              <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p><strong>Previous Status:</strong> ${changes.status.old}</p>
-                <p><strong>New Status:</strong> ${changes.status.new}</p>
-              </div>
-              <p>You can view the updated ticket in the system.</p>
-            </div>
-          `;
-          await sendEmailNotification(
-            ctx,
-            userId as Id<"users">,
-            `Ticket Status Updated: ${ticket.title}`,
-            emailHtml,
-            id
-          );
+          // Determine recipient type
+          const recipientType = userId === ticket.createdBy ? "creator" : "assignee";
+          
+          if (shouldNotifyOnStatusChange(notificationSettings, ticket.type, changes.status.new, recipientType)) {
+            const emailHtml = buildEmailTemplate(
+              templateConfig,
+              updatedTicket,
+              "status_changed",
+              { old: { status: changes.status.old }, new: { status: changes.status.new } },
+              creator || undefined,
+              assignee,
+              process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+            );
+            await sendEmailNotification(
+              ctx,
+              userId as Id<"users">,
+              `Ticket Status Updated: ${ticket.title}`,
+              emailHtml,
+              id
+            );
+          }
         }
       }
     }
@@ -730,27 +796,30 @@ export const update = mutation({
           id
         );
 
-        // Send email notification
+        // Send email notification if configured
         const user = await ctx.db.get(userId as Id<"users">);
         if (user?.email) {
-          const emailHtml = `
-            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-              <h2 style="color: #2563eb;">Ticket Priority Changed</h2>
-              <p>Ticket <strong>"${ticket.title}"</strong> priority has been changed.</p>
-              <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
-                <p><strong>Previous Priority:</strong> ${changes.priority.old}</p>
-                <p><strong>New Priority:</strong> ${changes.priority.new}</p>
-              </div>
-              <p>You can view the updated ticket in the system.</p>
-            </div>
-          `;
-          await sendEmailNotification(
-            ctx,
-            userId as Id<"users">,
-            `Ticket Priority Changed: ${ticket.title}`,
-            emailHtml,
-            id
-          );
+          // Determine recipient type
+          const recipientType = userId === ticket.createdBy ? "creator" : "assignee";
+          
+          if (shouldNotifyOnPriorityChange(notificationSettings, ticket.type, changes.priority.new, recipientType)) {
+            const emailHtml = buildEmailTemplate(
+              templateConfig,
+              updatedTicket,
+              "priority_changed",
+              { old: { priority: changes.priority.old }, new: { priority: changes.priority.new } },
+              creator || undefined,
+              assignee,
+              process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+            );
+            await sendEmailNotification(
+              ctx,
+              userId as Id<"users">,
+              `Ticket Priority Changed: ${ticket.title}`,
+              emailHtml,
+              id
+            );
+          }
         }
       }
     }
@@ -766,24 +835,41 @@ export const update = mutation({
         id
       );
 
-      // Send email notification
-      const assignee = await ctx.db.get(updates.assignedTo);
-      if (assignee?.email) {
-        const emailHtml = `
-          <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-            <h2 style="color: #2563eb;">Ticket Assigned to You</h2>
-            <p>You have been assigned to ticket: <strong>"${ticket.title}"</strong></p>
-            <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
-              <p><strong>Category:</strong> ${ticket.category}</p>
-              <p><strong>Priority:</strong> ${ticket.priority}</p>
-              <p><strong>Status:</strong> ${ticket.status}</p>
-            </div>
-            <p>Please review and respond to this ticket as soon as possible.</p>
-          </div>
-        `;
+      // Send email notification to assignee if configured
+      const newAssignee = await ctx.db.get(updates.assignedTo);
+      if (newAssignee?.email && shouldNotifyOnAssignment(notificationSettings, ticket.type, "assignee")) {
+        const emailHtml = buildEmailTemplate(
+          templateConfig,
+          updatedTicket,
+          "assigned",
+          { old: { assignedTo: changes.assignedTo.old }, new: { assignedTo: changes.assignedTo.new } },
+          creator || undefined,
+          newAssignee,
+          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+        );
         await sendEmailNotification(
           ctx,
           updates.assignedTo,
+          `Ticket Assigned: ${ticket.title}`,
+          emailHtml,
+          id
+        );
+      }
+      
+      // Notify creator if configured
+      if (creator?.email && shouldNotifyOnAssignment(notificationSettings, ticket.type, "creator")) {
+        const emailHtml = buildEmailTemplate(
+          templateConfig,
+          updatedTicket,
+          "assigned",
+          { old: { assignedTo: changes.assignedTo.old }, new: { assignedTo: changes.assignedTo.new } },
+          creator,
+          newAssignee,
+          process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+        );
+        await sendEmailNotification(
+          ctx,
+          ticket.createdBy,
           `Ticket Assigned: ${ticket.title}`,
           emailHtml,
           id
@@ -840,6 +926,27 @@ export const assign = mutation({
       createdAt: now,
     });
 
+    // Get notification settings and template config
+    const notificationSettingsList = await ctx.db.query("notificationSettings").collect();
+    const notificationSettings = notificationSettingsList.length > 0 
+      ? notificationSettingsList.sort((a, b) => b.updatedAt - a.updatedAt)[0] 
+      : null;
+    
+    const templateConfigList = await ctx.db.query("emailTemplateConfig").collect();
+    const templateConfig = templateConfigList.length > 0 
+      ? templateConfigList.sort((a, b) => b.updatedAt - a.updatedAt)[0] 
+      : null;
+    
+    // Get updated ticket
+    const updatedTicket = await ctx.db.get(args.id);
+    if (!updatedTicket) {
+      throw new Error("Failed to retrieve updated ticket");
+    }
+    
+    // Get creator and assignee for template
+    const creator = await ctx.db.get(ticket.createdBy);
+    const assignee = await ctx.db.get(args.assignedTo);
+
     // Notify the new assignee
     await createNotification(
       ctx,
@@ -850,26 +957,42 @@ export const assign = mutation({
       args.id
     );
 
-    // Send email notification to assignee
-    const assignee = await ctx.db.get(args.assignedTo);
-    if (assignee?.email) {
-      const assigneeEmailHtml = `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px;">
-          <h2 style="color: #2563eb;">Ticket Assigned to You</h2>
-          <p>You have been assigned to ticket: <strong>"${ticket.title}"</strong></p>
-          <div style="background-color: #f3f4f6; padding: 15px; border-radius: 5px; margin: 20px 0;">
-            <p><strong>Category:</strong> ${ticket.category}</p>
-            <p><strong>Priority:</strong> ${ticket.priority}</p>
-            <p><strong>Status:</strong> ${ticket.status}</p>
-          </div>
-          <p>Please review and respond to this ticket as soon as possible.</p>
-        </div>
-      `;
+    // Send email notification to assignee if configured
+    if (assignee?.email && shouldNotifyOnAssignment(notificationSettings, ticket.type, "assignee")) {
+      const emailHtml = buildEmailTemplate(
+        templateConfig,
+        updatedTicket,
+        "assigned",
+        { old: { assignedTo: ticket.assignedTo }, new: { assignedTo: args.assignedTo } },
+        creator || undefined,
+        assignee,
+        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+      );
       await sendEmailNotification(
         ctx,
         args.assignedTo,
         `Ticket Assigned: ${ticket.title}`,
-        assigneeEmailHtml,
+        emailHtml,
+        args.id
+      );
+    }
+    
+    // Notify creator if configured
+    if (creator?.email && shouldNotifyOnAssignment(notificationSettings, ticket.type, "creator")) {
+      const emailHtml = buildEmailTemplate(
+        templateConfig,
+        updatedTicket,
+        "assigned",
+        { old: { assignedTo: ticket.assignedTo }, new: { assignedTo: args.assignedTo } },
+        creator,
+        assignee,
+        process.env.NEXT_PUBLIC_BASE_URL || "http://localhost:3000"
+      );
+      await sendEmailNotification(
+        ctx,
+        ticket.createdBy,
+        `Ticket Assigned: ${ticket.title}`,
+        emailHtml,
         args.id
       );
     }
