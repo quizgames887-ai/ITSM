@@ -620,140 +620,190 @@ export const deleteUser = mutation({
     currentUserId: v.id("users"), // Admin user making the deletion
   },
   handler: async (ctx, args) => {
-    // Verify the current user exists and is admin
-    const currentUser = await ctx.db.get(args.currentUserId);
-    if (!currentUser) {
-      throw new Error("Authentication required");
-    }
-    
-    if (currentUser.role !== "admin") {
-      throw new Error("Only admins can delete users");
-    }
-
-    // Prevent deleting yourself
-    if (args.userId === args.currentUserId) {
-      throw new Error("You cannot delete your own account");
-    }
-
-    // Verify the target user exists
-    const user = await ctx.db.get(args.userId);
-    if (!user) {
-      throw new Error("User not found");
-    }
-
-    // Delete related data
-    // 1. Delete password record
-    const passwordRecord = await ctx.db
-      .query("userPasswords")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .first();
-    if (passwordRecord) {
-      await ctx.db.delete(passwordRecord._id);
-    }
-
-    // 2. Delete profile picture if exists
-    if (user.profilePictureId) {
-      try {
-        await ctx.storage.delete(user.profilePictureId);
-      } catch (error) {
-        console.warn("Could not delete profile picture:", error);
+    try {
+      // Verify the current user exists and is admin
+      const currentUser = await ctx.db.get(args.currentUserId);
+      if (!currentUser) {
+        throw new Error("Authentication required");
       }
-    }
+      
+      if (currentUser.role !== "admin") {
+        throw new Error("Only admins can delete users");
+      }
 
-    // 3. Delete tickets created by this user (or reassign - for now we'll delete)
-    const userTickets = await ctx.db
-      .query("tickets")
-      .withIndex("by_createdBy", (q) => q.eq("createdBy", args.userId))
-      .collect();
-    
-    for (const ticket of userTickets) {
-      // Delete ticket comments
-      const comments = await ctx.db
-        .query("ticketComments")
-        .withIndex("by_ticketId", (q) => q.eq("ticketId", ticket._id))
+      // Prevent deleting yourself
+      if (args.userId === args.currentUserId) {
+        throw new Error("You cannot delete your own account");
+      }
+
+      // Verify the target user exists
+      const user = await ctx.db.get(args.userId);
+      if (!user) {
+        throw new Error("User not found");
+      }
+
+      // Delete related data
+      // 1. Delete password record
+      const passwordRecord = await ctx.db
+        .query("userPasswords")
+        .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
+        .first();
+      if (passwordRecord) {
+        await ctx.db.delete(passwordRecord._id);
+      }
+
+      // 2. Delete profile picture if exists
+      if (user.profilePictureId) {
+        try {
+          await ctx.storage.delete(user.profilePictureId);
+        } catch (error) {
+          console.warn("Could not delete profile picture:", error);
+        }
+      }
+
+      // 3. Delete tickets created by this user (or reassign - for now we'll delete)
+      const userTickets = await ctx.db
+        .query("tickets")
+        .withIndex("by_createdBy", (q: any) => q.eq("createdBy", args.userId))
         .collect();
-      for (const comment of comments) {
+      
+      for (const ticket of userTickets) {
+        // Delete ticket comments
+        const comments = await ctx.db
+          .query("ticketComments")
+          .withIndex("by_ticketId", (q: any) => q.eq("ticketId", ticket._id))
+          .collect();
+        for (const comment of comments) {
+          await ctx.db.delete(comment._id);
+        }
+
+        // Delete ticket history
+        const history = await ctx.db
+          .query("ticketHistory")
+          .withIndex("by_ticketId", (q: any) => q.eq("ticketId", ticket._id))
+          .collect();
+        for (const entry of history) {
+          await ctx.db.delete(entry._id);
+        }
+
+        // Delete approval requests for this ticket
+        const ticketApprovalRequests = await ctx.db
+          .query("approvalRequests")
+          .withIndex("by_ticketId", (q: any) => q.eq("ticketId", ticket._id))
+          .collect();
+        for (const request of ticketApprovalRequests) {
+          await ctx.db.delete(request._id);
+        }
+
+        // Delete the ticket
+        await ctx.db.delete(ticket._id);
+      }
+
+      // 4. Unassign tickets assigned to this user (don't delete them, just unassign)
+      const assignedTickets = await ctx.db
+        .query("tickets")
+        .withIndex("by_assignedTo", (q: any) => q.eq("assignedTo", args.userId))
+        .collect();
+      
+      for (const ticket of assignedTickets) {
+        // Unassign the ticket (set to null)
+        await ctx.db.patch(ticket._id, {
+          assignedTo: null,
+          updatedAt: Date.now(),
+        });
+      }
+
+      // 5. Delete comments by this user
+      const userComments = await ctx.db
+        .query("ticketComments")
+        .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
+        .collect();
+      for (const comment of userComments) {
         await ctx.db.delete(comment._id);
       }
 
-      // Delete ticket history
-      const history = await ctx.db
+      // 6. Delete ticket history entries by this user
+      const userHistory = await ctx.db
         .query("ticketHistory")
-        .withIndex("by_ticketId", (q) => q.eq("ticketId", ticket._id))
+        .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
         .collect();
-      for (const entry of history) {
+      for (const entry of userHistory) {
         await ctx.db.delete(entry._id);
       }
 
-      // Delete the ticket
-      await ctx.db.delete(ticket._id);
+      // 7. Delete approval requests where this user is the approver
+      const userApprovalRequests = await ctx.db
+        .query("approvalRequests")
+        .withIndex("by_approverId", (q: any) => q.eq("approverId", args.userId))
+        .collect();
+      for (const request of userApprovalRequests) {
+        await ctx.db.delete(request._id);
+      }
+
+      // 8. Delete notifications for this user
+      const notifications = await ctx.db
+        .query("notifications")
+        .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
+        .collect();
+      for (const notification of notifications) {
+        await ctx.db.delete(notification._id);
+      }
+
+      // 9. Remove user from teams
+      const teamMemberships = await ctx.db
+        .query("teamMembers")
+        .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
+        .collect();
+      for (const membership of teamMemberships) {
+        await ctx.db.delete(membership._id);
+      }
+
+      // 10. Delete service favorites
+      const favorites = await ctx.db
+        .query("serviceFavorites")
+        .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
+        .collect();
+      for (const favorite of favorites) {
+        await ctx.db.delete(favorite._id);
+      }
+
+      // 11. Delete todos
+      const todos = await ctx.db
+        .query("todos")
+        .withIndex("by_createdBy", (q: any) => q.eq("createdBy", args.userId))
+        .collect();
+      for (const todo of todos) {
+        await ctx.db.delete(todo._id);
+      }
+
+      // 12. Delete user votes
+      const userVotes = await ctx.db
+        .query("userVotes")
+        .withIndex("by_userId", (q: any) => q.eq("userId", args.userId))
+        .collect();
+      for (const vote of userVotes) {
+        await ctx.db.delete(vote._id);
+      }
+
+      // 13. Delete suggestions by this user
+      const suggestions = await ctx.db
+        .query("suggestions")
+        .withIndex("by_createdBy", (q: any) => q.eq("createdBy", args.userId))
+        .collect();
+      for (const suggestion of suggestions) {
+        await ctx.db.delete(suggestion._id);
+      }
+
+      // Finally, delete the user
+      await ctx.db.delete(args.userId);
+
+      return {
+        success: true,
+        message: `User ${user.name} deleted successfully`,
+      };
+    } catch (error: any) {
+      console.error("Error deleting user:", error);
+      throw new Error(error.message || "Failed to delete user");
     }
-
-    // 4. Delete tickets assigned to this user
-    const assignedTickets = await ctx.db
-      .query("tickets")
-      .withIndex("by_assignedTo", (q) => q.eq("assignedTo", args.userId))
-      .collect();
-    
-    for (const ticket of assignedTickets) {
-      // Unassign the ticket (set to null)
-      await ctx.db.patch(ticket._id, {
-        assignedTo: null,
-        updatedAt: Date.now(),
-      });
-    }
-
-    // 5. Delete comments by this user
-    const userComments = await ctx.db
-      .query("ticketComments")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-    for (const comment of userComments) {
-      await ctx.db.delete(comment._id);
-    }
-
-    // 6. Delete notifications for this user
-    const notifications = await ctx.db
-      .query("notifications")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-    for (const notification of notifications) {
-      await ctx.db.delete(notification._id);
-    }
-
-    // 7. Remove user from teams
-    const teamMemberships = await ctx.db
-      .query("teamMembers")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-    for (const membership of teamMemberships) {
-      await ctx.db.delete(membership._id);
-    }
-
-    // 8. Delete service favorites
-    const favorites = await ctx.db
-      .query("serviceFavorites")
-      .withIndex("by_userId", (q) => q.eq("userId", args.userId))
-      .collect();
-    for (const favorite of favorites) {
-      await ctx.db.delete(favorite._id);
-    }
-
-    // 9. Delete todos
-    const todos = await ctx.db
-      .query("todos")
-      .withIndex("by_createdBy", (q) => q.eq("createdBy", args.userId))
-      .collect();
-    for (const todo of todos) {
-      await ctx.db.delete(todo._id);
-    }
-
-    // Finally, delete the user
-    await ctx.db.delete(args.userId);
-
-    return {
-      success: true,
-      message: `User ${user.name} deleted successfully`,
-    };
   },
 });
