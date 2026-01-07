@@ -64,6 +64,8 @@ export default function DashboardLayout({
     if (pathname === "/voting") return t("voting.title", "Voting Management");
     if (pathname === "/suggestions") return t("suggestions.title", "Suggestions Management");
     if (pathname === "/translations") return t("nav.translations", "Translations");
+    if (pathname === "/settings/email") return "Email Settings";
+    if (pathname === "/settings/exchange") return "Exchange Integration";
     if (pathname === "/profile") return t("profile.title", "Profile");
     return "Palmware";
   };
