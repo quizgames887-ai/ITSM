@@ -54,7 +54,7 @@ export default function UsersPage() {
   const [activeTab, setActiveTab] = useState<"users" | "teams">("users");
   const [searchTerm, setSearchTerm] = useState("");
   const [roleFilter, setRoleFilter] = useState<string>("all");
-  const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "createdAt" | "status">("name");
+  const [sortBy, setSortBy] = useState<"name" | "email" | "role" | "createdAt" | "status" | "lastSessionAt">("name");
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
   const [editingUser, setEditingUser] = useState<Id<"users"> | null>(null);
   const [editingField, setEditingField] = useState<EditingField>(null);
