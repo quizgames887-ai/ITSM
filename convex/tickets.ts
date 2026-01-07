@@ -402,8 +402,7 @@ export const create = mutation({
       throw new Error("Failed to retrieve created ticket");
     }
     
-    // Get creator and assignee for template
-    const creator = await ctx.db.get(args.createdBy);
+    // Get assignee for template (creator already retrieved above)
     const assignee = assignedTo ? await ctx.db.get(assignedTo) : null;
 
     // If assigned to someone (manual or auto), notify them
@@ -686,7 +685,7 @@ export const update = mutation({
     }
 
     // Update ticket
-    const updatedTicket: any = {
+    const patchData: any = {
       ...updates,
       updatedAt: now,
       resolvedAt:
@@ -697,10 +696,10 @@ export const update = mutation({
 
     // Only update slaDeadline if it was recalculated
     if (slaDeadline !== null && slaDeadline !== ticket.slaDeadline) {
-      updatedTicket.slaDeadline = slaDeadline;
+      patchData.slaDeadline = slaDeadline;
     }
 
-    await ctx.db.patch(id, updatedTicket);
+    await ctx.db.patch(id, patchData);
 
     // Create history entries (using ticket creator for now)
     // Will be enhanced with proper user tracking later
