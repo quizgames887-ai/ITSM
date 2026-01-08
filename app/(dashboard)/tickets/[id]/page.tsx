@@ -262,12 +262,16 @@ export default function TicketDetailPage({
 
   const [commentText, setCommentText] = useState("");
   const [commentVisibility, setCommentVisibility] = useState<"internal" | "external">("external");
+  const [commentAttachments, setCommentAttachments] = useState<Id<"_storage">[]>([]);
+  const [uploadingAttachment, setUploadingAttachment] = useState(false);
   const [loading, setLoading] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [selectedApprovalRequest, setSelectedApprovalRequest] = useState<any>(null);
   const [approvalActionType, setApprovalActionType] = useState<"approve" | "reject" | "need_more_info" | null>(null);
   const [approvalComments, setApprovalComments] = useState("");
   const { success, error: showError } = useToastContext();
+  
+  const generateUploadUrl = useMutation(api.serviceCatalog.generateUploadUrl);
 
   if (ticket === undefined || comments === undefined) {
     return (
@@ -332,9 +336,54 @@ export default function TicketDetailPage({
     }
   };
 
+  const handleFileUpload = async (file: File): Promise<Id<"_storage"> | null> => {
+    setUploadingAttachment(true);
+    try {
+      // Generate upload URL
+      const uploadUrl = await generateUploadUrl();
+      if (!uploadUrl || typeof uploadUrl !== "string") {
+        throw new Error("Failed to generate upload URL");
+      }
+
+      // Upload file to Convex storage
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResult.ok) {
+        const errorText = await uploadResult.text();
+        throw new Error(`Failed to upload file: ${errorText || uploadResult.statusText}`);
+      }
+
+      // Get storage ID from the response
+      const responseText = await uploadResult.text();
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        throw new Error(`Invalid response format: ${responseText.substring(0, 200)}`);
+      }
+
+      const storageId = responseData?.storageId;
+      if (!storageId) {
+        throw new Error("Failed to get storage ID from upload response");
+      }
+
+      return storageId as Id<"_storage">;
+    } catch (error: any) {
+      console.error("File upload error:", error);
+      showError(error.message || "Failed to upload file");
+      return null;
+    } finally {
+      setUploadingAttachment(false);
+    }
+  };
+
   const handleCommentSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!commentText.trim()) return;
+    if (!commentText.trim() && commentAttachments.length === 0) return;
 
     setLoading(true);
     try {
@@ -349,7 +398,8 @@ export default function TicketDetailPage({
         await createComment({
           ticketId,
           userId: userId as any,
-          content: commentText,
+          content: commentText.trim() || "",
+          attachmentIds: commentAttachments.length > 0 ? commentAttachments : undefined,
           visibility: visibility,
         });
       } catch (error: any) {
@@ -359,7 +409,8 @@ export default function TicketDetailPage({
           await createComment({
             ticketId,
             userId: userId as any,
-            content: commentText,
+            content: commentText.trim() || "",
+            attachmentIds: commentAttachments.length > 0 ? commentAttachments : undefined,
           } as any);
         } else {
           throw error;
@@ -368,6 +419,7 @@ export default function TicketDetailPage({
       
       setCommentText("");
       setCommentVisibility("external"); // Reset to external after posting
+      setCommentAttachments([]); // Clear attachments
       success("Comment posted successfully!");
     } catch (error: any) {
       const errorMessage = error.message || "Failed to post comment";
@@ -961,6 +1013,18 @@ export default function TicketDetailPage({
                     <p className="text-sm text-slate-700 whitespace-pre-wrap leading-relaxed pl-12">
                       {comment.content}
                     </p>
+                    
+                    {/* Display attachments in comment */}
+                    {comment.attachmentIds && comment.attachmentIds.length > 0 && (
+                      <div className="mt-3 pl-12">
+                        <p className="text-xs font-medium text-slate-500 mb-2">Attachments:</p>
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
+                          {comment.attachmentIds.map((attachmentId: Id<"_storage">, idx: number) => (
+                            <AttachmentItem key={idx} storageId={attachmentId} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })
@@ -975,6 +1039,66 @@ export default function TicketDetailPage({
               placeholder="Write a comment..."
               rows={3}
             />
+            
+            {/* File Attachment Section */}
+            <div className="space-y-2">
+              <label className="block text-sm font-medium text-slate-700">
+                Attach File (Optional)
+              </label>
+              <div className="flex items-center gap-3">
+                <input
+                  type="file"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const storageId = await handleFileUpload(file);
+                      if (storageId) {
+                        setCommentAttachments(prev => [...prev, storageId]);
+                        success("File attached successfully!");
+                      }
+                    }
+                  }}
+                  disabled={uploadingAttachment}
+                  className="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
+                />
+                {uploadingAttachment && (
+                  <div className="flex items-center gap-2 text-sm text-blue-600">
+                    <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Uploading...
+                  </div>
+                )}
+              </div>
+              
+              {/* Show attached files */}
+              {commentAttachments.length > 0 && (
+                <div className="flex flex-wrap gap-2 mt-2">
+                  {commentAttachments.map((attachmentId, idx) => (
+                    <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                      <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                      </svg>
+                      <span className="text-blue-700 font-medium">File {idx + 1}</span>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCommentAttachments(prev => prev.filter((_, i) => i !== idx));
+                        }}
+                        className="ml-1 text-blue-600 hover:text-blue-800"
+                        title="Remove attachment"
+                      >
+                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            
             {/* Only show visibility selector to agents and admins - hidden from end users */}
             {currentUser && isAgentOrAdmin && (
               <div className="flex items-center gap-3">
@@ -1014,7 +1138,7 @@ export default function TicketDetailPage({
               <Button
                 type="submit"
                 variant="gradient"
-                disabled={loading || !commentText.trim()}
+                disabled={loading || uploadingAttachment || (!commentText.trim() && commentAttachments.length === 0)}
                 loading={loading}
               >
                 {loading ? "Posting..." : "Post Comment"}
