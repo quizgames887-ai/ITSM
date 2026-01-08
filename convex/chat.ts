@@ -322,6 +322,32 @@ export const getUnreadCount = query({
   },
 });
 
+// Get active chat sessions count for a user
+export const getActiveSessionsCount = query({
+  args: {
+    userId: v.id("users"),
+  },
+  handler: async (ctx, args) => {
+    // Get all conversations where user is a participant
+    const conversations = await ctx.db
+      .query("chatConversations")
+      .collect();
+
+    // Filter conversations where user is a participant
+    const userConversations = conversations.filter(conv => 
+      conv.participantIds.includes(args.userId)
+    );
+
+    // Count active sessions (conversations with recent activity in last 24 hours)
+    const oneDayAgo = Date.now() - (24 * 60 * 60 * 1000);
+    const activeSessions = userConversations.filter(conv => 
+      conv.lastMessageAt && conv.lastMessageAt >= oneDayAgo
+    );
+
+    return activeSessions.length;
+  },
+});
+
 // Get storage URL for attachments
 export const getStorageUrl = query({
   args: {
