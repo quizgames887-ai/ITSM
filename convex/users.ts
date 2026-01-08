@@ -85,6 +85,43 @@ export const list = query({
   },
 });
 
+// Get available agents (online and available for chat)
+export const getAvailableAgents = query({
+  args: {},
+  handler: async (ctx) => {
+    const now = Date.now();
+    const fiveMinutesAgo = now - 5 * 60 * 1000; // Consider online if active in last 5 minutes
+    
+    const allUsers = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "agent"))
+      .collect();
+    
+    // Also include admins as they can also help
+    const admins = await ctx.db
+      .query("users")
+      .withIndex("by_role", (q) => q.eq("role", "admin"))
+      .collect();
+    
+    const agentsAndAdmins = [...allUsers, ...admins];
+    
+    // Filter by online status (lastSessionAt within last 5 minutes)
+    const availableAgents = agentsAndAdmins
+      .filter(user => {
+        if (!user.lastSessionAt) return false;
+        return user.lastSessionAt >= fiveMinutesAgo;
+      })
+      .sort((a, b) => {
+        // Sort by most recently active first
+        const aTime = a.lastSessionAt || 0;
+        const bTime = b.lastSessionAt || 0;
+        return bTime - aTime;
+      });
+    
+    return availableAgents;
+  },
+});
+
 // Admin query to list all users without authentication requirement
 // This is safe because the page itself checks for admin role
 export const listAll = query({

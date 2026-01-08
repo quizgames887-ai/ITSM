@@ -51,14 +51,26 @@ interface ChatModalProps {
 }
 
 export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: ChatModalProps) {
+  const [selectedAgentId, setSelectedAgentId] = useState<Id<"users"> | null>(null);
+  const [showAgentSelector, setShowAgentSelector] = useState(true);
+  
   const messages = useQuery(
     api.chat.getMessages,
-    isOpen ? { userId: currentUserId } : "skip" // General chat (no ticketId)
+    isOpen 
+      ? { 
+          userId: currentUserId,
+          receiverId: selectedAgentId ?? undefined,
+        } 
+      : "skip"
   );
   const sendMessage = useMutation(api.chat.sendMessage);
   const markAsRead = useMutation(api.chat.markAsRead);
   const generateUploadUrl = useMutation(api.chat.generateUploadUrl);
   const users = useQuery(api.users.list, {});
+  const availableAgents = useQuery(
+    api.users.getAvailableAgents,
+    isOpen && currentUserRole === "user" ? {} : "skip"
+  );
 
   const { success, error: showError } = useToastContext();
   
@@ -79,17 +91,27 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
   // Mark messages as read when modal opens or messages change
   useEffect(() => {
     if (isOpen && messages && messages.length > 0) {
-      markAsRead({ userId: currentUserId }).catch(console.error);
+      markAsRead({ 
+        userId: currentUserId,
+        receiverId: selectedAgentId ?? undefined,
+      }).catch(console.error);
     }
-  }, [messages, isOpen, currentUserId, markAsRead]);
+  }, [messages, isOpen, currentUserId, selectedAgentId, markAsRead]);
 
   // Reset form when modal closes
   useEffect(() => {
     if (!isOpen) {
       setMessageText("");
       setAttachmentIds([]);
+      setSelectedAgentId(null);
+      setShowAgentSelector(true);
     }
   }, [isOpen]);
+  
+  // Get selected agent details
+  const selectedAgent = selectedAgentId 
+    ? users?.find(u => u._id === selectedAgentId)
+    : null;
 
   const handleSendMessage = async () => {
     if (!messageText.trim() && attachmentIds.length === 0) return;
@@ -98,9 +120,10 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
     try {
       await sendMessage({
         senderId: currentUserId,
+        receiverId: selectedAgentId ?? undefined,
         content: messageText.trim(),
         attachmentIds: attachmentIds.length > 0 ? attachmentIds : undefined,
-        // No ticketId = general chat
+        // No ticketId = general chat or direct conversation
       });
       setMessageText("");
       setAttachmentIds([]);
@@ -179,21 +202,47 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
       >
         {/* Modal Header */}
         <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50/30 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+          <div className="flex items-center gap-3 flex-1 min-w-0">
+            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg flex-shrink-0">
               <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M20.894 7.553a2 2 0 00-1.447-1.447L13.5 4.5l-1.5-3h-4l-1.5 3-5.947 1.606A2 2 0 003 6.947V19a2 2 0 002 2h14a2 2 0 002-2V6.947a2 2 0 00-.106-1.394z" />
                 <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
               </svg>
             </div>
-            <div>
-              <h2 className="text-xl font-bold text-slate-900">Team Chat</h2>
-              <p className="text-xs text-slate-600 font-medium">Real-time messaging with your team</p>
+            <div className="flex-1 min-w-0">
+              {selectedAgent ? (
+                <>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-bold text-slate-900 truncate">{selectedAgent.name}</h2>
+                    <span className="w-2 h-2 bg-green-500 rounded-full animate-pulse" title="Online"></span>
+                  </div>
+                  <p className="text-xs text-slate-600 font-medium truncate">
+                    {selectedAgent.role === "admin" ? "Administrator" : "Support Agent"}
+                  </p>
+                </>
+              ) : (
+                <>
+                  <h2 className="text-xl font-bold text-slate-900">Team Chat</h2>
+                  <p className="text-xs text-slate-600 font-medium">Real-time messaging with your team</p>
+                </>
+              )}
             </div>
+            {selectedAgent && (
+              <button
+                onClick={() => {
+                  setSelectedAgentId(null);
+                  setShowAgentSelector(true);
+                }}
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white/80 rounded-xl transition-all duration-200 text-xs font-medium"
+                title="Change agent"
+              >
+                Change
+              </button>
+            )}
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white/80 rounded-xl transition-all duration-200 hover:scale-110"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white/80 rounded-xl transition-all duration-200 hover:scale-110 flex-shrink-0 ml-2"
             title="Close chat"
           >
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
@@ -201,6 +250,61 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
             </svg>
           </button>
         </div>
+        
+        {/* Agent Selector (for users only) */}
+        {currentUserRole === "user" && showAgentSelector && !selectedAgentId && (
+          <div className="px-6 py-4 border-b border-slate-200 bg-white">
+            <h3 className="text-sm font-semibold text-slate-900 mb-3">Select an agent to chat with</h3>
+            {availableAgents && availableAgents.length > 0 ? (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                {availableAgents.map((agent) => (
+                  <button
+                    key={agent._id}
+                    onClick={() => {
+                      setSelectedAgentId(agent._id);
+                      setShowAgentSelector(false);
+                    }}
+                    className="flex items-center gap-3 p-3 rounded-xl border-2 border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 transition-all text-left group"
+                  >
+                    <div className="relative">
+                      <UserAvatar
+                        userId={agent._id}
+                        name={agent.name}
+                        size="sm"
+                      />
+                      <span className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 rounded-full border-2 border-white"></span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="text-sm font-semibold text-slate-900 truncate">{agent.name}</p>
+                        {agent.role === "admin" && (
+                          <span className="px-1.5 py-0.5 text-xs font-semibold rounded-full bg-purple-100 text-purple-700">
+                            Admin
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-slate-500 truncate">{agent.email}</p>
+                    </div>
+                    <svg className="w-5 h-5 text-slate-400 group-hover:text-blue-600 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </button>
+                ))}
+              </div>
+            ) : (
+              <div className="text-center py-6">
+                <p className="text-sm text-slate-500 mb-2">No agents available at the moment</p>
+                <p className="text-xs text-slate-400">You can still send a message and an agent will respond when available</p>
+                <button
+                  onClick={() => setShowAgentSelector(false)}
+                  className="mt-3 px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                >
+                  Continue to general chat
+                </button>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Messages Area */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-slate-50 to-white">

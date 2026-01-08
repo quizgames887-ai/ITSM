@@ -2,14 +2,15 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
-// Get chat messages for a ticket or general chat
+// Get chat messages for a ticket, general chat, or direct conversation with an agent
 export const getMessages = query({
   args: {
     ticketId: v.optional(v.id("tickets")), // Optional: can be general chat
     userId: v.id("users"), // Current user ID
+    receiverId: v.optional(v.id("users")), // Optional: for direct conversation with specific agent/user
   },
   handler: async (ctx, args) => {
-    // Get all messages - either for a ticket or general chat
+    // Get all messages - either for a ticket, general chat, or direct conversation
     let messages;
     if (args.ticketId) {
       messages = await ctx.db
@@ -17,11 +18,44 @@ export const getMessages = query({
         .withIndex("by_ticketId", (q) => q.eq("ticketId", args.ticketId))
         .order("asc")
         .collect();
+    } else if (args.receiverId) {
+      // Direct conversation: get messages between current user and receiver
+      // Messages where current user is sender and receiverId is receiver, OR vice versa
+      const sentMessages = await ctx.db
+        .query("chatMessages")
+        .withIndex("by_receiverId", (q) => q.eq("receiverId", args.receiverId))
+        .filter((q) => 
+          q.and(
+            q.eq(q.field("senderId"), args.userId),
+            q.eq(q.field("ticketId"), undefined)
+          )
+        )
+        .order("asc")
+        .collect();
+      
+      const receivedMessages = await ctx.db
+        .query("chatMessages")
+        .withIndex("by_receiverId", (q) => q.eq("receiverId", args.userId))
+        .filter((q) => 
+          q.and(
+            q.eq(q.field("senderId"), args.receiverId),
+            q.eq(q.field("ticketId"), undefined)
+          )
+        )
+        .order("asc")
+        .collect();
+      
+      messages = [...sentMessages, ...receivedMessages].sort((a, b) => a.createdAt - b.createdAt);
     } else {
-      // General chat: get messages without ticketId
+      // General chat: get messages without ticketId and without receiverId
       messages = await ctx.db
         .query("chatMessages")
-        .filter((q) => q.eq(q.field("ticketId"), undefined))
+        .filter((q) => 
+          q.and(
+            q.eq(q.field("ticketId"), undefined),
+            q.eq(q.field("receiverId"), undefined)
+          )
+        )
         .order("asc")
         .collect();
     }
@@ -52,6 +86,7 @@ export const sendMessage = mutation({
   args: {
     ticketId: v.optional(v.id("tickets")), // Optional: can be general chat
     senderId: v.id("users"),
+    receiverId: v.optional(v.id("users")), // Optional: for direct conversation with specific agent/user
     content: v.string(),
     attachmentIds: v.optional(v.array(v.id("_storage"))),
   },
@@ -73,6 +108,7 @@ export const sendMessage = mutation({
     const messageId = await ctx.db.insert("chatMessages", {
       ticketId: args.ticketId ?? undefined,
       senderId: args.senderId,
+      receiverId: args.receiverId ?? undefined,
       content: args.content.trim(),
       attachmentIds: args.attachmentIds ?? [],
       read: false,
@@ -86,8 +122,21 @@ export const sendMessage = mutation({
         .query("chatConversations")
         .withIndex("by_ticketId", (q) => q.eq("ticketId", args.ticketId))
         .first();
+    } else if (args.receiverId) {
+      // Direct conversation: find conversation between sender and receiver
+      const allConversations = await ctx.db
+        .query("chatConversations")
+        .filter((q) => q.eq(q.field("ticketId"), undefined))
+        .collect();
+      
+      // Find conversation that includes both sender and receiver
+      existingConversation = allConversations.find(conv => 
+        conv.participantIds.includes(args.senderId) && 
+        conv.participantIds.includes(args.receiverId) &&
+        conv.participantIds.length === 2 // Only 2 participants for direct conversation
+      );
     } else {
-      // General chat: find conversation without ticketId
+      // General chat: find conversation without ticketId and without specific receiver
       existingConversation = await ctx.db
         .query("chatConversations")
         .filter((q) => q.eq(q.field("ticketId"), undefined))
@@ -138,9 +187,14 @@ export const sendMessage = mutation({
     // Create notifications for other participants
     const otherParticipants = Array.from(participants).filter(id => id !== args.senderId);
     for (const participantId of otherParticipants) {
-      const notificationTitle = args.ticketId
-        ? `New message in ticket #${args.ticketId.slice(-6).toUpperCase()}`
-        : "New chat message";
+      let notificationTitle: string;
+      if (args.ticketId) {
+        notificationTitle = `New message in ticket #${args.ticketId.slice(-6).toUpperCase()}`;
+      } else if (args.receiverId) {
+        notificationTitle = `New message from ${sender.name}`;
+      } else {
+        notificationTitle = "New chat message";
+      }
       
       await ctx.db.insert("notifications", {
         userId: participantId,
@@ -162,6 +216,7 @@ export const markAsRead = mutation({
   args: {
     ticketId: v.optional(v.id("tickets")), // Optional: can be general chat
     userId: v.id("users"),
+    receiverId: v.optional(v.id("users")), // Optional: for direct conversation
   },
   handler: async (ctx, args) => {
     let messages;
@@ -176,13 +231,27 @@ export const markAsRead = mutation({
           )
         )
         .collect();
+    } else if (args.receiverId) {
+      // Direct conversation: mark messages where user is receiver
+      messages = await ctx.db
+        .query("chatMessages")
+        .withIndex("by_receiverId", (q) => q.eq("receiverId", args.userId))
+        .filter((q) => 
+          q.and(
+            q.eq(q.field("senderId"), args.receiverId),
+            q.eq(q.field("ticketId"), undefined),
+            q.eq(q.field("read"), false)
+          )
+        )
+        .collect();
     } else {
-      // General chat: get messages without ticketId
+      // General chat: get messages without ticketId and without receiverId
       messages = await ctx.db
         .query("chatMessages")
         .filter((q) => 
           q.and(
             q.eq(q.field("ticketId"), undefined),
+            q.eq(q.field("receiverId"), undefined),
             q.neq(q.field("senderId"), args.userId),
             q.eq(q.field("read"), false)
           )
