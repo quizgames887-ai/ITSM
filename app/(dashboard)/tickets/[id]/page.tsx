@@ -1030,9 +1030,10 @@ export default function TicketDetailPage({
                 );
               })
             )}
+          </div>
 
-              {/* Add Comment Form */}
-              <form onSubmit={handleCommentSubmit} className="space-y-4 border-t border-slate-200 pt-6">
+          {/* Add Comment Form */}
+          <form onSubmit={handleCommentSubmit} className="space-y-4 border-t border-slate-200 pt-6">
             <Textarea
               value={commentText}
               onChange={(e) => setCommentText(e.target.value)}
@@ -1162,9 +1163,7 @@ export default function TicketDetailPage({
                 {loading ? "Posting..." : "Post Comment"}
               </Button>
             </div>
-              </form>
-            </div>
-          )}
+          </form>
         </div>
       </Card>
 
