@@ -59,33 +59,40 @@ function extractAttachments(formData: any): (Id<"_storage"> | string)[] {
 }
 
 // Component to display an attachment
-function AttachmentItem({ storageId }: { storageId: Id<"_storage"> | string }) {
+function AttachmentItem({ storageId, fileName }: { storageId: Id<"_storage"> | string; fileName?: string }) {
   const attachmentUrl = useQuery(
     api.serviceCatalog.getStorageUrl,
     { storageId: storageId as any }
   );
   
+  const displayName = fileName || (typeof storageId === "string" ? `File ${storageId.slice(0, 8)}...` : "Attachment");
+  
   return (
     <div className="bg-white rounded-lg p-3 border border-slate-200 hover:border-blue-300 transition-colors">
       <div className="flex items-center gap-3">
-        <div className="p-2 bg-blue-50 rounded-lg">
+        <div className="p-2 bg-blue-50 rounded-lg flex-shrink-0">
           <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
           </svg>
         </div>
         <div className="flex-1 min-w-0">
-          <p className="text-xs font-medium text-slate-900 truncate">
-            {typeof storageId === "string" ? storageId.slice(0, 20) + "..." : "Attachment"}
+          <p className="text-xs font-medium text-slate-900 truncate" title={displayName}>
+            {displayName}
           </p>
-          {attachmentUrl && (
+          {attachmentUrl ? (
             <a
               href={attachmentUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="text-xs text-blue-600 hover:text-blue-700 hover:underline mt-1 block"
+              className="text-xs text-blue-600 hover:text-blue-700 hover:underline mt-1 inline-flex items-center gap-1"
             >
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+              </svg>
               Download
             </a>
+          ) : (
+            <p className="text-xs text-slate-400 mt-1">Loading...</p>
           )}
         </div>
       </div>
@@ -705,6 +712,16 @@ export default function TicketDetailPage({
                     // Skip empty values
                     if (value === null || value === undefined || value === "" || 
                         (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0)) {
+                      return null;
+                    }
+                    
+                    // Check if value is a storage ID (attachment)
+                    const isStorageId = typeof value === "string" && value.startsWith("k");
+                    const isStorageIdArray = Array.isArray(value) && value.length > 0 && 
+                                            value.every((v: any) => typeof v === "string" && v.startsWith("k"));
+                    
+                    // If it's a storage ID, don't show it here (it will be shown in attachments section)
+                    if (isStorageId || isStorageIdArray) {
                       return null;
                     }
                     

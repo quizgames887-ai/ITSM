@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Select } from "@/components/ui/select";
@@ -74,6 +76,55 @@ export function DynamicForm({
   }, [fields.map(f => `${f._id}-${f.label}-${f.name}-${f.order}`).join(',')]);
 
   const [errors, setErrors] = useState<Record<string, string>>({});
+  const [uploadingFiles, setUploadingFiles] = useState<Record<string, boolean>>({});
+  const [uploadedFiles, setUploadedFiles] = useState<Record<string, string>>({});
+  const generateUploadUrl = useMutation(api.serviceCatalog.generateUploadUrl);
+
+  const uploadFile = async (fieldName: string, file: File): Promise<Id<"_storage"> | null> => {
+    setUploadingFiles(prev => ({ ...prev, [fieldName]: true }));
+    try {
+      // Generate upload URL
+      const uploadUrl = await generateUploadUrl();
+      if (!uploadUrl || typeof uploadUrl !== "string") {
+        throw new Error("Failed to generate upload URL");
+      }
+
+      // Upload file to Convex storage
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResult.ok) {
+        const errorText = await uploadResult.text();
+        throw new Error(`Failed to upload file: ${errorText || uploadResult.statusText}`);
+      }
+
+      // Get storage ID from the response
+      const responseText = await uploadResult.text();
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        throw new Error(`Invalid response format: ${responseText.substring(0, 200)}`);
+      }
+
+      const storageId = responseData?.storageId;
+      if (!storageId) {
+        throw new Error("Failed to get storage ID from upload response");
+      }
+
+      setUploadedFiles(prev => ({ ...prev, [fieldName]: file.name }));
+      return storageId as Id<"_storage">;
+    } catch (error: any) {
+      console.error("File upload error:", error);
+      setErrors(prev => ({ ...prev, [fieldName]: error.message || "Failed to upload file" }));
+      return null;
+    } finally {
+      setUploadingFiles(prev => ({ ...prev, [fieldName]: false }));
+    }
+  };
 
   const validateField = (field: FormField, value: any): string | null => {
     if (field.required && (!value || value === "")) {
@@ -276,6 +327,10 @@ export function DynamicForm({
         );
 
       case "file":
+        const fileValue = formData[field.name];
+        const isUploading = uploadingFiles[field.name];
+        const uploadedFileName = uploadedFiles[field.name];
+        
         return (
           <div key={field._id}>
             <label className="block text-sm font-medium text-slate-700 mb-1.5">
@@ -284,14 +339,36 @@ export function DynamicForm({
             </label>
             <input
               type="file"
-              onChange={(e) => {
+              onChange={async (e) => {
                 const file = e.target.files?.[0];
                 if (file) {
-                  handleChange(field.name, file);
+                  // Upload file and store storage ID
+                  const storageId = await uploadFile(field.name, file);
+                  if (storageId) {
+                    handleChange(field.name, storageId);
+                  }
                 }
               }}
-              className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 transition-all duration-200"
+              disabled={isUploading}
+              className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-slate-900 transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
             />
+            {isUploading && (
+              <p className="text-xs text-blue-600 mt-1 flex items-center gap-1">
+                <svg className="animate-spin h-3 w-3" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Uploading...
+              </p>
+            )}
+            {uploadedFileName && !isUploading && (
+              <p className="text-xs text-green-600 mt-1 flex items-center gap-1">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+                {uploadedFileName} uploaded successfully
+              </p>
+            )}
             {error && (
               <p className="text-sm text-red-600 mt-1">{error}</p>
             )}
