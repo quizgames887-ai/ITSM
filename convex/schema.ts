@@ -641,6 +641,12 @@ export default defineSchema({
     primaryColorHover: v.optional(v.string()), // Primary color hover state
     secondaryColor: v.optional(v.string()), // Secondary brand color
     appName: v.optional(v.string()), // Custom application name (defaults to "Palmware")
+    // System Icons
+    chatIconId: v.optional(v.union(v.id("_storage"), v.null())), // Chat icon
+    userIconId: v.optional(v.union(v.id("_storage"), v.null())), // User/profile icon
+    resetPasswordIconId: v.optional(v.union(v.id("_storage"), v.null())), // Reset password icon
+    notificationIconId: v.optional(v.union(v.id("_storage"), v.null())), // Notification icon
+    searchIconId: v.optional(v.union(v.id("_storage"), v.null())), // Search icon
     enabled: v.boolean(), // Master switch for branding
     createdBy: v.id("users"),
     createdAt: v.number(),

@@ -23,6 +23,12 @@ export const updateSettings = mutation({
     primaryColorHover: v.optional(v.string()),
     secondaryColor: v.optional(v.string()),
     appName: v.optional(v.string()),
+    // System Icons
+    chatIconId: v.optional(v.union(v.id("_storage"), v.null())),
+    userIconId: v.optional(v.union(v.id("_storage"), v.null())),
+    resetPasswordIconId: v.optional(v.union(v.id("_storage"), v.null())),
+    notificationIconId: v.optional(v.union(v.id("_storage"), v.null())),
+    searchIconId: v.optional(v.union(v.id("_storage"), v.null())),
     enabled: v.boolean(),
     createdBy: v.id("users"),
   },
@@ -57,6 +63,11 @@ export const updateSettings = mutation({
         primaryColorHover: args.primaryColorHover ?? undefined,
         secondaryColor: args.secondaryColor ?? undefined,
         appName: args.appName ?? undefined,
+        chatIconId: args.chatIconId ?? null,
+        userIconId: args.userIconId ?? null,
+        resetPasswordIconId: args.resetPasswordIconId ?? null,
+        notificationIconId: args.notificationIconId ?? null,
+        searchIconId: args.searchIconId ?? null,
         enabled: args.enabled,
         updatedAt: now,
       });
@@ -69,6 +80,11 @@ export const updateSettings = mutation({
         primaryColorHover: args.primaryColorHover ?? undefined,
         secondaryColor: args.secondaryColor ?? undefined,
         appName: args.appName ?? undefined,
+        chatIconId: args.chatIconId ?? null,
+        userIconId: args.userIconId ?? null,
+        resetPasswordIconId: args.resetPasswordIconId ?? null,
+        notificationIconId: args.notificationIconId ?? null,
+        searchIconId: args.searchIconId ?? null,
         enabled: args.enabled,
         createdBy: args.createdBy,
         createdAt: now,
@@ -79,7 +95,7 @@ export const updateSettings = mutation({
   },
 });
 
-// Get storage URL for logo
+// Get storage URL for logo or any icon
 export const getLogoUrl = query({
   args: {
     storageId: v.union(v.id("_storage"), v.null(), v.string()),
@@ -111,7 +127,7 @@ export const getLogoUrl = query({
     try {
       return await ctx.storage.getUrl(actualStorageId);
     } catch (error) {
-      console.error("Error getting logo URL:", error);
+      console.error("Error getting icon URL:", error);
       return null;
     }
   },

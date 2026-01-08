@@ -10,6 +10,116 @@ import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
 import Link from "next/link";
 
+interface IconUploadSectionProps {
+  title: string;
+  description: string;
+  iconId: Id<"_storage"> | null | undefined;
+  onUpload: (file: File) => Promise<void>;
+  onRemove: () => Promise<void>;
+  generateUploadUrl: (() => Promise<string>) | undefined;
+  getIconUrl: any;
+  defaultIcon: React.ReactNode;
+}
+
+function IconUploadSection({
+  title,
+  description,
+  iconId,
+  onUpload,
+  onRemove,
+  generateUploadUrl,
+  getIconUrl,
+  defaultIcon,
+}: IconUploadSectionProps) {
+  const [uploading, setUploading] = useState(false);
+  const [removing, setRemoving] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+  const iconUrl = useQuery(
+    iconId && getIconUrl ? getIconUrl : "skip",
+    iconId && getIconUrl ? { storageId: iconId } : "skip"
+  );
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setUploading(true);
+      try {
+        await onUpload(file);
+      } finally {
+        setUploading(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+      }
+    }
+  };
+
+  const handleRemove = async () => {
+    setRemoving(true);
+    try {
+      await onRemove();
+    } finally {
+      setRemoving(false);
+    }
+  };
+
+  return (
+    <div className="space-y-3">
+      <div>
+        <h3 className="text-sm font-semibold text-slate-900">{title}</h3>
+        <p className="text-xs text-slate-500 mt-1">{description}</p>
+      </div>
+      <div className="flex items-center gap-4">
+        <div className="flex-shrink-0">
+          <div className="w-16 h-16 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center bg-slate-50">
+            {iconUrl ? (
+              <img
+                src={iconUrl}
+                alt={title}
+                className="w-full h-full object-contain rounded-lg"
+              />
+            ) : (
+              <div className="text-slate-400">{defaultIcon}</div>
+            )}
+          </div>
+        </div>
+        <div className="flex-1 space-y-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={handleFileChange}
+            className="hidden"
+          />
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading || !generateUploadUrl}
+              loading={uploading}
+            >
+              {uploading ? "Uploading..." : "Upload"}
+            </Button>
+            {iconId && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleRemove}
+                disabled={removing}
+                loading={removing}
+                className="text-red-600 hover:text-red-700 hover:bg-red-50"
+              >
+                Remove
+              </Button>
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function BrandingSettingsPage() {
   // Handle case where branding API might not be synced yet
   const brandingApi = (api as any).branding;
@@ -140,6 +250,63 @@ export default function BrandingSettingsPage() {
     }
   };
 
+  const handleIconUpload = async (file: File): Promise<Id<"_storage"> | null> => {
+    if (!file.type.startsWith("image/")) {
+      showError("Please upload an image file");
+      return null;
+    }
+    
+    if (file.size > 5 * 1024 * 1024) {
+      showError("Image size must be less than 5MB");
+      return null;
+    }
+
+    if (!generateUploadUrl) {
+      showError("Branding API not available. Please ensure Convex is running.");
+      return null;
+    }
+
+    try {
+      // Generate upload URL
+      const uploadUrl = await generateUploadUrl();
+      if (!uploadUrl || typeof uploadUrl !== "string") {
+        throw new Error("Failed to generate upload URL");
+      }
+
+      // Upload file to Convex storage
+      const uploadResult = await fetch(uploadUrl, {
+        method: "POST",
+        headers: { "Content-Type": file.type },
+        body: file,
+      });
+
+      if (!uploadResult.ok) {
+        const errorText = await uploadResult.text();
+        throw new Error(`Failed to upload icon: ${errorText || uploadResult.statusText}`);
+      }
+
+      // Get storage ID from the response
+      const responseText = await uploadResult.text();
+      let responseData;
+      try {
+        responseData = JSON.parse(responseText);
+      } catch {
+        throw new Error(`Invalid response format: ${responseText.substring(0, 200)}`);
+      }
+
+      const storageId = responseData?.storageId;
+      if (!storageId) {
+        throw new Error("Failed to get storage ID from upload response");
+      }
+
+      success("Icon uploaded successfully!");
+      return storageId as Id<"_storage">;
+    } catch (err: any) {
+      showError(err.message || "Failed to upload icon");
+      return null;
+    }
+  };
+
   const handleSave = async () => {
     if (!updateSettings) {
       showError("Branding API not available. Please ensure Convex is running.");
@@ -159,6 +326,11 @@ export default function BrandingSettingsPage() {
         primaryColorHover: primaryColorHover || undefined,
         secondaryColor: secondaryColor || undefined,
         appName: appName || undefined,
+        chatIconId: brandingSettings?.chatIconId ?? null,
+        userIconId: brandingSettings?.userIconId ?? null,
+        resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+        notificationIconId: brandingSettings?.notificationIconId ?? null,
+        searchIconId: brandingSettings?.searchIconId ?? null,
         enabled,
         createdBy: userId as Id<"users">,
       });
@@ -190,6 +362,11 @@ export default function BrandingSettingsPage() {
         primaryColorHover: primaryColorHover || undefined,
         secondaryColor: secondaryColor || undefined,
         appName: appName || undefined,
+        chatIconId: brandingSettings?.chatIconId ?? null,
+        userIconId: brandingSettings?.userIconId ?? null,
+        resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+        notificationIconId: brandingSettings?.notificationIconId ?? null,
+        searchIconId: brandingSettings?.searchIconId ?? null,
         enabled,
         createdBy: userId as Id<"users">,
       });
@@ -380,6 +557,261 @@ export default function BrandingSettingsPage() {
               <p className="text-xs text-slate-500 mt-1">
                 Custom name displayed in navigation and header (defaults to "Palmware")
               </p>
+            </div>
+          </div>
+
+          {/* System Icons Section */}
+          <div className="border-t border-slate-200 pt-8">
+            <h2 className="text-lg font-semibold text-slate-900 mb-4">System Icons</h2>
+            <p className="text-sm text-slate-600 mb-6">
+              Customize system icons used throughout the application. Recommended: SVG format for best quality.
+            </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Chat Icon */}
+              <IconUploadSection
+                title="Chat Icon"
+                description="Icon used for chat functionality"
+                iconId={brandingSettings?.chatIconId}
+                onUpload={async (file) => {
+                  const storageId = await handleIconUpload(file);
+                  if (storageId) {
+                    await updateSettings({
+                      logoId: brandingSettings?.logoId ?? null,
+                      primaryColor,
+                      primaryColorHover: primaryColorHover || undefined,
+                      secondaryColor: secondaryColor || undefined,
+                      appName: appName || undefined,
+                      chatIconId: storageId,
+                      userIconId: brandingSettings?.userIconId ?? null,
+                      resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+                      notificationIconId: brandingSettings?.notificationIconId ?? null,
+                      searchIconId: brandingSettings?.searchIconId ?? null,
+                      enabled,
+                      createdBy: localStorage.getItem("userId") as Id<"users">,
+                    });
+                  }
+                }}
+                onRemove={async () => {
+                  await updateSettings({
+                    logoId: brandingSettings?.logoId ?? null,
+                    primaryColor,
+                    primaryColorHover: primaryColorHover || undefined,
+                    secondaryColor: secondaryColor || undefined,
+                    appName: appName || undefined,
+                    chatIconId: null,
+                    userIconId: brandingSettings?.userIconId ?? null,
+                    resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+                    notificationIconId: brandingSettings?.notificationIconId ?? null,
+                    searchIconId: brandingSettings?.searchIconId ?? null,
+                    enabled,
+                    createdBy: localStorage.getItem("userId") as Id<"users">,
+                  });
+                }}
+                generateUploadUrl={generateUploadUrl}
+                getIconUrl={brandingApi?.getLogoUrl}
+                defaultIcon={
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20.894 7.553a2 2 0 00-1.447-1.447L13.5 4.5l-1.5-3h-4l-1.5 3-5.947 1.606A2 2 0 003 6.947V19a2 2 0 002 2h14a2 2 0 002-2V6.947a2 2 0 00-.106-1.394z" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
+                  </svg>
+                }
+              />
+
+              {/* User Icon */}
+              <IconUploadSection
+                title="User Icon"
+                description="Icon used for user/profile menu"
+                iconId={brandingSettings?.userIconId}
+                onUpload={async (file) => {
+                  const storageId = await handleIconUpload(file);
+                  if (storageId) {
+                    await updateSettings({
+                      logoId: brandingSettings?.logoId ?? null,
+                      primaryColor,
+                      primaryColorHover: primaryColorHover || undefined,
+                      secondaryColor: secondaryColor || undefined,
+                      appName: appName || undefined,
+                      chatIconId: brandingSettings?.chatIconId ?? null,
+                      userIconId: storageId,
+                      resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+                      notificationIconId: brandingSettings?.notificationIconId ?? null,
+                      searchIconId: brandingSettings?.searchIconId ?? null,
+                      enabled,
+                      createdBy: localStorage.getItem("userId") as Id<"users">,
+                    });
+                  }
+                }}
+                onRemove={async () => {
+                  await updateSettings({
+                    logoId: brandingSettings?.logoId ?? null,
+                    primaryColor,
+                    primaryColorHover: primaryColorHover || undefined,
+                    secondaryColor: secondaryColor || undefined,
+                    appName: appName || undefined,
+                    chatIconId: brandingSettings?.chatIconId ?? null,
+                    userIconId: null,
+                    resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+                    notificationIconId: brandingSettings?.notificationIconId ?? null,
+                    searchIconId: brandingSettings?.searchIconId ?? null,
+                    enabled,
+                    createdBy: localStorage.getItem("userId") as Id<"users">,
+                  });
+                }}
+                generateUploadUrl={generateUploadUrl}
+                getIconUrl={brandingApi?.getLogoUrl}
+                defaultIcon={
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                }
+              />
+
+              {/* Reset Password Icon */}
+              <IconUploadSection
+                title="Reset Password Icon"
+                description="Icon used for password reset functionality"
+                iconId={brandingSettings?.resetPasswordIconId}
+                onUpload={async (file) => {
+                  const storageId = await handleIconUpload(file);
+                  if (storageId) {
+                    await updateSettings({
+                      logoId: brandingSettings?.logoId ?? null,
+                      primaryColor,
+                      primaryColorHover: primaryColorHover || undefined,
+                      secondaryColor: secondaryColor || undefined,
+                      appName: appName || undefined,
+                      chatIconId: brandingSettings?.chatIconId ?? null,
+                      userIconId: brandingSettings?.userIconId ?? null,
+                      resetPasswordIconId: storageId,
+                      notificationIconId: brandingSettings?.notificationIconId ?? null,
+                      searchIconId: brandingSettings?.searchIconId ?? null,
+                      enabled,
+                      createdBy: localStorage.getItem("userId") as Id<"users">,
+                    });
+                  }
+                }}
+                onRemove={async () => {
+                  await updateSettings({
+                    logoId: brandingSettings?.logoId ?? null,
+                    primaryColor,
+                    primaryColorHover: primaryColorHover || undefined,
+                    secondaryColor: secondaryColor || undefined,
+                    appName: appName || undefined,
+                    chatIconId: brandingSettings?.chatIconId ?? null,
+                    userIconId: brandingSettings?.userIconId ?? null,
+                    resetPasswordIconId: null,
+                    notificationIconId: brandingSettings?.notificationIconId ?? null,
+                    searchIconId: brandingSettings?.searchIconId ?? null,
+                    enabled,
+                    createdBy: localStorage.getItem("userId") as Id<"users">,
+                  });
+                }}
+                generateUploadUrl={generateUploadUrl}
+                getIconUrl={brandingApi?.getLogoUrl}
+                defaultIcon={
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                  </svg>
+                }
+              />
+
+              {/* Notification Icon */}
+              <IconUploadSection
+                title="Notification Icon"
+                description="Icon used for notifications"
+                iconId={brandingSettings?.notificationIconId}
+                onUpload={async (file) => {
+                  const storageId = await handleIconUpload(file);
+                  if (storageId) {
+                    await updateSettings({
+                      logoId: brandingSettings?.logoId ?? null,
+                      primaryColor,
+                      primaryColorHover: primaryColorHover || undefined,
+                      secondaryColor: secondaryColor || undefined,
+                      appName: appName || undefined,
+                      chatIconId: brandingSettings?.chatIconId ?? null,
+                      userIconId: brandingSettings?.userIconId ?? null,
+                      resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+                      notificationIconId: storageId,
+                      searchIconId: brandingSettings?.searchIconId ?? null,
+                      enabled,
+                      createdBy: localStorage.getItem("userId") as Id<"users">,
+                    });
+                  }
+                }}
+                onRemove={async () => {
+                  await updateSettings({
+                    logoId: brandingSettings?.logoId ?? null,
+                    primaryColor,
+                    primaryColorHover: primaryColorHover || undefined,
+                    secondaryColor: secondaryColor || undefined,
+                    appName: appName || undefined,
+                    chatIconId: brandingSettings?.chatIconId ?? null,
+                    userIconId: brandingSettings?.userIconId ?? null,
+                    resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+                    notificationIconId: null,
+                    searchIconId: brandingSettings?.searchIconId ?? null,
+                    enabled,
+                    createdBy: localStorage.getItem("userId") as Id<"users">,
+                  });
+                }}
+                generateUploadUrl={generateUploadUrl}
+                getIconUrl={brandingApi?.getLogoUrl}
+                defaultIcon={
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+                  </svg>
+                }
+              />
+
+              {/* Search Icon */}
+              <IconUploadSection
+                title="Search Icon"
+                description="Icon used for search functionality"
+                iconId={brandingSettings?.searchIconId}
+                onUpload={async (file) => {
+                  const storageId = await handleIconUpload(file);
+                  if (storageId) {
+                    await updateSettings({
+                      logoId: brandingSettings?.logoId ?? null,
+                      primaryColor,
+                      primaryColorHover: primaryColorHover || undefined,
+                      secondaryColor: secondaryColor || undefined,
+                      appName: appName || undefined,
+                      chatIconId: brandingSettings?.chatIconId ?? null,
+                      userIconId: brandingSettings?.userIconId ?? null,
+                      resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+                      notificationIconId: brandingSettings?.notificationIconId ?? null,
+                      searchIconId: storageId,
+                      enabled,
+                      createdBy: localStorage.getItem("userId") as Id<"users">,
+                    });
+                  }
+                }}
+                onRemove={async () => {
+                  await updateSettings({
+                    logoId: brandingSettings?.logoId ?? null,
+                    primaryColor,
+                    primaryColorHover: primaryColorHover || undefined,
+                    secondaryColor: secondaryColor || undefined,
+                    appName: appName || undefined,
+                    chatIconId: brandingSettings?.chatIconId ?? null,
+                    userIconId: brandingSettings?.userIconId ?? null,
+                    resetPasswordIconId: brandingSettings?.resetPasswordIconId ?? null,
+                    notificationIconId: brandingSettings?.notificationIconId ?? null,
+                    searchIconId: null,
+                    enabled,
+                    createdBy: localStorage.getItem("userId") as Id<"users">,
+                  });
+                }}
+                generateUploadUrl={generateUploadUrl}
+                getIconUrl={brandingApi?.getLogoUrl}
+                defaultIcon={
+                  <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                  </svg>
+                }
+              />
             </div>
           </div>
 

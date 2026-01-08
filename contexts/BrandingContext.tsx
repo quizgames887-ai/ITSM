@@ -12,6 +12,12 @@ interface BrandingSettings {
   secondaryColor: string | null;
   appName: string;
   enabled: boolean;
+  // System Icons
+  chatIconUrl: string | null;
+  userIconUrl: string | null;
+  resetPasswordIconUrl: string | null;
+  notificationIconUrl: string | null;
+  searchIconUrl: string | null;
 }
 
 interface BrandingContextType {
@@ -53,6 +59,11 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
           ? brandingSettings.appName
           : "Palmware",
         enabled: brandingSettings.enabled,
+        chatIconUrl: brandingSettings.enabled && chatIconUrl ? chatIconUrl : null,
+        userIconUrl: brandingSettings.enabled && userIconUrl ? userIconUrl : null,
+        resetPasswordIconUrl: brandingSettings.enabled && resetPasswordIconUrl ? resetPasswordIconUrl : null,
+        notificationIconUrl: brandingSettings.enabled && notificationIconUrl ? notificationIconUrl : null,
+        searchIconUrl: brandingSettings.enabled && searchIconUrl ? searchIconUrl : null,
       }
     : {
         logoId: null,
@@ -62,6 +73,11 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
         secondaryColor: null,
         appName: "Palmware",
         enabled: false,
+        chatIconUrl: null,
+        userIconUrl: null,
+        resetPasswordIconUrl: null,
+        notificationIconUrl: null,
+        searchIconUrl: null,
       };
 
   return (
