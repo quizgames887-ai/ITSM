@@ -14,6 +14,85 @@ import { useToastContext } from "@/contexts/ToastContext";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 
+// Helper function to check if formData has attachments
+function hasAttachments(formData: any): boolean {
+  if (!formData || typeof formData !== "object") return false;
+  
+  for (const value of Object.values(formData)) {
+    if (typeof value === "string" && value.startsWith("k")) {
+      // Convex storage IDs typically start with 'k'
+      return true;
+    }
+    if (Array.isArray(value)) {
+      if (value.some((v: any) => typeof v === "string" && v.startsWith("k"))) {
+        return true;
+      }
+    }
+    if (typeof value === "object" && value !== null) {
+      if (hasAttachments(value)) return true;
+    }
+  }
+  return false;
+}
+
+// Helper function to extract attachment IDs from formData
+function extractAttachments(formData: any): (Id<"_storage"> | string)[] {
+  const attachments: (Id<"_storage"> | string)[] = [];
+  
+  if (!formData || typeof formData !== "object") return attachments;
+  
+  for (const value of Object.values(formData)) {
+    if (typeof value === "string" && value.startsWith("k")) {
+      attachments.push(value as Id<"_storage">);
+    } else if (Array.isArray(value)) {
+      value.forEach((v: any) => {
+        if (typeof v === "string" && v.startsWith("k")) {
+          attachments.push(v as Id<"_storage">);
+        }
+      });
+    } else if (typeof value === "object" && value !== null) {
+      attachments.push(...extractAttachments(value));
+    }
+  }
+  
+  return attachments;
+}
+
+// Component to display an attachment
+function AttachmentItem({ storageId }: { storageId: Id<"_storage"> | string }) {
+  const attachmentUrl = useQuery(
+    api.serviceCatalog.getStorageUrl,
+    { storageId: storageId as any }
+  );
+  
+  return (
+    <div className="bg-white rounded-lg p-3 border border-slate-200 hover:border-blue-300 transition-colors">
+      <div className="flex items-center gap-3">
+        <div className="p-2 bg-blue-50 rounded-lg">
+          <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+          </svg>
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-xs font-medium text-slate-900 truncate">
+            {typeof storageId === "string" ? storageId.slice(0, 20) + "..." : "Attachment"}
+          </p>
+          {attachmentUrl && (
+            <a
+              href={attachmentUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs text-blue-600 hover:text-blue-700 hover:underline mt-1 block"
+            >
+              Download
+            </a>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function TicketDetailPage({
   params,
 }: {
@@ -581,123 +660,133 @@ export default function TicketDetailPage({
             </div>
           )}
 
-          {/* Form Fields - Dynamic Display */}
-          {ticketFormWithFields && ticketFormWithFields.fields ? (
+          {/* All Ticket Fields - Show all formData fields plus standard fields */}
+          <div className="mb-8 pb-8 border-b border-slate-200">
+            <div className="flex items-center gap-2 mb-6">
+              <div className="p-2 bg-purple-100 rounded-lg">
+                <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                </svg>
+              </div>
+              <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">All Ticket Fields</h2>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {/* Standard Ticket Fields */}
+              <div className="bg-slate-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Title</span>
+                <p className="text-sm font-semibold text-slate-900 break-words">{ticket.title}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Type</span>
+                <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.type.replace("_", " ")}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Priority</span>
+                <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.priority}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Urgency</span>
+                <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.urgency}</p>
+              </div>
+              <div className="bg-slate-50 rounded-xl p-4">
+                <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Category</span>
+                <p className="text-sm font-semibold text-slate-900">{ticket.category}</p>
+              </div>
+              
+              {/* All formData fields */}
+              {ticket.formData && Object.keys(ticket.formData).length > 0 && (
+                <>
+                  {Object.entries(ticket.formData).map(([key, value]) => {
+                    // Skip standard fields that are already shown above
+                    if (["title", "description", "type", "priority", "urgency", "category"].includes(key)) {
+                      return null;
+                    }
+                    
+                    // Skip empty values
+                    if (value === null || value === undefined || value === "" || 
+                        (typeof value === "object" && !Array.isArray(value) && Object.keys(value).length === 0)) {
+                      return null;
+                    }
+                    
+                    // Format the value
+                    let displayValue: React.ReactNode = "";
+                    if (Array.isArray(value)) {
+                      displayValue = value.length > 0 ? value.join(", ") : "—";
+                    } else if (typeof value === "object") {
+                      displayValue = JSON.stringify(value, null, 2);
+                    } else if (typeof value === "boolean") {
+                      displayValue = value ? "Yes" : "No";
+                    } else {
+                      displayValue = String(value);
+                    }
+                    
+                    return (
+                      <div key={key} className="bg-slate-50 rounded-xl p-4">
+                        <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">
+                          {key.replace(/([A-Z])/g, " $1").replace(/^./, str => str.toUpperCase())}
+                        </span>
+                        <p className="text-sm font-semibold text-slate-900 break-words">
+                          {displayValue}
+                        </p>
+                      </div>
+                    );
+                  })}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Attachments Section */}
+          {(ticket.formData && hasAttachments(ticket.formData)) || 
+           (filteredComments && filteredComments.some((c: any) => c.attachmentIds && c.attachmentIds.length > 0)) ? (
             <div className="mb-8 pb-8 border-b border-slate-200">
               <div className="flex items-center gap-2 mb-6">
-                <div className="p-2 bg-purple-100 rounded-lg">
-                  <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                   </svg>
                 </div>
-                <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">Form Details</h2>
+                <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">Attachments</h2>
               </div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                {ticketFormWithFields.fields.map((field) => {
-                  const formData = ticket.formData || {};
-                  
-                  // Get value from ticket object for standard fields, otherwise from formData
-                  let fieldValue: any = null;
-                  if (field.name === "title") {
-                    fieldValue = ticket.title;
-                  } else if (field.name === "description") {
-                    fieldValue = ticket.description;
-                  } else if (field.name === "type") {
-                    // Map ticket type to form display value
-                    const typeMap: Record<string, string> = {
-                      "incident": "Incident",
-                      "service_request": "Service Request",
-                      "inquiry": "Inquiry",
-                    };
-                    fieldValue = typeMap[ticket.type] || ticket.type;
-                  } else if (field.name === "priority") {
-                    // Map ticket priority to form display value
-                    const priorityMap: Record<string, string> = {
-                      "low": "Low",
-                      "medium": "Medium",
-                      "high": "High",
-                      "critical": "Critical",
-                    };
-                    fieldValue = priorityMap[ticket.priority] || ticket.priority;
-                  } else if (field.name === "urgency") {
-                    // Map ticket urgency to form display value
-                    const urgencyMap: Record<string, string> = {
-                      "low": "Low",
-                      "medium": "Medium",
-                      "high": "High",
-                    };
-                    fieldValue = urgencyMap[ticket.urgency] || ticket.urgency;
-                  } else if (field.name === "category") {
-                    fieldValue = ticket.category;
-                  } else {
-                    // Custom field - get from formData
-                    fieldValue = formData[field.name];
-                  }
-                  
-                  // Skip if field value is empty and field is not required
-                  if ((fieldValue === null || fieldValue === undefined || fieldValue === "") && !field.required) {
-                    return null;
-                  }
-                  
-                  // Format the value based on field type
-                  let displayValue: string = "";
-                  if (fieldValue === null || fieldValue === undefined || fieldValue === "") {
-                    displayValue = "—";
-                  } else if (field.fieldType === "checkbox") {
-                    displayValue = fieldValue ? "Yes" : "No";
-                  } else if (field.fieldType === "date" && fieldValue) {
-                    try {
-                      displayValue = new Date(fieldValue).toLocaleDateString("en-US", {
-                        month: "short",
-                        day: "numeric",
-                        year: "numeric",
-                      });
-                    } catch {
-                      displayValue = String(fieldValue);
-                    }
-                  } else {
-                    displayValue = String(fieldValue);
-                  }
-                  
-                  return (
-                    <div key={field._id} className="bg-slate-50 rounded-xl p-4">
-                      <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">
-                        {field.label}
-                        {field.required && <span className="text-red-500 ml-1">*</span>}
-                      </span>
-                      <p className="text-sm font-semibold text-slate-900 break-words">
-                        {displayValue}
-                      </p>
+              <div className="space-y-4">
+                {/* Attachments from formData */}
+                {ticket.formData && extractAttachments(ticket.formData).length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-3">Ticket Attachments</h3>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      {extractAttachments(ticket.formData).map((attachmentId, idx) => (
+                        <AttachmentItem key={idx} storageId={attachmentId} />
+                      ))}
                     </div>
-                  );
-                })}
+                  </div>
+                )}
+                
+                {/* Attachments from comments */}
+                {filteredComments && filteredComments.some((c: any) => c.attachmentIds && c.attachmentIds.length > 0) && (
+                  <div>
+                    <h3 className="text-sm font-semibold text-slate-700 mb-3">Comment Attachments</h3>
+                    <div className="space-y-3">
+                      {filteredComments.map((comment: any) => {
+                        if (!comment.attachmentIds || comment.attachmentIds.length === 0) return null;
+                        return (
+                          <div key={comment._id} className="bg-slate-50 rounded-lg p-3 border border-slate-200">
+                            <p className="text-xs text-slate-500 mb-2">
+                              From comment by {comment.userName || "Unknown"} on {new Date(comment.createdAt).toLocaleString()}
+                            </p>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                              {comment.attachmentIds.map((attachmentId: Id<"_storage">, idx: number) => (
+                                <AttachmentItem key={idx} storageId={attachmentId} />
+                              ))}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
-          ) : (
-            /* Fallback to old display if form not found */
-            <>
-              <div className="mb-8 pb-8 border-b border-slate-200">
-                <div className="flex items-center gap-2 mb-6">
-                  <div className="p-2 bg-purple-100 rounded-lg">
-                    <svg className="w-5 h-5 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                  </div>
-                  <h2 className="text-base font-bold text-slate-900 uppercase tracking-wide">Ticket Information</h2>
-                </div>
-                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Type</span>
-                    <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.type.replace("_", " ")}</p>
-                  </div>
-                  <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
-                    <span className="text-xs font-medium text-slate-500 uppercase tracking-wide block mb-1">Urgency</span>
-                    <p className="text-sm font-semibold text-slate-900 capitalize">{ticket.urgency}</p>
-                  </div>
-                </div>
-              </div>
-            </>
-          )}
+          ) : null}
 
           {/* SLA Details Section */}
           {slaDetails && (
