@@ -127,6 +127,14 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
       // Show agent selector when modal opens for users who haven't selected an agent
       setShowAgentSelector(true);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen]);
+  
+  // Separate effect to show agent selector when modal opens for users
+  useEffect(() => {
+    if (isOpen && currentUserRole === "user" && !selectedAgentId) {
+      setShowAgentSelector(true);
+    }
   }, [isOpen, currentUserRole, selectedAgentId]);
   
   // Get selected agent details
