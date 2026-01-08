@@ -8,7 +8,6 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TicketAudit } from "@/components/tickets/TicketAudit";
-import { ChatWindow } from "@/components/chat/ChatWindow";
 import { useState, use, useMemo, useEffect } from "react";
 import Link from "next/link";
 import { useToastContext } from "@/contexts/ToastContext";
@@ -144,9 +143,6 @@ export default function TicketDetailPage({
   // Only show visibility selector to agents and admins, not to regular users
   const isAgentOrAdmin = currentUser?.role === "agent" || currentUser?.role === "admin";
   const isEndUser = currentUser?.role === "user" || (!currentUser && currentUserId !== null);
-  
-  // Chat/Comments tab state
-  const [activeTab, setActiveTab] = useState<"comments" | "chat">("chat");
   
   // Filter comments client-side based on visibility and user role
   const filteredComments = useMemo(() => {
@@ -964,24 +960,8 @@ export default function TicketDetailPage({
         </div>
 
         <div className="px-6 py-6 sm:px-8 sm:py-8">
-          {activeTab === "chat" ? (
-            /* Chat Window */
-            currentUserId ? (
-              <div className="h-[600px]">
-                <ChatWindow
-                  ticketId={ticketId}
-                  currentUserId={currentUserId as Id<"users">}
-                  currentUserRole={(currentUser?.role || "user") as "user" | "agent" | "admin"}
-                />
-              </div>
-            ) : (
-              <div className="text-center py-8">
-                <p className="text-slate-600">Loading...</p>
-              </div>
-            )
-          ) : (
-            /* Comments Section */
-            <div className="space-y-4 mb-8">
+          {/* Comments Section */}
+          <div className="space-y-4 mb-8">
             {!filteredComments || filteredComments.length === 0 ? (
               <div className="text-center py-8">
                 <span className="text-4xl mb-3 block">💬</span>
