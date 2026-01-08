@@ -20,6 +20,11 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const { branding } = useBranding();
+  // #region agent log
+  if (typeof window !== 'undefined') {
+    fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:22',message:'Header render - branding values',data:{enabled:branding?.enabled,chatIconUrl:branding?.chatIconUrl,hasBranding:!!branding},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'})}).catch(()=>{});
+  }
+  // #endregion
   const [userName, setUserName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -424,10 +429,22 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             className="relative p-2.5 text-slate-600 hover:text-slate-900 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 group border border-transparent hover:border-blue-100"
             title="Chat"
           >
-            <svg className="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M20.894 7.553a2 2 0 00-1.447-1.447L13.5 4.5l-1.5-3h-4l-1.5 3-5.947 1.606A2 2 0 003 6.947V19a2 2 0 002 2h14a2 2 0 002-2V6.947a2 2 0 00-.106-1.394z" />
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
-            </svg>
+            {/* #region agent log */}
+            {typeof window !== 'undefined' && fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:427',message:'Rendering chat icon',data:{usingCustomIcon:!!branding?.chatIconUrl,chatIconUrl:branding?.chatIconUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{})}
+            {/* #endregion */}
+            {branding?.enabled && branding?.chatIconUrl ? (
+              <img 
+                key={branding.chatIconUrl}
+                src={`${branding.chatIconUrl}${branding.chatIconUrl.includes('?') ? '&' : '?'}cb=${branding.chatIconUrl.split('/').pop()?.split('?')[0] || ''}`}
+                alt="Chat"
+                className="w-5 h-5 transition-transform group-hover:scale-110"
+              />
+            ) : (
+              <svg className="w-5 h-5 transition-transform group-hover:scale-110" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20.894 7.553a2 2 0 00-1.447-1.447L13.5 4.5l-1.5-3h-4l-1.5 3-5.947 1.606A2 2 0 003 6.947V19a2 2 0 002 2h14a2 2 0 002-2V6.947a2 2 0 00-.106-1.394z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
+              </svg>
+            )}
             {chatUnreadCount && chatUnreadCount > 0 && (
               <span className="absolute -top-0.5 -right-0.5 w-5 h-5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full text-[10px] text-white flex items-center justify-center font-semibold shadow-lg ring-2 ring-white">
                 {chatUnreadCount > 9 ? "9+" : chatUnreadCount}

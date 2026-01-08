@@ -100,20 +100,13 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
         notificationIconUrl: brandingSettings.enabled && notificationIconUrl ? notificationIconUrl : null,
         searchIconUrl: brandingSettings.enabled && searchIconUrl ? searchIconUrl : null,
       }
-    : {
-        logoId: null,
-        logoUrl: null,
-        primaryColor: "#4f46e5",
-        primaryColorHover: "#4338ca",
-        secondaryColor: null,
-        appName: "Palmware",
-        enabled: false,
-        chatIconUrl: null,
-        userIconUrl: null,
-        resetPasswordIconUrl: null,
-        notificationIconUrl: null,
-        searchIconUrl: null,
-      };
+    : null;
+  
+  // #region agent log
+  if (typeof window !== 'undefined' && brandingSettings) {
+    fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'BrandingContext.tsx:102',message:'BrandingContext computed branding',data:{enabled:brandingSettings.enabled,chatIconId:brandingSettings.chatIconId,chatIconUrl:chatIconUrl,computedChatIconUrl:branding?.chatIconUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,D'})}).catch(()=>{});
+  }
+  // #endregion
 
   return (
     <BrandingContext.Provider value={{ branding, isLoading: brandingSettings === undefined }}>
