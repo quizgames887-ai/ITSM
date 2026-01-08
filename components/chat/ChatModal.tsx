@@ -18,21 +18,21 @@ function AttachmentItem({ storageId, isCurrentUser }: { storageId: Id<"_storage"
 
   return (
     <div
-      className={`inline-flex items-center gap-2 px-2 py-1 rounded ${
+      className={`inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border shadow-sm transition-all hover:shadow-md ${
         isCurrentUser
-          ? "bg-blue-700 text-white"
-          : "bg-slate-200 text-slate-700"
+          ? "bg-blue-600/90 text-white border-blue-500"
+          : "bg-white text-slate-700 border-slate-300"
       }`}
     >
-      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
       </svg>
       {attachmentUrl ? (
         <a
           href={attachmentUrl}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-xs hover:underline"
+          className="text-xs font-medium hover:underline"
         >
           Download
         </a>
@@ -170,38 +170,40 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
 
   return (
     <div
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      className="fixed inset-0 bg-black/60 backdrop-blur-md z-50 flex items-center justify-center p-4 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="bg-white rounded-xl shadow-xl w-full max-w-2xl h-[80vh] flex flex-col"
+        className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl h-[85vh] flex flex-col border border-slate-200/50 overflow-hidden"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-200 bg-slate-50 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50/30 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-blue-100 rounded-lg">
-              <svg className="w-6 h-6 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            <div className="p-2.5 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-xl shadow-lg">
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M20.894 7.553a2 2 0 00-1.447-1.447L13.5 4.5l-1.5-3h-4l-1.5 3-5.947 1.606A2 2 0 003 6.947V19a2 2 0 002 2h14a2 2 0 002-2V6.947a2 2 0 00-.106-1.394z" />
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
               </svg>
             </div>
             <div>
-              <h2 className="text-lg font-bold text-slate-900">Chat</h2>
-              <p className="text-xs text-slate-500">General conversation</p>
+              <h2 className="text-xl font-bold text-slate-900">Team Chat</h2>
+              <p className="text-xs text-slate-600 font-medium">Real-time messaging with your team</p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors"
+            className="p-2 text-slate-400 hover:text-slate-700 hover:bg-white/80 rounded-xl transition-all duration-200 hover:scale-110"
+            title="Close chat"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
 
         {/* Messages Area */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
+        <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gradient-to-b from-slate-50 to-white">
           {messages && messages.length > 0 ? (
             messages.map((message) => {
               const isCurrentUser = message.senderId === currentUserId;
@@ -217,40 +219,45 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
                       userId={message.senderId}
                       name={message.senderName}
                       size="sm"
+                      className="ring-2 ring-white shadow-md"
                     />
                   </div>
-                  <div className={`flex-1 max-w-[70%] ${isCurrentUser ? "items-end" : ""}`}>
-                    <div className={`rounded-lg p-3 ${
+                  <div className={`flex-1 max-w-[75%] ${isCurrentUser ? "items-end flex flex-col" : ""}`}>
+                    <div className={`rounded-2xl p-4 shadow-sm ${
                       isCurrentUser
-                        ? "bg-blue-600 text-white"
+                        ? "bg-gradient-to-br from-blue-500 to-indigo-600 text-white"
                         : isAgentOrAdmin
-                        ? "bg-white border border-slate-200"
-                        : "bg-slate-100"
+                        ? "bg-white border-2 border-slate-200 shadow-md"
+                        : "bg-white border border-slate-200"
                     }`}>
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className={`text-xs font-semibold ${
-                          isCurrentUser ? "text-blue-100" : "text-slate-700"
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`text-xs font-bold ${
+                          isCurrentUser ? "text-blue-50" : "text-slate-800"
                         }`}>
                           {message.senderName}
                         </span>
                         {isAgentOrAdmin && !isCurrentUser && (
-                          <span className="text-xs px-1.5 py-0.5 rounded bg-blue-100 text-blue-700 font-medium">
+                          <span className={`text-xs px-2 py-0.5 rounded-full font-semibold ${
+                            message.senderRole === "admin" 
+                              ? "bg-gradient-to-r from-purple-100 to-purple-200 text-purple-700 border border-purple-300"
+                              : "bg-gradient-to-r from-blue-100 to-indigo-100 text-blue-700 border border-blue-300"
+                          }`}>
                             {message.senderRole === "admin" ? "Admin" : "Agent"}
                           </span>
                         )}
-                        <span className={`text-xs ${
-                          isCurrentUser ? "text-blue-200" : "text-slate-500"
+                        <span className={`text-xs font-medium ${
+                          isCurrentUser ? "text-blue-100" : "text-slate-500"
                         }`}>
                           {formatTime(message.createdAt)}
                         </span>
                       </div>
-                      <p className={`text-sm whitespace-pre-wrap ${
+                      <p className={`text-sm whitespace-pre-wrap leading-relaxed ${
                         isCurrentUser ? "text-white" : "text-slate-900"
                       }`}>
                         {message.content}
                       </p>
                       {message.attachmentIds && message.attachmentIds.length > 0 && (
-                        <div className="mt-2 space-y-2">
+                        <div className="mt-3 space-y-2">
                           {message.attachmentIds.map((attachmentId, idx) => (
                             <AttachmentItem key={idx} storageId={attachmentId} isCurrentUser={isCurrentUser} />
                           ))}
@@ -262,12 +269,15 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
               );
             })
           ) : (
-            <div className="text-center py-12">
-              <svg className="w-16 h-16 mx-auto mb-4 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
-              </svg>
-              <p className="text-sm text-slate-500 mb-1">No messages yet</p>
-              <p className="text-xs text-slate-400">Start the conversation!</p>
+            <div className="text-center py-16">
+              <div className="inline-flex items-center justify-center w-20 h-20 rounded-full bg-gradient-to-br from-blue-100 to-indigo-100 mb-4">
+                <svg className="w-10 h-10 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M20.894 7.553a2 2 0 00-1.447-1.447L13.5 4.5l-1.5-3h-4l-1.5 3-5.947 1.606A2 2 0 003 6.947V19a2 2 0 002 2h14a2 2 0 002-2V6.947a2 2 0 00-.106-1.394z" />
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16h6" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-slate-900 mb-1">No messages yet</h3>
+              <p className="text-sm text-slate-500">Start a conversation with your team</p>
             </div>
           )}
           <div ref={messagesEndRef} />
@@ -275,23 +285,25 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
 
         {/* Attachment Preview */}
         {attachmentIds.length > 0 && (
-          <div className="px-4 py-2 border-t border-slate-200 bg-slate-50">
+          <div className="px-6 py-3 border-t border-slate-200 bg-gradient-to-r from-slate-50 to-blue-50/30">
             <div className="flex items-center gap-2 flex-wrap">
+              <span className="text-xs font-semibold text-slate-600 mr-1">Attachments:</span>
               {attachmentIds.map((id, index) => (
                 <div
                   key={index}
-                  className="inline-flex items-center gap-2 px-2 py-1 bg-white border border-slate-200 rounded text-xs"
+                  className="inline-flex items-center gap-2 px-3 py-1.5 bg-white border-2 border-slate-200 rounded-xl text-xs shadow-sm hover:shadow-md transition-shadow"
                 >
-                  <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                  <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                   </svg>
-                  <span className="text-slate-600">File {index + 1}</span>
+                  <span className="text-slate-700 font-medium">File {index + 1}</span>
                   <button
                     onClick={() => removeAttachment(index)}
-                    className="text-red-500 hover:text-red-700"
+                    className="text-red-500 hover:text-red-700 hover:bg-red-50 rounded p-0.5 transition-colors"
+                    title="Remove attachment"
                   >
-                    <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
                   </button>
                 </div>
@@ -301,8 +313,8 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
         )}
 
         {/* Input Area */}
-        <div className="px-4 py-3 border-t border-slate-200 bg-white">
-          <div className="flex items-end gap-2">
+        <div className="px-6 py-4 border-t border-slate-200 bg-white">
+          <div className="flex items-end gap-3">
             <input
               ref={fileInputRef}
               type="file"
@@ -315,16 +327,16 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
             <button
               onClick={() => fileInputRef.current?.click()}
               disabled={uploadingAttachment}
-              className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-colors disabled:opacity-50"
+              className="p-2.5 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-all duration-200 disabled:opacity-50 hover:scale-105"
               title="Attach file"
             >
               {uploadingAttachment ? (
-                <svg className="w-5 h-5 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <svg className="w-5 h-5 animate-spin text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               ) : (
-                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
                 </svg>
               )}
             </button>
@@ -338,7 +350,7 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
                 }
               }}
               placeholder="Type your message... (Press Enter to send, Shift+Enter for new line)"
-              className="flex-1 min-h-[60px] max-h-[120px] resize-none"
+              className="flex-1 min-h-[60px] max-h-[120px] resize-none border-2 border-slate-200 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all"
               rows={2}
             />
             <Button
@@ -347,8 +359,9 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
               loading={sending}
               variant="gradient"
               size="sm"
+              className="px-6 py-2.5 font-semibold shadow-lg hover:shadow-xl transition-all"
             >
-              Send
+              {sending ? "Sending..." : "Send"}
             </Button>
           </div>
         </div>
