@@ -8,6 +8,26 @@ export function parseConvexError(error: any): string {
 
   const errorMessage = error.message || String(error);
   
+  // PRIORITY: Check for authentication errors FIRST, even if wrapped
+  // This ensures users always see specific messages for login issues
+  const lowerMessage = errorMessage.toLowerCase();
+  
+  if (lowerMessage.includes("email not registered")) {
+    return "Email not registered. Please check your email or sign up.";
+  }
+  
+  if (lowerMessage.includes("incorrect password")) {
+    return "Incorrect password. Please check your password.";
+  }
+  
+  if (lowerMessage.includes("password is required")) {
+    return "Password is required.";
+  }
+  
+  if (lowerMessage.includes("please enter a valid email") || lowerMessage.includes("invalid email address")) {
+    return "Please enter a valid email address.";
+  }
+  
   // If it's already a user-friendly message (doesn't contain Convex technical details), return it
   if (!errorMessage.includes("[CONVEX") && !errorMessage.includes("Request ID:")) {
     return errorMessage;
@@ -20,16 +40,17 @@ export function parseConvexError(error: any): string {
     const actualMessage = match[1].trim();
     
     // Check for common error patterns and provide user-friendly messages
+    // Make authentication errors short and specific
     if (actualMessage.toLowerCase().includes("email not registered")) {
-      return "This email is not registered. Please sign up first or check your email address.";
+      return "Email not registered. Please check your email or sign up.";
     }
     
     if (actualMessage.toLowerCase().includes("incorrect password")) {
-      return "The password you entered is incorrect. Please check your password and try again.";
+      return "Incorrect password. Please check your password.";
     }
     
     if (actualMessage.toLowerCase().includes("invalid email or password")) {
-      return "The email or password you entered is incorrect. Please check your credentials and try again.";
+      return "Email or password is incorrect. Please check both and try again.";
     }
     
     if (actualMessage.toLowerCase().includes("already exists") || 
@@ -71,7 +92,7 @@ export function parseConvexError(error: any): string {
     }
     
     if (actualMessage.toLowerCase().includes("password is required")) {
-      return "Password is required. Please enter your password.";
+      return "Password is required.";
     }
     
     if (actualMessage.toLowerCase().includes("account setup incomplete")) {
@@ -100,18 +121,52 @@ export function parseConvexError(error: any): string {
     }
   }
 
-  // Fallback messages based on error type
-  if (errorMessage.includes("Server Error") || errorMessage.includes("server error")) {
-    return "A server error occurred. Please try again in a moment. If the problem persists, contact support.";
+  // Check for authentication-specific errors FIRST, even if wrapped in "Server Error"
+  // This ensures we show specific messages for login issues
+  if (errorMessage.toLowerCase().includes("email not registered") || 
+      errorMessage.toLowerCase().includes("incorrect password") ||
+      errorMessage.toLowerCase().includes("password is required") ||
+      errorMessage.toLowerCase().includes("please enter a valid email")) {
+    // These are authentication errors - return them directly
+    if (errorMessage.toLowerCase().includes("email not registered")) {
+      return "Email not registered. Please check your email or sign up.";
+    }
+    if (errorMessage.toLowerCase().includes("incorrect password")) {
+      return "Incorrect password. Please check your password.";
+    }
+    if (errorMessage.toLowerCase().includes("password is required")) {
+      return "Password is required.";
+    }
+    if (errorMessage.toLowerCase().includes("please enter a valid email")) {
+      return "Please enter a valid email address.";
+    }
   }
   
-  if (errorMessage.includes("Failed to") || errorMessage.includes("Sign in failed")) {
+  // Check for "Sign in failed" or "Failed to" and extract the actual error
+  if (errorMessage.includes("Sign in failed") || errorMessage.includes("Failed to sign in")) {
     // Extract the actual error from "Sign in failed: ..." format
-    const failedMatch = errorMessage.match(/Sign in failed:\s*(.+)/i);
+    const failedMatch = errorMessage.match(/(?:Sign in failed|Failed to sign in):\s*(.+)/i);
     if (failedMatch && failedMatch[1]) {
-      return failedMatch[1].trim();
+      const extractedError = failedMatch[1].trim();
+      // Check if it's an authentication error
+      if (extractedError.toLowerCase().includes("email not registered")) {
+        return "Email not registered. Please check your email or sign up.";
+      }
+      if (extractedError.toLowerCase().includes("incorrect password")) {
+        return "Incorrect password. Please check your password.";
+      }
+      return extractedError;
     }
-    return errorMessage;
+  }
+  
+  // Only show generic server error if we truly don't know what the error is
+  // and it's not an authentication-related error
+  if ((errorMessage.includes("Server Error") || errorMessage.includes("server error")) &&
+      !errorMessage.toLowerCase().includes("email") &&
+      !errorMessage.toLowerCase().includes("password") &&
+      !errorMessage.toLowerCase().includes("authentication") &&
+      !errorMessage.toLowerCase().includes("sign in")) {
+    return "Server error. Please try again.";
   }
   
   if (errorMessage.includes("Network") || errorMessage.includes("network")) {
@@ -129,6 +184,13 @@ export function parseConvexError(error: any): string {
     return errorMessage;
   }
 
-  // Generic fallback - but try to be more helpful
-  return "Unable to complete your request. Please check your information and try again. If the problem continues, contact support.";
+  // Generic fallback - but try to be more helpful and shorter
+  // Check if it might be an authentication error even if not clearly identified
+  if (errorMessage.toLowerCase().includes("sign in") || 
+      errorMessage.toLowerCase().includes("login") ||
+      errorMessage.toLowerCase().includes("authentication")) {
+    return "Login failed. Please check your email and password.";
+  }
+  
+  return "Unable to complete your request. Please try again.";
 }
