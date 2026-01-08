@@ -47,6 +47,10 @@ export default function LoginPage() {
         router.push("/workplace");
       }
     } catch (err: any) {
+      // Log full error details to console for debugging (includes stack trace)
+      console.error("Login error:", err);
+      
+      // Show user-friendly message in UI
       const friendlyError = parseConvexError(err);
       setError(friendlyError);
     } finally {

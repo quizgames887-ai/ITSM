@@ -73,21 +73,31 @@ export const signUp = mutation({
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!sanitizedEmail || sanitizedEmail.trim().length === 0) {
-        throw new Error("Email is required");
+        const error = new Error("Email is required");
+        error.name = "ValidationError";
+        throw error;
       }
       if (!emailRegex.test(sanitizedEmail)) {
-        throw new Error("Please enter a valid email address");
+        const error = new Error("Please enter a valid email address");
+        error.name = "ValidationError";
+        throw error;
       }
       if (sanitizedEmail.length > 254) {
-        throw new Error("Email address is too long. Please use an email address with less than 254 characters");
+        const error = new Error("Email address is too long. Please use an email address with less than 254 characters");
+        error.name = "ValidationError";
+        throw error;
       }
       
       // Name validation
       if (!sanitizedName || sanitizedName.length === 0) {
-        throw new Error("Name is required");
+        const error = new Error("Name is required");
+        error.name = "ValidationError";
+        throw error;
       }
       if (sanitizedName.length > 100) {
-        throw new Error("Name is too long. Please use a name with less than 100 characters");
+        const error = new Error("Name is too long. Please use a name with less than 100 characters");
+        error.name = "ValidationError";
+        throw error;
       }
       
       // Check if user exists
@@ -97,7 +107,9 @@ export const signUp = mutation({
         .first();
 
       if (existingUser) {
-        throw new Error("An account with this email already exists. Please sign in instead");
+        const error = new Error("An account with this email already exists. Please sign in instead");
+        error.name = "AccountError";
+        throw error;
       }
 
       // Hash password (includes password validation)
@@ -128,7 +140,12 @@ export const signUp = mutation({
     } catch (error: any) {
       console.error("Sign up error:", error);
       
-      // If it's already a user-friendly error message, re-throw it
+      // If it's already a user-friendly error message with proper error name, re-throw it
+      if (error.name && (error.name === "ValidationError" || error.name === "AccountError")) {
+        throw error;
+      }
+      
+      // If it's already a user-friendly error message, preserve it but ensure it has a name
       if (error.message && (
         error.message.includes("Email is required") ||
         error.message.includes("Please enter a valid email") ||
@@ -139,20 +156,30 @@ export const signUp = mutation({
         error.message.includes("Password must") ||
         error.message.includes("Password does not meet")
       )) {
+        error.name = error.name || "ValidationError";
         throw error;
       }
       
       // For password validation errors from hashPassword
       if (error.message && error.message.includes("Password must")) {
-        throw new Error(`Password requirements: ${error.message}`);
+        const validationError = new Error(`Password requirements: ${error.message}`);
+        validationError.name = "ValidationError";
+        validationError.stack = error.stack;
+        throw validationError;
       }
       
-      // For other errors, provide a specific message
+      // For other errors, preserve the original error but add context
       if (error.message) {
-        throw new Error(`Account creation failed: ${error.message}`);
+        const enhancedError = new Error(`Account creation failed: ${error.message}`);
+        enhancedError.name = error.name || "SignUpError";
+        enhancedError.stack = error.stack;
+        throw enhancedError;
       }
       
-      throw new Error("Unable to create account. Please check your information and try again");
+      const genericError = new Error("Unable to create account. Please check your information and try again");
+      genericError.name = "SignUpError";
+      genericError.stack = error.stack;
+      throw genericError;
     }
   },
 });
@@ -169,7 +196,9 @@ export const signIn = mutation({
       const sanitizedEmail = args.email.trim().toLowerCase();
       
       if (!emailRegex.test(sanitizedEmail)) {
-        throw new Error("Please enter a valid email address");
+        const error = new Error("Please enter a valid email address");
+        error.name = "ValidationError";
+        throw error;
       }
 
       const user = await ctx.db
@@ -178,7 +207,9 @@ export const signIn = mutation({
         .first();
 
       if (!user) {
-        throw new Error("Email not registered. Please sign up first or check your email address");
+        const error = new Error("Email not registered. Please sign up first or check your email address");
+        error.name = "AuthenticationError";
+        throw error;
       }
 
       const passwordRecord = await ctx.db
@@ -187,17 +218,23 @@ export const signIn = mutation({
         .first();
 
       if (!passwordRecord) {
-        throw new Error("Account setup incomplete. Please contact support or reset your password");
+        const error = new Error("Account setup incomplete. Please contact support or reset your password");
+        error.name = "AccountError";
+        throw error;
       }
 
       // Validate password before hashing
       if (!args.password || args.password.trim().length === 0) {
-        throw new Error("Password is required");
+        const error = new Error("Password is required");
+        error.name = "ValidationError";
+        throw error;
       }
 
       const hashedPassword = await hashPassword(args.password);
       if (passwordRecord.passwordHash !== hashedPassword) {
-        throw new Error("Incorrect password. Please check your password and try again");
+        const error = new Error("Incorrect password. Please check your password and try again");
+        error.name = "AuthenticationError";
+        throw error;
       }
 
       return { 
@@ -210,7 +247,12 @@ export const signIn = mutation({
     } catch (error: any) {
       console.error("Sign in error:", error);
       
-      // If it's already a user-friendly error message, re-throw it
+      // If it's already a user-friendly error message with proper error name, re-throw it
+      if (error.name && (error.name === "ValidationError" || error.name === "AuthenticationError" || error.name === "AccountError")) {
+        throw error;
+      }
+      
+      // If it's already a user-friendly error message, preserve it but ensure it has a name
       if (error.message && (
         error.message.includes("Email not registered") ||
         error.message.includes("Incorrect password") ||
@@ -219,20 +261,30 @@ export const signIn = mutation({
         error.message.includes("Account setup incomplete") ||
         error.message.includes("Password must")
       )) {
+        error.name = error.name || "AuthenticationError";
         throw error;
       }
       
       // For password validation errors from hashPassword
       if (error.message && error.message.includes("Password must")) {
-        throw new Error("Password does not meet requirements. Please check your password");
+        const validationError = new Error("Password does not meet requirements. Please check your password");
+        validationError.name = "ValidationError";
+        validationError.stack = error.stack;
+        throw validationError;
       }
       
-      // For other errors, provide a specific message based on error type
+      // For other errors, preserve the original error but add context
       if (error.message) {
-        throw new Error(`Sign in failed: ${error.message}`);
+        const enhancedError = new Error(`Sign in failed: ${error.message}`);
+        enhancedError.name = error.name || "SignInError";
+        enhancedError.stack = error.stack;
+        throw enhancedError;
       }
       
-      throw new Error("Unable to sign in. Please check your email and password, then try again");
+      const genericError = new Error("Unable to sign in. Please check your email and password, then try again");
+      genericError.name = "SignInError";
+      genericError.stack = error.stack;
+      throw genericError;
     }
   },
 });
