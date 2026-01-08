@@ -39,6 +39,11 @@ function IconUploadSection({
     iconId && getIconUrl ? { storageId: iconId } : "skip"
   );
 
+  // Add cache-busting parameter to force browser to reload image when iconId changes
+  const iconUrlWithCacheBust = iconUrl && iconId 
+    ? `${iconUrl}${iconUrl.includes('?') ? '&' : '?'}v=${iconId}`
+    : iconUrl;
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -72,9 +77,10 @@ function IconUploadSection({
       <div className="flex items-center gap-4">
         <div className="flex-shrink-0">
           <div className="w-16 h-16 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center bg-slate-50">
-            {iconUrl ? (
+            {iconUrlWithCacheBust ? (
               <img
-                src={iconUrl}
+                key={iconId || 'no-icon'}
+                src={iconUrlWithCacheBust}
                 alt={title}
                 className="w-full h-full object-contain rounded-lg"
               />
@@ -163,10 +169,15 @@ export default function BrandingSettingsPage() {
   
   // Update logo preview when URL is available
   useEffect(() => {
-    if (logoUrl) {
-      setLogoPreview(logoUrl);
+    if (logoUrl && brandingSettings?.logoId) {
+      // Add cache-busting parameter to force browser to reload image when logoId changes
+      const logoUrlWithCacheBust = `${logoUrl}${logoUrl.includes('?') ? '&' : '?'}v=${brandingSettings.logoId}`;
+      setLogoPreview(logoUrlWithCacheBust);
+    } else if (!brandingSettings?.logoId) {
+      // Clear preview if logo is removed
+      setLogoPreview(null);
     }
-  }, [logoUrl]);
+  }, [logoUrl, brandingSettings?.logoId]);
   
   const handleLogoUpload = async (file: File) => {
     if (!file.type.startsWith("image/")) {
@@ -405,6 +416,7 @@ export default function BrandingSettingsPage() {
                   <div className="w-32 h-32 border-2 border-dashed border-slate-300 rounded-lg flex items-center justify-center bg-slate-50">
                     {logoPreview ? (
                       <img
+                        key={brandingSettings?.logoId || 'no-logo'}
                         src={logoPreview}
                         alt="Logo preview"
                         className="w-full h-full object-contain rounded-lg"
