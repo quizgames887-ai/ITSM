@@ -9,6 +9,7 @@ import { StatsCard } from "@/components/dashboard/StatsCard";
 import { DynamicForm } from "@/components/forms/DynamicForm";
 import { ColumnCustomizer, ColumnConfig } from "@/components/tickets/ColumnCustomizer";
 import { ViewManager, SavedView } from "@/components/tickets/ViewManager";
+import { TableHeader } from "@/components/ui/TableHeader";
 import Link from "next/link";
 import React, { useState, useEffect, useMemo } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
@@ -88,6 +89,9 @@ export default function TicketsPage() {
   
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [priorityFilter, setPriorityFilter] = useState<string>("all");
+  const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [categoryFilter, setCategoryFilter] = useState<string>("all");
+  const [assigneeFilter, setAssigneeFilter] = useState<string>("all");
   const [showCreateForm, setShowCreateForm] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   // Tab state for agents: "created" (My Tickets) or "assigned" (Assigned to Me)
@@ -182,12 +186,12 @@ export default function TicketsPage() {
   // Reset selected tickets when filters change
   useEffect(() => {
     setSelectedTickets(new Set());
-  }, [statusFilter, priorityFilter, activeTab, currentPage]);
+  }, [statusFilter, priorityFilter, typeFilter, categoryFilter, assigneeFilter, activeTab, currentPage]);
 
   // Reset to page 1 when filters change (must be before any conditional returns)
   useEffect(() => {
     setCurrentPage(1);
-  }, [statusFilter, priorityFilter, activeTab]);
+  }, [statusFilter, priorityFilter, typeFilter, categoryFilter, assigneeFilter, activeTab]);
   
   // Helper function to map form field values to ticket creation format
   const mapFormDataToTicket = (formData: Record<string, any>) => {
@@ -331,10 +335,16 @@ export default function TicketsPage() {
     }
   }
   
-  // Apply status and priority filters
+  // Apply all filters
   let filteredTickets = ticketsToDisplay.filter((ticket) => {
     if (statusFilter !== "all" && ticket.status !== statusFilter) return false;
     if (priorityFilter !== "all" && ticket.priority !== priorityFilter) return false;
+    if (typeFilter !== "all" && ticket.type !== typeFilter) return false;
+    if (categoryFilter !== "all" && ticket.category !== categoryFilter) return false;
+    if (assigneeFilter !== "all") {
+      if (assigneeFilter === "unassigned" && ticket.assignedTo !== null) return false;
+      if (assigneeFilter !== "unassigned" && ticket.assignedTo !== assigneeFilter) return false;
+    }
     return true;
   });
   
@@ -971,32 +981,8 @@ export default function TicketsPage() {
         </div>
       )}
 
-      {/* Filters and Bulk Actions */}
+      {/* Bulk Actions and View Management */}
         <div className="flex flex-wrap gap-3 items-center">
-        <select
-          value={statusFilter}
-          onChange={(e) => setStatusFilter(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-slate-500 focus:border-slate-500"
-        >
-          <option value="all">All Status</option>
-          <option value="new">New</option>
-          <option value="in_progress">In Progress</option>
-          <option value="on_hold">On Hold</option>
-          <option value="resolved">Resolved</option>
-          <option value="closed">Closed</option>
-        </select>
-        <select
-          value={priorityFilter}
-          onChange={(e) => setPriorityFilter(e.target.value)}
-          className="px-3 py-2 text-sm border border-slate-300 rounded bg-white focus:outline-none focus:ring-1 focus:ring-slate-500 focus:border-slate-500"
-        >
-          <option value="all">All Priority</option>
-          <option value="low">Low</option>
-          <option value="medium">Medium</option>
-          <option value="high">High</option>
-          <option value="critical">Critical</option>
-        </select>
-        
         {/* View Management */}
         <div className="flex items-center gap-2 border-l border-slate-200 pl-3">
           <Button
@@ -1090,26 +1076,114 @@ export default function TicketsPage() {
                 <tr className="border-b border-slate-200 bg-slate-50">
                   {visibleColumns.map((column) => {
                     if (column.id === "select" && userRole !== "admin") return null;
-                    const isSortable = ["title", "status", "priority", "createdAt", "updatedAt", "category"].includes(column.id);
+                    const isSortable = ["title", "status", "priority", "createdAt", "updatedAt", "category", "type"].includes(column.id);
+                    const isFilterable = ["status", "priority", "type", "category", "assignee"].includes(column.id);
+                    
+                    // Get filter options based on column
+                    let filterOptions: { value: string; label: string }[] = [];
+                    if (column.id === "status") {
+                      filterOptions = [
+                        { value: "all", label: "All Statuses" },
+                        { value: "new", label: "New" },
+                        { value: "in_progress", label: "In Progress" },
+                        { value: "on_hold", label: "On Hold" },
+                        { value: "resolved", label: "Resolved" },
+                        { value: "closed", label: "Closed" },
+                        { value: "rejected", label: "Rejected" },
+                        { value: "need_approval", label: "Need Approval" },
+                      ];
+                    } else if (column.id === "priority") {
+                      filterOptions = [
+                        { value: "all", label: "All Priorities" },
+                        { value: "critical", label: "Critical" },
+                        { value: "high", label: "High" },
+                        { value: "medium", label: "Medium" },
+                        { value: "low", label: "Low" },
+                      ];
+                    } else if (column.id === "type") {
+                      filterOptions = [
+                        { value: "all", label: "All Types" },
+                        { value: "incident", label: "Incident" },
+                        { value: "service_request", label: "Service Request" },
+                        { value: "inquiry", label: "Inquiry" },
+                      ];
+                    } else if (column.id === "category") {
+                      // Get unique categories from tickets
+                      const categories = Array.from(new Set((ticketsToDisplay || []).map(t => t.category).filter(Boolean)));
+                      filterOptions = [
+                        { value: "all", label: "All Categories" },
+                        ...categories.map(cat => ({ value: cat, label: cat })),
+                      ];
+                    } else if (column.id === "assignee") {
+                      filterOptions = [
+                        { value: "all", label: "All Assignees" },
+                        { value: "unassigned", label: "Unassigned" },
+                        ...(users || []).map(user => ({ value: user._id, label: user.name })),
+                      ];
+                    }
+                    
+                    // Get current filter value
+                    let filterValue = "all";
+                    if (column.id === "status") filterValue = statusFilter;
+                    else if (column.id === "priority") filterValue = priorityFilter;
+                    else if (column.id === "type") filterValue = typeFilter;
+                    else if (column.id === "category") filterValue = categoryFilter;
+                    else if (column.id === "assignee") filterValue = assigneeFilter;
+                    
+                    // Handle filter change
+                    const handleFilterChange = (colId: string, value: string) => {
+                      if (colId === "status") setStatusFilter(value);
+                      else if (colId === "priority") setPriorityFilter(value);
+                      else if (colId === "type") setTypeFilter(value);
+                      else if (colId === "category") setCategoryFilter(value);
+                      else if (colId === "assignee") setAssigneeFilter(value);
+                    };
+                    
+                    const handleClearFilter = (colId: string) => {
+                      if (colId === "status") setStatusFilter("all");
+                      else if (colId === "priority") setPriorityFilter("all");
+                      else if (colId === "type") setTypeFilter("all");
+                      else if (colId === "category") setCategoryFilter("all");
+                      else if (colId === "assignee") setAssigneeFilter("all");
+                    };
+                    
+                    if (column.id === "select") {
+                      return (
+                        <th key={column.id} className="px-4 py-3 w-12">
+                          <input
+                            type="checkbox"
+                            checked={selectedTickets.size === filteredTickets.length && filteredTickets.length > 0}
+                            onChange={(e) => {
+                              if (e.target.checked) {
+                                setSelectedTickets(new Set(filteredTickets.map(t => t._id)));
+                              } else {
+                                setSelectedTickets(new Set());
+                              }
+                            }}
+                            className="w-4 h-4 rounded border-slate-300 text-slate-600 focus:ring-2 focus:ring-slate-500 cursor-pointer"
+                          />
+                        </th>
+                      );
+                    }
+                    
                     return (
-                      <th
+                      <TableHeader
                         key={column.id}
-                        className={`px-4 py-3 text-xs font-semibold text-slate-700 uppercase tracking-wider ${
-                          column.id === "action" ? "text-right" : "text-left"
-                        } ${column.id === "select" ? "w-12" : ""}`}
-                      >
-                        {isSortable ? (
-                          <button
-                            onClick={() => handleSort(column.id)}
-                            className="flex items-center gap-2 hover:text-slate-900 transition-colors"
-                          >
-                            {column.label}
-                            {sortBy === column.id && getSortIcon(column.id)}
-                          </button>
-                        ) : (
-                          column.label
-                        )}
-                      </th>
+                        label={column.label}
+                        columnId={column.id}
+                        sortable={isSortable}
+                        filterable={isFilterable}
+                        filterType="select"
+                        filterOptions={filterOptions}
+                        sortBy={sortBy}
+                        sortOrder={sortOrder}
+                        filterValue={filterValue}
+                        onSort={handleSort}
+                        onFilter={handleFilterChange}
+                        onClearFilter={handleClearFilter}
+                        align={column.id === "action" ? "right" : "left"}
+                        className={column.id === "select" ? "w-12" : ""}
+                      />
                     );
                   })}
                 </tr>
