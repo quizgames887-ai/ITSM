@@ -132,7 +132,7 @@ export const sendMessage = mutation({
       // Find conversation that includes both sender and receiver
       existingConversation = allConversations.find(conv => 
         conv.participantIds.includes(args.senderId) && 
-        conv.participantIds.includes(args.receiverId) &&
+        conv.participantIds.includes(args.receiverId!) &&
         conv.participantIds.length === 2 // Only 2 participants for direct conversation
       );
     } else {

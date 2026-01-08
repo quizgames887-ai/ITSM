@@ -57,10 +57,20 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
   const messages = useQuery(
     api.chat.getMessages,
     isOpen 
-      ? { 
-          userId: currentUserId,
-          receiverId: selectedAgentId ?? undefined,
-        } 
+      ? (() => {
+          const params: {
+            userId: Id<"users">;
+            receiverId?: Id<"users">;
+          } = {
+            userId: currentUserId,
+          };
+          
+          if (selectedAgentId) {
+            params.receiverId = selectedAgentId;
+          }
+          
+          return params;
+        })()
       : "skip"
   );
   const sendMessage = useMutation(api.chat.sendMessage);
@@ -91,10 +101,18 @@ export function ChatModal({ isOpen, onClose, currentUserId, currentUserRole }: C
   // Mark messages as read when modal opens or messages change
   useEffect(() => {
     if (isOpen && messages && messages.length > 0) {
-      markAsRead({ 
+      const params: {
+        userId: Id<"users">;
+        receiverId?: Id<"users">;
+      } = {
         userId: currentUserId,
-        receiverId: selectedAgentId ?? undefined,
-      }).catch(console.error);
+      };
+      
+      if (selectedAgentId) {
+        params.receiverId = selectedAgentId;
+      }
+      
+      markAsRead(params).catch(console.error);
     }
   }, [messages, isOpen, currentUserId, selectedAgentId, markAsRead]);
 
