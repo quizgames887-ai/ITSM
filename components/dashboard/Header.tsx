@@ -20,11 +20,6 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   const router = useRouter();
   const { t } = useTranslation();
   const { branding } = useBranding();
-  // #region agent log
-  if (typeof window !== 'undefined') {
-    fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:22',message:'Header render - branding values',data:{enabled:branding?.enabled,chatIconUrl:branding?.chatIconUrl,hasBranding:!!branding},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'})}).catch(()=>{});
-  }
-  // #endregion
   const [userName, setUserName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -47,6 +42,15 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
     if (id) setUserId(id);
     if (role) setUserRole(role);
   }, []);
+
+  // #region agent log
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:22',message:'Header render - branding values',data:{enabled:branding?.enabled,chatIconUrl:branding?.chatIconUrl,hasBranding:!!branding},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:427',message:'Rendering chat icon',data:{usingCustomIcon:!!branding?.chatIconUrl,chatIconUrl:branding?.chatIconUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+    }
+  }, [branding]);
+  // #endregion
 
   // Fetch data for search
   const tickets = useQuery(
@@ -429,9 +433,6 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             className="relative p-2.5 text-slate-600 hover:text-slate-900 hover:bg-gradient-to-br hover:from-blue-50 hover:to-indigo-50 rounded-xl transition-all duration-200 group border border-transparent hover:border-blue-100"
             title="Chat"
           >
-            {/* #region agent log */}
-            {typeof window !== 'undefined' && fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:427',message:'Rendering chat icon',data:{usingCustomIcon:!!branding?.chatIconUrl,chatIconUrl:branding?.chatIconUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{})}
-            {/* #endregion */}
             {branding?.enabled && branding?.chatIconUrl ? (
               <img 
                 key={branding.chatIconUrl}
