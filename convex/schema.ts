@@ -633,4 +633,18 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_enabled", ["enabled"]),
+
+  // Branding Settings - Application logo and color theme
+  brandingSettings: defineTable({
+    logoId: v.optional(v.union(v.id("_storage"), v.null())), // Application logo
+    primaryColor: v.string(), // Primary brand color (hex format, e.g., "#4f46e5")
+    primaryColorHover: v.optional(v.string()), // Primary color hover state
+    secondaryColor: v.optional(v.string()), // Secondary brand color
+    appName: v.optional(v.string()), // Custom application name (defaults to "Palmware")
+    enabled: v.boolean(), // Master switch for branding
+    createdBy: v.id("users"),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_enabled", ["enabled"]),
 });

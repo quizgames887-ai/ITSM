@@ -9,11 +9,13 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { useBranding } from "@/contexts/BrandingContext";
 
 export function Navigation() {
   const pathname = usePathname();
   const router = useRouter();
   const { t } = useTranslation();
+  const { branding } = useBranding();
   const [userName, setUserName] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -198,10 +200,31 @@ export function Navigation() {
           <div className="flex items-center space-x-4 sm:space-x-8">
             <Link
               href="/workplace"
-              className="text-lg sm:text-xl font-bold bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-transparent hover:from-indigo-700 hover:to-purple-700 transition-all hover:scale-105 inline-block"
+              className="flex items-center gap-2 text-lg sm:text-xl font-bold transition-all hover:scale-105"
+              style={{
+                background: branding?.secondaryColor
+                  ? `linear-gradient(to right, ${branding.primaryColor}, ${branding.secondaryColor})`
+                  : branding?.primaryColor || "#4f46e5",
+                WebkitBackgroundClip: "text",
+                WebkitTextFillColor: "transparent",
+                backgroundClip: "text",
+              }}
             >
-              <span className="hidden sm:inline">Palmware</span>
-              <span className="sm:hidden">PW</span>
+              {branding?.logoUrl ? (
+                <>
+                  <img
+                    src={branding.logoUrl}
+                    alt={branding.appName}
+                    className="h-6 sm:h-7 object-contain"
+                  />
+                  <span className="hidden sm:inline">{branding.appName}</span>
+                </>
+              ) : (
+                <>
+                  <span className="hidden sm:inline">{branding?.appName || "Palmware"}</span>
+                  <span className="sm:hidden">{branding?.appName?.substring(0, 2).toUpperCase() || "PW"}</span>
+                </>
+              )}
             </Link>
             <div className="hidden md:flex space-x-1">
               {navItems.map((item) => {

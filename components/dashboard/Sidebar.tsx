@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { useBranding } from "@/contexts/BrandingContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -14,6 +15,7 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
   const pathname = usePathname();
   const [userRole, setUserRole] = useState<string | null>(null);
   const { t } = useTranslation();
+  const { branding } = useBranding();
 
   useEffect(() => {
     const role = localStorage.getItem("userRole");
@@ -80,6 +82,15 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
       icon: (
         <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
+        </svg>
+      ),
+    },
+    {
+      href: "/settings/branding",
+      label: "Branding",
+      icon: (
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01" />
         </svg>
       ),
     },
@@ -185,13 +196,29 @@ export function Sidebar({ isOpen, onClose }: SidebarProps) {
         {/* Logo */}
         <div className="p-5 lg:p-6 border-b border-slate-200/60 flex items-center justify-between">
           <Link href="/workplace" className="flex items-center gap-3">
-            <div className="w-9 h-9 lg:w-10 lg:h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-xl flex items-center justify-center shadow-lg shadow-blue-600/20">
-              <svg className="w-5 h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-            </div>
+            {branding?.logoUrl ? (
+              <img
+                src={branding.logoUrl}
+                alt={branding.appName}
+                className="w-9 h-9 lg:w-10 lg:h-10 object-contain"
+              />
+            ) : (
+              <div
+                className="w-9 h-9 lg:w-10 lg:h-10 rounded-xl flex items-center justify-center shadow-lg"
+                style={{
+                  background: branding?.secondaryColor
+                    ? `linear-gradient(to bottom right, ${branding.primaryColor}, ${branding.secondaryColor})`
+                    : branding?.primaryColor || "#4f46e5",
+                  boxShadow: `0 10px 15px -3px ${branding?.primaryColor || "#4f46e5"}33`,
+                }}
+              >
+                <svg className="w-5 h-5 lg:w-6 lg:h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+              </div>
+            )}
             <div>
-              <span className="text-base lg:text-lg font-bold text-slate-900">Palmware</span>
+              <span className="text-base lg:text-lg font-bold text-slate-900">{branding?.appName || "Palmware"}</span>
               <span className="block text-xs text-slate-500">Solutions</span>
             </div>
           </Link>

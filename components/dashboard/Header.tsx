@@ -8,6 +8,7 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "@/contexts/TranslationContext";
+import { useBranding } from "@/contexts/BrandingContext";
 
 interface HeaderProps {
   title?: string;
@@ -17,6 +18,7 @@ interface HeaderProps {
 export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   const router = useRouter();
   const { t } = useTranslation();
+  const { branding } = useBranding();
   const [userName, setUserName] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
@@ -264,6 +266,17 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
           </svg>
         </button>
+        
+        {/* Logo (if enabled) */}
+        {branding?.enabled && branding?.logoUrl && (
+          <Link href="/workplace" className="hidden lg:block">
+            <img
+              src={branding.logoUrl}
+              alt={branding.appName}
+              className="h-8 object-contain"
+            />
+          </Link>
+        )}
         
         {/* Page Title */}
         <h1 className="text-base lg:text-xl font-semibold text-slate-900 truncate">
