@@ -44,6 +44,41 @@ export function BrandingProvider({ children }: { children: ReactNode }) {
       : "skip"
   );
 
+  const chatIconUrl = useQuery(
+    brandingApi?.getLogoUrl || "skip",
+    brandingSettings?.chatIconId && brandingApi?.getLogoUrl
+      ? { storageId: brandingSettings.chatIconId }
+      : "skip"
+  );
+
+  const userIconUrl = useQuery(
+    brandingApi?.getLogoUrl || "skip",
+    brandingSettings?.userIconId && brandingApi?.getLogoUrl
+      ? { storageId: brandingSettings.userIconId }
+      : "skip"
+  );
+
+  const resetPasswordIconUrl = useQuery(
+    brandingApi?.getLogoUrl || "skip",
+    brandingSettings?.resetPasswordIconId && brandingApi?.getLogoUrl
+      ? { storageId: brandingSettings.resetPasswordIconId }
+      : "skip"
+  );
+
+  const notificationIconUrl = useQuery(
+    brandingApi?.getLogoUrl || "skip",
+    brandingSettings?.notificationIconId && brandingApi?.getLogoUrl
+      ? { storageId: brandingSettings.notificationIconId }
+      : "skip"
+  );
+
+  const searchIconUrl = useQuery(
+    brandingApi?.getLogoUrl || "skip",
+    brandingSettings?.searchIconId && brandingApi?.getLogoUrl
+      ? { storageId: brandingSettings.searchIconId }
+      : "skip"
+  );
+
   const branding: BrandingSettings | null = brandingSettings
     ? {
         logoId: brandingSettings.logoId || null,
