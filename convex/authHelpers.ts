@@ -64,60 +64,78 @@ export const signUp = mutation({
     workplace: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    // Validate and sanitize inputs
-    const sanitizedEmail = args.email.trim().toLowerCase();
-    const sanitizedName = args.name.trim();
-    const sanitizedWorkplace = args.workplace?.trim();
-    
-    // Email validation
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(sanitizedEmail) || sanitizedEmail.length > 254) {
-      throw new Error("Invalid email address");
+    try {
+      // Validate and sanitize inputs
+      const sanitizedEmail = args.email.trim().toLowerCase();
+      const sanitizedName = args.name.trim();
+      const sanitizedWorkplace = args.workplace?.trim();
+      
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(sanitizedEmail) || sanitizedEmail.length > 254) {
+        throw new Error("Invalid email address");
+      }
+      
+      // Name validation
+      if (sanitizedName.length === 0) {
+        throw new Error("Name cannot be empty");
+      }
+      if (sanitizedName.length > 100) {
+        throw new Error("Name must be less than 100 characters");
+      }
+      
+      // Check if user exists
+      const existingUser = await ctx.db
+        .query("users")
+        .withIndex("by_email", (q) => q.eq("email", sanitizedEmail))
+        .first();
+
+      if (existingUser) {
+        throw new Error("User already exists");
+      }
+
+      // Hash password (includes password validation)
+      const hashedPassword = await hashPassword(args.password);
+
+      // For now, we'll store the hashed password in a separate table
+      // In a real implementation, you'd use Convex Auth or a proper auth service
+      const now = Date.now();
+      const userId = await ctx.db.insert("users", {
+        email: sanitizedEmail,
+        name: sanitizedName,
+        role: "user",
+        onboardingCompleted: false,
+        profilePictureId: null,
+        language: undefined,
+        workplace: sanitizedWorkplace || undefined,
+        createdAt: now,
+        updatedAt: now,
+      });
+
+      // Store password hash (in production, use Convex secrets or external auth)
+      await ctx.db.insert("userPasswords", {
+        userId,
+        passwordHash: hashedPassword,
+      });
+
+      return { userId };
+    } catch (error: any) {
+      console.error("Sign up error:", error);
+      
+      // If it's already a user-friendly error message, re-throw it
+      if (error.message && (
+        error.message.includes("Invalid email") ||
+        error.message.includes("Name cannot") ||
+        error.message.includes("Name must") ||
+        error.message.includes("User already exists") ||
+        error.message.includes("Password must")
+      )) {
+        throw error;
+      }
+      
+      // For other errors, provide a generic user-friendly message
+      throw new Error("Failed to create account. Please try again.");
     }
-    
-    // Name validation
-    if (sanitizedName.length === 0) {
-      throw new Error("Name cannot be empty");
-    }
-    if (sanitizedName.length > 100) {
-      throw new Error("Name must be less than 100 characters");
-    }
-    
-    // Check if user exists
-    const existingUser = await ctx.db
-      .query("users")
-      .withIndex("by_email", (q) => q.eq("email", sanitizedEmail))
-      .first();
-
-    if (existingUser) {
-      throw new Error("User already exists");
-    }
-
-    // Hash password (includes password validation)
-    const hashedPassword = await hashPassword(args.password);
-
-    // For now, we'll store the hashed password in a separate table
-    // In a real implementation, you'd use Convex Auth or a proper auth service
-    const now = Date.now();
-    const userId = await ctx.db.insert("users", {
-      email: sanitizedEmail,
-      name: sanitizedName,
-      role: "user",
-      onboardingCompleted: false,
-      profilePictureId: null,
-      language: undefined,
-      workplace: sanitizedWorkplace || undefined,
-      createdAt: now,
-      updatedAt: now,
-    });
-
-    // Store password hash (in production, use Convex secrets or external auth)
-    await ctx.db.insert("userPasswords", {
-      userId,
-      passwordHash: hashedPassword,
-    });
-
-    return { userId };
   },
 });
 
@@ -160,8 +178,18 @@ export const signIn = mutation({
       };
     } catch (error: any) {
       console.error("Sign in error:", error);
-      // Re-throw with a user-friendly message
-      throw new Error(error.message || "Failed to sign in. Please try again.");
+      
+      // If it's already a user-friendly error message, re-throw it
+      if (error.message && (
+        error.message.includes("Invalid email or password") ||
+        error.message.includes("Invalid email") ||
+        error.message.includes("Password must")
+      )) {
+        throw error;
+      }
+      
+      // For other errors, provide a generic user-friendly message
+      throw new Error("Failed to sign in. Please check your credentials and try again.");
     }
   },
 });

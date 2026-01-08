@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
 import { PasswordStrength } from "@/components/ui/PasswordStrength";
+import { parseConvexError } from "@/utils/errorUtils";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -54,7 +55,8 @@ export default function RegisterPage() {
       await signUp({ email, password, name, workplace });
       router.push("/login?registered=true");
     } catch (err: any) {
-      setError(err.message || "Failed to create account");
+      const friendlyError = parseConvexError(err);
+      setError(friendlyError);
     } finally {
       setLoading(false);
     }

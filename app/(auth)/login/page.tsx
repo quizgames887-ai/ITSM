@@ -7,6 +7,7 @@ import { api } from "@/convex/_generated/api";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
+import { parseConvexError } from "@/utils/errorUtils";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,7 +47,8 @@ export default function LoginPage() {
         router.push("/workplace");
       }
     } catch (err: any) {
-      setError(err.message || "Failed to sign in");
+      const friendlyError = parseConvexError(err);
+      setError(friendlyError);
     } finally {
       setLoading(false);
     }
