@@ -1040,56 +1040,74 @@ export default function TicketDetailPage({
               rows={3}
             />
             
-            {/* File Attachment Section */}
-            <div className="space-y-2">
-              <label className="block text-sm font-medium text-slate-700">
-                Attach File (Optional)
-              </label>
-              <div className="flex items-center gap-3">
-                <input
-                  type="file"
-                  onChange={async (e) => {
-                    const file = e.target.files?.[0];
-                    if (file) {
-                      const storageId = await handleFileUpload(file);
-                      if (storageId) {
-                        setCommentAttachments(prev => [...prev, storageId]);
-                        success("File attached successfully!");
-                      }
+            {/* File Attachment Section - Icon Based */}
+            <div className="flex items-center gap-3">
+              <input
+                type="file"
+                id="comment-file-input"
+                onChange={async (e) => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    const storageId = await handleFileUpload(file);
+                    if (storageId) {
+                      setCommentAttachments(prev => [...prev, storageId]);
+                      success("File attached successfully!");
                     }
-                  }}
-                  disabled={uploadingAttachment}
-                  className="flex-1 px-4 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 text-sm text-slate-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                />
-                {uploadingAttachment && (
-                  <div className="flex items-center gap-2 text-sm text-blue-600">
+                  }
+                  // Reset input to allow selecting the same file again
+                  e.target.value = '';
+                }}
+                disabled={uploadingAttachment}
+                className="hidden"
+              />
+              <label
+                htmlFor="comment-file-input"
+                className={`flex items-center gap-2 px-3 py-2 rounded-lg border transition-colors cursor-pointer ${
+                  uploadingAttachment
+                    ? "bg-slate-100 border-slate-300 text-slate-400 cursor-not-allowed"
+                    : "bg-white border-slate-300 text-slate-600 hover:bg-slate-50 hover:border-slate-400"
+                }`}
+                title="Attach file"
+              >
+                {uploadingAttachment ? (
+                  <>
                     <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Uploading...
-                  </div>
+                    <span className="text-xs">Uploading...</span>
+                  </>
+                ) : (
+                  <>
+                    <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.172 7l-6.586 6.586a2 2 0 102.828 2.828l6.414-6.586a4 4 0 00-5.656-5.656l-6.415 6.585a6 6 0 108.486 8.486L20.5 13" />
+                    </svg>
+                    <span className="text-xs font-medium">Attach</span>
+                  </>
                 )}
-              </div>
+              </label>
               
-              {/* Show attached files */}
+              {/* Show attached files as icons */}
               {commentAttachments.length > 0 && (
-                <div className="flex flex-wrap gap-2 mt-2">
+                <div className="flex items-center gap-2">
                   {commentAttachments.map((attachmentId, idx) => (
-                    <div key={idx} className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 border border-blue-200 rounded-lg text-sm">
+                    <div
+                      key={idx}
+                      className="relative group flex items-center justify-center w-8 h-8 bg-blue-100 border border-blue-300 rounded-lg hover:bg-blue-200 transition-colors"
+                      title={`Attachment ${idx + 1}`}
+                    >
                       <svg className="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                       </svg>
-                      <span className="text-blue-700 font-medium">File {idx + 1}</span>
                       <button
                         type="button"
                         onClick={() => {
                           setCommentAttachments(prev => prev.filter((_, i) => i !== idx));
                         }}
-                        className="ml-1 text-blue-600 hover:text-blue-800"
+                        className="absolute -top-1 -right-1 w-4 h-4 bg-red-500 text-white rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                         title="Remove attachment"
                       >
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <svg className="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                         </svg>
                       </button>
