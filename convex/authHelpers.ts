@@ -72,16 +72,22 @@ export const signUp = mutation({
       
       // Email validation
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(sanitizedEmail) || sanitizedEmail.length > 254) {
-        throw new Error("Invalid email address");
+      if (!sanitizedEmail || sanitizedEmail.trim().length === 0) {
+        throw new Error("Email is required");
+      }
+      if (!emailRegex.test(sanitizedEmail)) {
+        throw new Error("Please enter a valid email address");
+      }
+      if (sanitizedEmail.length > 254) {
+        throw new Error("Email address is too long. Please use an email address with less than 254 characters");
       }
       
       // Name validation
-      if (sanitizedName.length === 0) {
-        throw new Error("Name cannot be empty");
+      if (!sanitizedName || sanitizedName.length === 0) {
+        throw new Error("Name is required");
       }
       if (sanitizedName.length > 100) {
-        throw new Error("Name must be less than 100 characters");
+        throw new Error("Name is too long. Please use a name with less than 100 characters");
       }
       
       // Check if user exists
@@ -91,7 +97,7 @@ export const signUp = mutation({
         .first();
 
       if (existingUser) {
-        throw new Error("User already exists");
+        throw new Error("An account with this email already exists. Please sign in instead");
       }
 
       // Hash password (includes password validation)
@@ -124,17 +130,29 @@ export const signUp = mutation({
       
       // If it's already a user-friendly error message, re-throw it
       if (error.message && (
-        error.message.includes("Invalid email") ||
-        error.message.includes("Name cannot") ||
-        error.message.includes("Name must") ||
-        error.message.includes("User already exists") ||
-        error.message.includes("Password must")
+        error.message.includes("Email is required") ||
+        error.message.includes("Please enter a valid email") ||
+        error.message.includes("Email address is too long") ||
+        error.message.includes("Name is required") ||
+        error.message.includes("Name is too long") ||
+        error.message.includes("already exists") ||
+        error.message.includes("Password must") ||
+        error.message.includes("Password does not meet")
       )) {
         throw error;
       }
       
-      // For other errors, provide a generic user-friendly message
-      throw new Error("Failed to create account. Please try again.");
+      // For password validation errors from hashPassword
+      if (error.message && error.message.includes("Password must")) {
+        throw new Error(`Password requirements: ${error.message}`);
+      }
+      
+      // For other errors, provide a specific message
+      if (error.message) {
+        throw new Error(`Account creation failed: ${error.message}`);
+      }
+      
+      throw new Error("Unable to create account. Please check your information and try again");
     }
   },
 });
@@ -146,13 +164,21 @@ export const signIn = mutation({
   },
   handler: async (ctx, args) => {
     try {
+      // Validate email format first
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const sanitizedEmail = args.email.trim().toLowerCase();
+      
+      if (!emailRegex.test(sanitizedEmail)) {
+        throw new Error("Please enter a valid email address");
+      }
+
       const user = await ctx.db
         .query("users")
-        .withIndex("by_email", (q) => q.eq("email", args.email))
+        .withIndex("by_email", (q) => q.eq("email", sanitizedEmail))
         .first();
 
       if (!user) {
-        throw new Error("Invalid email or password");
+        throw new Error("Email not registered. Please sign up first or check your email address");
       }
 
       const passwordRecord = await ctx.db
@@ -161,12 +187,17 @@ export const signIn = mutation({
         .first();
 
       if (!passwordRecord) {
-        throw new Error("Invalid email or password");
+        throw new Error("Account setup incomplete. Please contact support or reset your password");
+      }
+
+      // Validate password before hashing
+      if (!args.password || args.password.trim().length === 0) {
+        throw new Error("Password is required");
       }
 
       const hashedPassword = await hashPassword(args.password);
       if (passwordRecord.passwordHash !== hashedPassword) {
-        throw new Error("Invalid email or password");
+        throw new Error("Incorrect password. Please check your password and try again");
       }
 
       return { 
@@ -181,15 +212,27 @@ export const signIn = mutation({
       
       // If it's already a user-friendly error message, re-throw it
       if (error.message && (
-        error.message.includes("Invalid email or password") ||
-        error.message.includes("Invalid email") ||
+        error.message.includes("Email not registered") ||
+        error.message.includes("Incorrect password") ||
+        error.message.includes("Please enter a valid email") ||
+        error.message.includes("Password is required") ||
+        error.message.includes("Account setup incomplete") ||
         error.message.includes("Password must")
       )) {
         throw error;
       }
       
-      // For other errors, provide a generic user-friendly message
-      throw new Error("Failed to sign in. Please check your credentials and try again.");
+      // For password validation errors from hashPassword
+      if (error.message && error.message.includes("Password must")) {
+        throw new Error("Password does not meet requirements. Please check your password");
+      }
+      
+      // For other errors, provide a specific message based on error type
+      if (error.message) {
+        throw new Error(`Sign in failed: ${error.message}`);
+      }
+      
+      throw new Error("Unable to sign in. Please check your email and password, then try again");
     }
   },
 });
