@@ -300,6 +300,56 @@ export const create = mutation({
   handler: async (ctx, args) => {
     const now = Date.now();
 
+    // Clean formData to remove empty objects and unsupported values
+    const cleanFormData = (data: any): any => {
+      if (!data || typeof data !== 'object') {
+        return undefined;
+      }
+      
+      if (Array.isArray(data)) {
+        const cleaned = data
+          .filter(item => item !== null && item !== undefined)
+          .map(item => cleanFormData(item))
+          .filter(item => {
+            if (typeof item === 'object' && !Array.isArray(item)) {
+              return Object.keys(item).length > 0;
+            }
+            return true;
+          });
+        return cleaned.length > 0 ? cleaned : undefined;
+      }
+      
+      const cleaned: Record<string, any> = {};
+      for (const [key, value] of Object.entries(data)) {
+        if (value === null || value === undefined) {
+          continue;
+        }
+        
+        if (typeof value === 'object' && !Array.isArray(value)) {
+          if (Object.keys(value).length === 0) {
+            continue; // Skip empty objects
+          }
+          const cleanedNested = cleanFormData(value);
+          if (cleanedNested !== undefined && Object.keys(cleanedNested).length > 0) {
+            cleaned[key] = cleanedNested;
+          }
+        } else if (Array.isArray(value)) {
+          const cleanedArray = cleanFormData(value);
+          if (cleanedArray !== undefined) {
+            cleaned[key] = cleanedArray;
+          }
+        } else if (typeof value === 'string' && value.trim().length === 0) {
+          continue; // Skip empty strings
+        } else {
+          cleaned[key] = value;
+        }
+      }
+      
+      return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+    };
+
+    const cleanedFormData = args.formData ? cleanFormData(args.formData) : undefined;
+
     // Find auto-assignee from rules if not manually assigned
     let assignedTo = args.assignedTo ?? null;
     let autoAssignRuleName: string | null = null;
@@ -339,7 +389,7 @@ export const create = mutation({
       resolvedAt: null,
       aiCategorySuggestion: null,
       aiPrioritySuggestion: null,
-      formData: args.formData ?? undefined,
+      formData: cleanedFormData,
       requiresApproval: false,
       approvalStatus: "not_required",
       createdAt: now,

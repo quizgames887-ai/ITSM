@@ -14,6 +14,7 @@ import { useRouter } from "next/navigation";
 import { AnnouncementSlider } from "@/components/dashboard/AnnouncementSlider";
 import { useToastContext } from "@/contexts/ToastContext";
 import { DynamicForm } from "@/components/forms/DynamicForm";
+import { cleanFormData } from "@/utils/formDataCleaner";
 
 // Services will be fetched from the database
 
@@ -752,6 +753,9 @@ export default function WorkplacePage() {
 
     setIsSubmitting(true);
     try {
+      // Clean formData to remove empty objects and unsupported values
+      const cleanedFormData = cleanFormData(formData);
+      
       await createTicket({
         title: title.trim(),
         description: description.trim(),
@@ -760,7 +764,7 @@ export default function WorkplacePage() {
         urgency: urgency as "low" | "medium" | "high",
         category: selectedService.name,
         createdBy: userId as Id<"users">,
-        formData: formData, // Include all form field values
+        formData: Object.keys(cleanedFormData).length > 0 ? cleanedFormData : undefined, // Only include if not empty
       });
       
       success(`Service request for "${selectedService.name}" created successfully!`);

@@ -13,6 +13,7 @@ import Link from "next/link";
 import React, { useState, useEffect, useMemo } from "react";
 import { useToastContext } from "@/contexts/ToastContext";
 import { Id } from "@/convex/_generated/dataModel";
+import { cleanFormData } from "@/utils/formDataCleaner";
 
 export default function TicketsPage() {
   const [userId, setUserId] = useState<string | null>(null);
@@ -797,6 +798,9 @@ export default function TicketsPage() {
 
     setIsSubmitting(true);
     try {
+      // Clean formData to remove empty objects and unsupported values
+      const cleanedFormData = cleanFormData(formData);
+      
       await createTicket({
         title: ticketData.title.trim(),
         description: ticketData.description.trim(),
@@ -805,7 +809,7 @@ export default function TicketsPage() {
         urgency: ticketData.urgency,
         category: ticketData.category,
         createdBy: currentUserId as Id<"users">,
-        formData: formData, // Pass all form data including custom fields
+        formData: Object.keys(cleanedFormData).length > 0 ? cleanedFormData : undefined, // Only include if not empty
       });
       
       success("Ticket created successfully!");
