@@ -9,6 +9,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { UserAvatar } from "@/components/ui/UserAvatar";
 import { useTranslation } from "@/contexts/TranslationContext";
 import { useBranding } from "@/contexts/BrandingContext";
+import { ChatModal } from "@/components/chat/ChatModal";
 
 interface HeaderProps {
   title?: string;
@@ -23,6 +24,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   const [userId, setUserId] = useState<string | null>(null);
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
+  const [showChatModal, setShowChatModal] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showMobileSearch, setShowMobileSearch] = useState(false);
   const [showSearchResults, setShowSearchResults] = useState(false);
@@ -67,6 +69,10 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
 
   const markRead = useMutation(api.notifications.markRead);
   const markAllRead = useMutation(api.notifications.markAllRead);
+  const chatUnreadCount = useQuery(
+    api.chat.getUnreadCount,
+    userId ? { userId: userId as Id<"users"> } : "skip"
+  );
 
   const unreadCount = notifications?.filter((n) => !n.read).length || 0;
 
@@ -254,6 +260,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   };
 
   return (
+    <>
     <header className="h-16 lg:h-20 bg-white/95 backdrop-blur-sm border-b border-slate-200/80 flex items-center justify-between px-4 lg:px-6 xl:px-8 sticky top-0 z-30 shadow-sm">
       {/* Left Section */}
       <div className="flex items-center gap-3">
@@ -409,6 +416,29 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             />
           </svg>
         </button>
+
+        {/* Chat */}
+        <div className="relative">
+          <button 
+            onClick={() => setShowChatModal(true)}
+            className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
+            title="Chat"
+          >
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+              />
+            </svg>
+            {chatUnreadCount && chatUnreadCount > 0 && (
+              <span className="absolute top-1 right-1 w-4 h-4 bg-blue-500 rounded-full text-[10px] text-white flex items-center justify-center font-medium">
+                {chatUnreadCount > 9 ? "9+" : chatUnreadCount}
+              </span>
+            )}
+          </button>
+        </div>
 
         {/* Notifications */}
         <div className="relative" ref={notifRef}>
@@ -640,5 +670,16 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
         </div>
       )}
     </header>
+
+    {/* Chat Modal */}
+    {userId && (
+      <ChatModal
+        isOpen={showChatModal}
+        onClose={() => setShowChatModal(false)}
+        currentUserId={userId as Id<"users">}
+        currentUserRole={(userRole || "user") as "user" | "agent" | "admin"}
+      />
+    )}
+  </>
   );
 }

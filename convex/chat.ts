@@ -2,19 +2,29 @@ import { v } from "convex/values";
 import { query, mutation } from "./_generated/server";
 import { Id } from "./_generated/dataModel";
 
-// Get chat messages for a ticket
+// Get chat messages for a ticket or general chat
 export const getMessages = query({
   args: {
-    ticketId: v.id("tickets"),
+    ticketId: v.optional(v.id("tickets")), // Optional: can be general chat
     userId: v.id("users"), // Current user ID
   },
   handler: async (ctx, args) => {
-    // Get all messages for this ticket
-    const messages = await ctx.db
-      .query("chatMessages")
-      .withIndex("by_ticketId", (q) => q.eq("ticketId", args.ticketId))
-      .order("asc")
-      .collect();
+    // Get all messages - either for a ticket or general chat
+    let messages;
+    if (args.ticketId) {
+      messages = await ctx.db
+        .query("chatMessages")
+        .withIndex("by_ticketId", (q) => q.eq("ticketId", args.ticketId))
+        .order("asc")
+        .collect();
+    } else {
+      // General chat: get messages without ticketId
+      messages = await ctx.db
+        .query("chatMessages")
+        .filter((q) => q.eq(q.field("ticketId"), undefined))
+        .order("asc")
+        .collect();
+    }
 
     // Get user details for each message
     const messagesWithUsers = await Promise.all(
@@ -40,7 +50,7 @@ export const getMessages = query({
 // Send a chat message
 export const sendMessage = mutation({
   args: {
-    ticketId: v.id("tickets"),
+    ticketId: v.optional(v.id("tickets")), // Optional: can be general chat
     senderId: v.id("users"),
     content: v.string(),
     attachmentIds: v.optional(v.array(v.id("_storage"))),
@@ -51,14 +61,17 @@ export const sendMessage = mutation({
       throw new Error("Sender not found");
     }
 
-    const ticket = await ctx.db.get(args.ticketId);
-    if (!ticket) {
-      throw new Error("Ticket not found");
+    // If ticketId is provided, validate ticket exists
+    if (args.ticketId) {
+      const ticket = await ctx.db.get(args.ticketId);
+      if (!ticket) {
+        throw new Error("Ticket not found");
+      }
     }
 
     // Create the message
     const messageId = await ctx.db.insert("chatMessages", {
-      ticketId: args.ticketId,
+      ticketId: args.ticketId ?? undefined,
       senderId: args.senderId,
       content: args.content.trim(),
       attachmentIds: args.attachmentIds ?? [],
@@ -67,14 +80,39 @@ export const sendMessage = mutation({
     });
 
     // Update or create conversation
-    const existingConversation = await ctx.db
-      .query("chatConversations")
-      .withIndex("by_ticketId", (q) => q.eq("ticketId", args.ticketId))
-      .first();
+    let existingConversation;
+    if (args.ticketId) {
+      existingConversation = await ctx.db
+        .query("chatConversations")
+        .withIndex("by_ticketId", (q) => q.eq("ticketId", args.ticketId))
+        .first();
+    } else {
+      // General chat: find conversation without ticketId
+      existingConversation = await ctx.db
+        .query("chatConversations")
+        .filter((q) => q.eq(q.field("ticketId"), undefined))
+        .first();
+    }
 
-    const participants = new Set([args.senderId, ticket.createdBy]);
-    if (ticket.assignedTo) {
-      participants.add(ticket.assignedTo);
+    // Get participants
+    let participants: Set<Id<"users">>;
+    if (args.ticketId) {
+      const ticket = await ctx.db.get(args.ticketId);
+      if (!ticket) throw new Error("Ticket not found");
+      participants = new Set([args.senderId, ticket.createdBy]);
+      if (ticket.assignedTo) {
+        participants.add(ticket.assignedTo);
+      }
+    } else {
+      // General chat: include all users (or get from existing conversation)
+      if (existingConversation) {
+        participants = new Set(existingConversation.participantIds);
+        participants.add(args.senderId);
+      } else {
+        // For general chat, get all users as participants
+        const allUsers = await ctx.db.query("users").collect();
+        participants = new Set(allUsers.map(u => u._id));
+      }
     }
 
     if (existingConversation) {
@@ -100,13 +138,17 @@ export const sendMessage = mutation({
     // Create notifications for other participants
     const otherParticipants = Array.from(participants).filter(id => id !== args.senderId);
     for (const participantId of otherParticipants) {
+      const notificationTitle = args.ticketId
+        ? `New message in ticket #${args.ticketId.slice(-6).toUpperCase()}`
+        : "New chat message";
+      
       await ctx.db.insert("notifications", {
         userId: participantId,
         type: "chat",
-        title: `New message in ticket #${ticket._id.slice(-6).toUpperCase()}`,
+        title: notificationTitle,
         message: `${sender.name}: ${args.content.substring(0, 100)}${args.content.length > 100 ? "..." : ""}`,
         read: false,
-        ticketId: args.ticketId,
+        ticketId: args.ticketId ?? null,
         createdAt: Date.now(),
       });
     }
@@ -118,20 +160,35 @@ export const sendMessage = mutation({
 // Mark messages as read
 export const markAsRead = mutation({
   args: {
-    ticketId: v.id("tickets"),
+    ticketId: v.optional(v.id("tickets")), // Optional: can be general chat
     userId: v.id("users"),
   },
   handler: async (ctx, args) => {
-    const messages = await ctx.db
-      .query("chatMessages")
-      .withIndex("by_ticketId", (q) => q.eq("ticketId", args.ticketId))
-      .filter((q) => 
-        q.and(
-          q.neq(q.field("senderId"), args.userId),
-          q.eq(q.field("read"), false)
+    let messages;
+    if (args.ticketId) {
+      messages = await ctx.db
+        .query("chatMessages")
+        .withIndex("by_ticketId", (q) => q.eq("ticketId", args.ticketId))
+        .filter((q) => 
+          q.and(
+            q.neq(q.field("senderId"), args.userId),
+            q.eq(q.field("read"), false)
+          )
         )
-      )
-      .collect();
+        .collect();
+    } else {
+      // General chat: get messages without ticketId
+      messages = await ctx.db
+        .query("chatMessages")
+        .filter((q) => 
+          q.and(
+            q.eq(q.field("ticketId"), undefined),
+            q.neq(q.field("senderId"), args.userId),
+            q.eq(q.field("read"), false)
+          )
+        )
+        .collect();
+    }
 
     const now = Date.now();
     for (const message of messages) {
@@ -162,18 +219,32 @@ export const getUnreadCount = query({
 
     let totalUnread = 0;
     for (const conv of userConversations) {
-      if (!conv.ticketId) continue;
-      
-      const unreadMessages = await ctx.db
-        .query("chatMessages")
-        .withIndex("by_ticketId", (q) => q.eq("ticketId", conv.ticketId!))
-        .filter((q) => 
-          q.and(
-            q.neq(q.field("senderId"), args.userId),
-            q.eq(q.field("read"), false)
+      let unreadMessages;
+      if (conv.ticketId) {
+        // Ticket-based chat
+        unreadMessages = await ctx.db
+          .query("chatMessages")
+          .withIndex("by_ticketId", (q) => q.eq("ticketId", conv.ticketId!))
+          .filter((q) => 
+            q.and(
+              q.neq(q.field("senderId"), args.userId),
+              q.eq(q.field("read"), false)
+            )
           )
-        )
-        .collect();
+          .collect();
+      } else {
+        // General chat
+        unreadMessages = await ctx.db
+          .query("chatMessages")
+          .filter((q) => 
+            q.and(
+              q.eq(q.field("ticketId"), undefined),
+              q.neq(q.field("senderId"), args.userId),
+              q.eq(q.field("read"), false)
+            )
+          )
+          .collect();
+      }
       
       totalUnread += unreadMessages.length;
     }
