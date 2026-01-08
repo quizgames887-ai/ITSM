@@ -54,10 +54,6 @@ export function ChatWindow({ ticketId, currentUserId, currentUserRole }: ChatWin
   const sendMessage = useMutation(api.chat.sendMessage);
   const markAsRead = useMutation(api.chat.markAsRead);
   const generateUploadUrl = useMutation(api.chat.generateUploadUrl);
-  const getStorageUrl = useQuery(
-    api.chat.getStorageUrl,
-    undefined as any // We'll handle this per attachment
-  );
 
   const { success, error: showError } = useToastContext();
   
@@ -79,13 +75,6 @@ export function ChatWindow({ ticketId, currentUserId, currentUserRole }: ChatWin
       markAsRead({ ticketId, userId: currentUserId }).catch(console.error);
     }
   }, [messages, ticketId, currentUserId, markAsRead]);
-
-  // Get attachment URLs using Convex query
-  const attachmentUrlQueries = messages?.flatMap(msg => 
-    msg.attachmentIds?.map(id => ({ id, messageId: msg._id })) || []
-  ) || [];
-  
-  // We'll fetch URLs individually when rendering
 
   const handleSendMessage = async () => {
     if (!messageText.trim() && attachmentIds.length === 0) return;
