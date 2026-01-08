@@ -647,4 +647,33 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_enabled", ["enabled"]),
+
+  // Chat Messages - Real-time chat between users and agents/admins
+  chatMessages: defineTable({
+    ticketId: v.optional(v.id("tickets")), // Optional: can be ticket-specific or general chat
+    senderId: v.id("users"), // User who sent the message
+    receiverId: v.optional(v.id("users")), // Optional: specific receiver (for direct messages)
+    content: v.string(), // Message content
+    attachmentIds: v.optional(v.array(v.id("_storage"))), // File attachments
+    read: v.boolean(), // Whether the message has been read
+    readAt: v.optional(v.number()), // When the message was read
+    createdAt: v.number(),
+  })
+    .index("by_ticketId", ["ticketId"])
+    .index("by_senderId", ["senderId"])
+    .index("by_receiverId", ["receiverId"])
+    .index("by_ticketId_createdAt", ["ticketId", "createdAt"]),
+
+  // Chat Conversations - Track active conversations
+  chatConversations: defineTable({
+    ticketId: v.optional(v.id("tickets")), // Optional: link to ticket
+    participantIds: v.array(v.id("users")), // Users in this conversation
+    lastMessageAt: v.number(), // Timestamp of last message
+    lastMessageId: v.optional(v.id("chatMessages")), // Reference to last message
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_ticketId", ["ticketId"])
+    .index("by_participantIds", ["participantIds"])
+    .index("by_lastMessageAt", ["lastMessageAt"]),
 });

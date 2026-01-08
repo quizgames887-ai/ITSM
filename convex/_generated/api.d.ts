@@ -17,6 +17,7 @@ import type * as audit from "../audit.js";
 import type * as auth from "../auth.js";
 import type * as authHelpers from "../authHelpers.js";
 import type * as branding from "../branding.js";
+import type * as chat from "../chat.js";
 import type * as comments from "../comments.js";
 import type * as cron from "../cron.js";
 import type * as email from "../email.js";
@@ -57,6 +58,7 @@ declare const fullApi: ApiFromModules<{
   auth: typeof auth;
   authHelpers: typeof authHelpers;
   branding: typeof branding;
+  chat: typeof chat;
   comments: typeof comments;
   cron: typeof cron;
   email: typeof email;
