@@ -46,8 +46,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   // #region agent log
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:22',message:'Header render - branding values',data:{enabled:branding?.enabled,chatIconUrl:branding?.chatIconUrl,hasBranding:!!branding},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'})}).catch(()=>{});
-      fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:427',message:'Rendering chat icon',data:{usingCustomIcon:!!branding?.chatIconUrl,chatIconUrl:branding?.chatIconUrl},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'C'})}).catch(()=>{});
+      fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:22',message:'Header render - branding values',data:{enabled:branding?.enabled,chatIconUrl:branding?.chatIconUrl,searchIconUrl:branding?.searchIconUrl,notificationIconUrl:branding?.notificationIconUrl,userIconUrl:branding?.userIconUrl,hasBranding:!!branding},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'})}).catch(()=>{});
     }
   }, [branding]);
   // #endregion
@@ -319,19 +318,28 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             placeholder={t("common.find", "Find...")}
             className="w-40 lg:w-64 pl-10 pr-4 py-2 bg-slate-50/80 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all placeholder:text-slate-400"
           />
-          <svg
-            className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          {branding?.enabled && branding?.searchIconUrl ? (
+            <img 
+              key={branding.searchIconUrl}
+              src={`${branding.searchIconUrl}${branding.searchIconUrl.includes('?') ? '&' : '?'}cb=${branding.searchIconUrl.split('/').pop()?.split('?')[0] || ''}`}
+              alt="Search"
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
             />
-          </svg>
+          ) : (
+            <svg
+              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          )}
 
           {/* Search Results Dropdown */}
           {showSearchResults && searchResults && (
@@ -416,14 +424,23 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
           onClick={() => setShowMobileSearch(!showMobileSearch)}
           className="p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-lg md:hidden"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+          {branding?.enabled && branding?.searchIconUrl ? (
+            <img 
+              key={branding.searchIconUrl}
+              src={`${branding.searchIconUrl}${branding.searchIconUrl.includes('?') ? '&' : '?'}cb=${branding.searchIconUrl.split('/').pop()?.split('?')[0] || ''}`}
+              alt="Search"
+              className="w-5 h-5"
             />
-          </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+              />
+            </svg>
+          )}
         </button>
 
         {/* Chat */}
@@ -460,14 +477,23 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             onClick={() => setShowNotifications(!showNotifications)}
             className="relative p-2 text-slate-500 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-colors"
           >
-            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+            {branding?.enabled && branding?.notificationIconUrl ? (
+              <img 
+                key={branding.notificationIconUrl}
+                src={`${branding.notificationIconUrl}${branding.notificationIconUrl.includes('?') ? '&' : '?'}cb=${branding.notificationIconUrl.split('/').pop()?.split('?')[0] || ''}`}
+                alt="Notifications"
+                className="w-5 h-5"
               />
-            </svg>
+            ) : (
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"
+                />
+              </svg>
+            )}
             {unreadCount > 0 && (
               <span className="absolute top-1 right-1 w-4 h-4 bg-red-500 rounded-full text-[10px] text-white flex items-center justify-center font-medium">
                 {unreadCount > 9 ? "9+" : unreadCount}
@@ -570,9 +596,18 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
                 className="flex items-center gap-2 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition-colors"
                 onClick={() => setShowUserMenu(false)}
               >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
+                {branding?.enabled && branding?.userIconUrl ? (
+                  <img 
+                    key={branding.userIconUrl}
+                    src={`${branding.userIconUrl}${branding.userIconUrl.includes('?') ? '&' : '?'}cb=${branding.userIconUrl.split('/').pop()?.split('?')[0] || ''}`}
+                    alt="User"
+                    className="w-4 h-4"
+                  />
+                ) : (
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                )}
                 {t("common.profileSettings", "Profile Settings")}
               </Link>
               <button
@@ -609,19 +644,28 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
               autoFocus
               className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
             />
-            <svg
-              className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            {branding?.enabled && branding?.searchIconUrl ? (
+              <img 
+                key={branding.searchIconUrl}
+                src={`${branding.searchIconUrl}${branding.searchIconUrl.includes('?') ? '&' : '?'}cb=${branding.searchIconUrl.split('/').pop()?.split('?')[0] || ''}`}
+                alt="Search"
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4"
               />
-            </svg>
+            ) : (
+              <svg
+                className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+                />
+              </svg>
+            )}
 
             {/* Mobile Search Results */}
             {showSearchResults && searchResults && (
