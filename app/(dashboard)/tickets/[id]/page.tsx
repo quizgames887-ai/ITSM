@@ -13,6 +13,7 @@ import Link from "next/link";
 import { useToastContext } from "@/contexts/ToastContext";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { UserAvatar } from "@/components/ui/UserAvatar";
+import { uploadFileOptimized } from "@/utils/fileUpload";
 
 // Helper function to check if formData has attachments
 function hasAttachments(formData: any): boolean {
@@ -339,39 +340,16 @@ export default function TicketDetailPage({
   const handleFileUpload = async (file: File): Promise<Id<"_storage"> | null> => {
     setUploadingAttachment(true);
     try {
-      // Generate upload URL
-      const uploadUrl = await generateUploadUrl();
-      if (!uploadUrl || typeof uploadUrl !== "string") {
-        throw new Error("Failed to generate upload URL");
-      }
-
-      // Upload file to Convex storage
-      const uploadResult = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        throw new Error(`Failed to upload file: ${errorText || uploadResult.statusText}`);
-      }
-
-      // Get storage ID from the response
-      const responseText = await uploadResult.text();
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch {
-        throw new Error(`Invalid response format: ${responseText.substring(0, 200)}`);
-      }
-
-      const storageId = responseData?.storageId;
-      if (!storageId) {
-        throw new Error("Failed to get storage ID from upload response");
-      }
-
-      return storageId as Id<"_storage">;
+      const storageId = await uploadFileOptimized(
+        file,
+        () => generateUploadUrl(),
+        {
+          compressImages: true,
+          maxImageWidth: 1920,
+          imageQuality: 0.85,
+        }
+      );
+      return storageId;
     } catch (error: any) {
       console.error("File upload error:", error);
       showError(error.message || "Failed to upload file");

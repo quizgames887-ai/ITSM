@@ -8,6 +8,7 @@ import { UserAvatar } from "@/components/ui/UserAvatar";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useToastContext } from "@/contexts/ToastContext";
+import { uploadFileOptimized } from "@/utils/fileUpload";
 
 // Attachment item component
 function AttachmentItem({ storageId, isCurrentUser }: { storageId: Id<"_storage"> | string; isCurrentUser: boolean }) {
@@ -105,29 +106,20 @@ export function ChatWindow({ ticketId, currentUserId, currentUserRole }: ChatWin
 
     setUploadingAttachment(true);
     try {
-      const uploadUrl = await generateUploadUrl();
-      if (!uploadUrl || typeof uploadUrl !== "string") {
-        throw new Error("Failed to generate upload URL");
+      const storageId = await uploadFileOptimized(
+        file,
+        () => generateUploadUrl(),
+        {
+          compressImages: true,
+          maxImageWidth: 1920,
+          imageQuality: 0.85,
+        }
+      );
+
+      if (storageId) {
+        setAttachmentIds([...attachmentIds, storageId]);
+        success("File attached!");
       }
-
-      const uploadResult = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!uploadResult.ok) {
-        throw new Error("Failed to upload file");
-      }
-
-      const responseData = await uploadResult.json();
-      const storageId = responseData?.storageId;
-      if (!storageId) {
-        throw new Error("Failed to get storage ID");
-      }
-
-      setAttachmentIds([...attachmentIds, storageId as Id<"_storage">]);
-      success("File attached!");
     } catch (err: any) {
       showError(err.message || "Failed to upload file");
     } finally {

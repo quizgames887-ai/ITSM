@@ -9,6 +9,7 @@ import { Select } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Id } from "@/convex/_generated/dataModel";
+import { uploadFileOptimized } from "@/utils/fileUpload";
 
 interface FormField {
   _id: Id<"formFields">;
@@ -83,40 +84,21 @@ export function DynamicForm({
   const uploadFile = async (fieldName: string, file: File): Promise<Id<"_storage"> | null> => {
     setUploadingFiles(prev => ({ ...prev, [fieldName]: true }));
     try {
-      // Generate upload URL
-      const uploadUrl = await generateUploadUrl();
-      if (!uploadUrl || typeof uploadUrl !== "string") {
-        throw new Error("Failed to generate upload URL");
+      const storageId = await uploadFileOptimized(
+        file,
+        () => generateUploadUrl(),
+        {
+          compressImages: true,
+          maxImageWidth: 1920,
+          imageQuality: 0.85,
+        }
+      );
+      
+      if (storageId) {
+        setUploadedFiles(prev => ({ ...prev, [fieldName]: file.name }));
       }
-
-      // Upload file to Convex storage
-      const uploadResult = await fetch(uploadUrl, {
-        method: "POST",
-        headers: { "Content-Type": file.type },
-        body: file,
-      });
-
-      if (!uploadResult.ok) {
-        const errorText = await uploadResult.text();
-        throw new Error(`Failed to upload file: ${errorText || uploadResult.statusText}`);
-      }
-
-      // Get storage ID from the response
-      const responseText = await uploadResult.text();
-      let responseData;
-      try {
-        responseData = JSON.parse(responseText);
-      } catch {
-        throw new Error(`Invalid response format: ${responseText.substring(0, 200)}`);
-      }
-
-      const storageId = responseData?.storageId;
-      if (!storageId) {
-        throw new Error("Failed to get storage ID from upload response");
-      }
-
-      setUploadedFiles(prev => ({ ...prev, [fieldName]: file.name }));
-      return storageId as Id<"_storage">;
+      
+      return storageId;
     } catch (error: any) {
       console.error("File upload error:", error);
       setErrors(prev => ({ ...prev, [fieldName]: error.message || "Failed to upload file" }));
