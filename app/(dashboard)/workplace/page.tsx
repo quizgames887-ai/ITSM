@@ -340,10 +340,11 @@ export default function WorkplacePage() {
   );
 
   // Track service ID from URL to open automatically - MUST be before early returns (Rules of Hooks)
-  // Use ref instead of state to avoid triggering re-renders
+  // Use refs to avoid triggering re-renders
   const serviceIdFromUrlRef = useRef<string | null>(null);
   const hasOpenedServiceFromUrl = useRef(false);
   const hasCheckedUrl = useRef(false);
+  const previousServicesLengthRef = useRef<number>(0);
 
   // Redirect to onboarding if user hasn't completed it
   useEffect(() => {
@@ -393,7 +394,7 @@ export default function WorkplacePage() {
     setShowRequestForm(true);
   };
 
-  // Extract service ID from URL once on mount
+  // Extract service ID from URL once on mount - no dependencies
   useEffect(() => {
     if (typeof window !== "undefined" && !hasCheckedUrl.current) {
       hasCheckedUrl.current = true;
@@ -405,41 +406,40 @@ export default function WorkplacePage() {
         window.history.replaceState({}, "", "/workplace");
       }
     }
-    // Only run once on mount
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Track if services have been processed to prevent re-running
-  const servicesProcessedRef = useRef(false);
-
-  // Open service form when service ID is available and services are loaded
+  // Open service form when services first load - only trigger when services.length changes from 0 to >0
   useEffect(() => {
-    const serviceId = serviceIdFromUrlRef.current;
-    
-    // Early returns - check all conditions first
-    if (!serviceId) return;
-    if (!services || services.length === 0) return;
+    // Skip if already processed - this is the primary guard
     if (hasOpenedServiceFromUrl.current) return;
     
-    // Only process once when services first become available
-    if (servicesProcessedRef.current) return;
+    const serviceId = serviceIdFromUrlRef.current;
+    if (!serviceId) return;
     
-    const service = services.find((s) => s._id === serviceId);
-    if (service) {
-      // Mark as processed BEFORE calling handleServiceClick to prevent re-runs
-      hasOpenedServiceFromUrl.current = true;
-      servicesProcessedRef.current = true;
-      serviceIdFromUrlRef.current = null; // Clear the ref
+    const currentServicesLength = services?.length ?? 0;
+    const previousLength = previousServicesLengthRef.current;
+    
+    // Update ref to track current length
+    previousServicesLengthRef.current = currentServicesLength;
+    
+    // Only process when services transition from 0 to >0 (first load)
+    if (previousLength === 0 && currentServicesLength > 0) {
+      if (!services || services.length === 0) return;
       
-      // Use setTimeout to defer state updates and break the render cycle
-      setTimeout(() => {
+      const service = services.find((s) => s._id === serviceId);
+      if (service) {
+        // Mark as processed IMMEDIATELY before any state updates
+        hasOpenedServiceFromUrl.current = true;
+        serviceIdFromUrlRef.current = null;
+        
+        // Open the service form - this will update state but effect won't run again due to guard
         handleServiceClick(service);
-      }, 0);
-    } else {
-      // Service not found, mark as processed so we don't keep trying
-      servicesProcessedRef.current = true;
+      } else {
+        // Service not found, mark as processed
+        hasOpenedServiceFromUrl.current = true;
+      }
     }
-    // Use services.length as dependency instead of services array to avoid reference changes
+    // Only depend on services?.length to avoid re-runs when array reference changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [services?.length]);
 
