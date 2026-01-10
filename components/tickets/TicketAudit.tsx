@@ -140,6 +140,16 @@ export function TicketAudit({ ticketId }: TicketAuditProps) {
         bgColor: "bg-indigo-100",
         iconBg: "text-indigo-600",
       },
+      approval_requested: {
+        label: "Approval requested",
+        icon: (
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        ),
+        bgColor: "bg-blue-100",
+        iconBg: "text-blue-600",
+      },
     };
 
     return actionMap[action] || {
@@ -163,9 +173,35 @@ export function TicketAudit({ ticketId }: TicketAuditProps) {
       return JSON.stringify(value);
     }
     if (typeof value === "string") {
+      // Try to parse if it's a JSON string (for approval records)
+      try {
+        const parsed = JSON.parse(value);
+        if (parsed && typeof parsed === "object") {
+          // If it's an approval record, format it
+          if (parsed.approverName || parsed.stageName) {
+            return formatApprovalRecord(parsed);
+          }
+        }
+      } catch {
+        // Not JSON, return as-is
+      }
       return value.replace(/_/g, " ");
     }
     return String(value);
+  };
+
+  const formatApprovalRecord = (record: any): string => {
+    const parts: string[] = [];
+    if (record.stageName) {
+      parts.push(`Stage: ${record.stageName}`);
+    }
+    if (record.approverName) {
+      parts.push(`Approver: ${record.approverName}`);
+    }
+    if (record.reason) {
+      parts.push(`Reason: ${record.reason}`);
+    }
+    return parts.length > 0 ? parts.join(" • ") : JSON.stringify(record);
   };
 
   const formatTimeAgo = (timestamp: number): string => {
@@ -242,6 +278,58 @@ export function TicketAudit({ ticketId }: TicketAuditProps) {
                           </>
                         )}
                       </span>
+                    </div>
+                  </div>
+                ) : entry.action === "approval_requested" && entry.newValue ? (
+                  <div className="mt-2">
+                    <div className="inline-flex items-start gap-2 px-3 py-2 rounded-lg bg-blue-50 border border-blue-100">
+                      <svg className="w-4 h-4 text-blue-600 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                      <div className="flex-1 min-w-0">
+                        {(() => {
+                          // Handle both object and string formats
+                          let approvalData: any = entry.newValue;
+                          if (typeof entry.newValue === "string") {
+                            try {
+                              approvalData = JSON.parse(entry.newValue);
+                            } catch {
+                              approvalData = null;
+                            }
+                          }
+                          
+                          if (approvalData && typeof approvalData === "object") {
+                            return (
+                              <div className="text-sm text-blue-900 space-y-1">
+                                {approvalData.stageName && (
+                                  <div>
+                                    <span className="font-medium">Stage: </span>
+                                    <span className="font-semibold">{approvalData.stageName}</span>
+                                  </div>
+                                )}
+                                {approvalData.approverName && (
+                                  <div>
+                                    <span className="font-medium">Approver: </span>
+                                    <span className="font-semibold">{approvalData.approverName}</span>
+                                  </div>
+                                )}
+                                {approvalData.reason && (
+                                  <div className="text-xs text-blue-700 mt-1">
+                                    <span className="font-medium">Reason: </span>
+                                    {approvalData.reason}
+                                  </div>
+                                )}
+                              </div>
+                            );
+                          }
+                          // Fallback to formatted string
+                          return (
+                            <span className="text-sm text-blue-900">
+                              {formatApprovalRecord(approvalData || entry.newValue)}
+                            </span>
+                          );
+                        })()}
+                      </div>
                     </div>
                   </div>
                 ) : entry.action !== "created" && (entry.oldValue !== null || entry.newValue !== null) && (
