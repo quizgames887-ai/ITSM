@@ -387,32 +387,38 @@ export default function WorkplacePage() {
     setShowRequestForm(true);
   };
 
-  // Track if we've already processed the service parameter to prevent infinite loops
-  const hasProcessedServiceParam = useRef(false);
+  // Track service ID from URL to open automatically
+  const [serviceIdFromUrl, setServiceIdFromUrl] = useState<string | null>(null);
+  const hasOpenedServiceFromUrl = useRef(false);
 
-  // Handle service query parameter from search results (only once on mount)
+  // Extract service ID from URL once on mount
   useEffect(() => {
-    // Only run once and only if we haven't processed it yet
-    if (hasProcessedServiceParam.current || !services) return;
-    
-    // Check URL directly to avoid searchParams dependency issues
-    if (typeof window !== "undefined") {
+    if (typeof window !== "undefined" && !serviceIdFromUrl) {
       const urlParams = new URLSearchParams(window.location.search);
       const serviceId = urlParams.get("service");
-      
       if (serviceId) {
-        const service = services.find((s) => s._id === serviceId);
-        if (service) {
-          hasProcessedServiceParam.current = true;
-          handleServiceClick(service);
-          // Remove query parameter from URL without page reload
-          window.history.replaceState({}, "", "/workplace");
-        }
+        setServiceIdFromUrl(serviceId);
+        // Remove query parameter from URL immediately
+        window.history.replaceState({}, "", "/workplace");
       }
     }
-    // Only run when services are loaded, and only once
+    // Only run once on mount
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [services]);
+  }, []);
+
+  // Open service form when service ID is available and services are loaded
+  useEffect(() => {
+    if (!serviceIdFromUrl || !services || services.length === 0 || hasOpenedServiceFromUrl.current) return;
+    
+    const service = services.find((s) => s._id === serviceIdFromUrl);
+    if (service) {
+      hasOpenedServiceFromUrl.current = true;
+      handleServiceClick(service);
+      // Clear the service ID so we don't try again
+      setServiceIdFromUrl(null);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceIdFromUrl, services]);
 
   const handleToggleFavorite = async (serviceId: Id<"serviceCatalog">, e: React.MouseEvent) => {
     e.stopPropagation();
