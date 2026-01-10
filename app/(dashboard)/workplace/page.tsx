@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Id } from "@/convex/_generated/dataModel";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnnouncementSlider } from "@/components/dashboard/AnnouncementSlider";
 import { useToastContext } from "@/contexts/ToastContext";
 import { DynamicForm } from "@/components/forms/DynamicForm";
@@ -91,6 +91,8 @@ function LoadingSkeleton() {
 }
 
 export default function WorkplacePage() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [suggestionCategory, setSuggestionCategory] = useState("");
@@ -309,7 +311,6 @@ export default function WorkplacePage() {
     }
   }, [serviceForm, selectedService]);
   
-  const router = useRouter();
   const createTicket = useMutation(api.tickets.create);
   const toggleFavorite = useMutation((api.serviceCatalog as any).toggleFavorite);
   const createFormForService = useMutation(api.serviceCatalog.createFormForService);
@@ -385,6 +386,24 @@ export default function WorkplacePage() {
     // Show the modal - this will trigger the query
     setShowRequestForm(true);
   };
+
+  // Handle service query parameter from search results
+  useEffect(() => {
+    if (services && searchParams) {
+      const serviceId = searchParams.get("service");
+      if (serviceId) {
+        const service = services.find((s) => s._id === serviceId);
+        if (service) {
+          handleServiceClick(service);
+          // Remove query parameter from URL without page reload
+          if (typeof window !== "undefined") {
+            window.history.replaceState({}, "", "/workplace");
+          }
+        }
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [services, searchParams]);
 
   const handleToggleFavorite = async (serviceId: Id<"serviceCatalog">, e: React.MouseEvent) => {
     e.stopPropagation();

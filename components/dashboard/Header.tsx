@@ -146,7 +146,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             id: service._id,
             title: service.name,
             subtitle: service.description,
-            href: "#",
+            href: `/workplace?service=${service._id}`,
           });
         });
     }
@@ -166,7 +166,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             id: article._id,
             title: article.title,
             subtitle: article.category,
-            href: "#",
+            href: `/workplace?knowledge=${article._id}`,
           });
         });
     }
@@ -185,7 +185,7 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
             id: event._id,
             title: event.title,
             subtitle: `${event.date} • ${event.startTime} - ${event.endTime}`,
-            href: "#",
+            href: `/events?event=${event._id}`,
           });
         });
     }
