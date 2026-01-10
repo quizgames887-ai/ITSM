@@ -340,8 +340,10 @@ export default function WorkplacePage() {
   );
 
   // Track service ID from URL to open automatically - MUST be before early returns (Rules of Hooks)
-  const [serviceIdFromUrl, setServiceIdFromUrl] = useState<string | null>(null);
+  // Use ref instead of state to avoid triggering re-renders
+  const serviceIdFromUrlRef = useRef<string | null>(null);
   const hasOpenedServiceFromUrl = useRef(false);
+  const hasCheckedUrl = useRef(false);
 
   // Redirect to onboarding if user hasn't completed it
   useEffect(() => {
@@ -393,11 +395,12 @@ export default function WorkplacePage() {
 
   // Extract service ID from URL once on mount
   useEffect(() => {
-    if (typeof window !== "undefined" && !serviceIdFromUrl) {
+    if (typeof window !== "undefined" && !hasCheckedUrl.current) {
+      hasCheckedUrl.current = true;
       const urlParams = new URLSearchParams(window.location.search);
       const serviceId = urlParams.get("service");
       if (serviceId) {
-        setServiceIdFromUrl(serviceId);
+        serviceIdFromUrlRef.current = serviceId;
         // Remove query parameter from URL immediately
         window.history.replaceState({}, "", "/workplace");
       }
@@ -408,17 +411,18 @@ export default function WorkplacePage() {
 
   // Open service form when service ID is available and services are loaded
   useEffect(() => {
-    if (!serviceIdFromUrl || !services || services.length === 0 || hasOpenedServiceFromUrl.current) return;
+    const serviceId = serviceIdFromUrlRef.current;
+    if (!serviceId || !services || services.length === 0 || hasOpenedServiceFromUrl.current) return;
     
-    const service = services.find((s) => s._id === serviceIdFromUrl);
+    const service = services.find((s) => s._id === serviceId);
     if (service) {
       hasOpenedServiceFromUrl.current = true;
+      serviceIdFromUrlRef.current = null; // Clear the ref
       handleServiceClick(service);
-      // Clear the service ID so we don't try again
-      setServiceIdFromUrl(null);
     }
+    // Only depend on services, not on serviceIdFromUrl to avoid re-renders
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serviceIdFromUrl, services]);
+  }, [services]);
 
   const handleToggleFavorite = async (serviceId: Id<"serviceCatalog">, e: React.MouseEvent) => {
     e.stopPropagation();
