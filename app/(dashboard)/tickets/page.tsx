@@ -192,6 +192,26 @@ export default function TicketsPage() {
   useEffect(() => {
     setCurrentPage(1);
   }, [statusFilter, priorityFilter, typeFilter, categoryFilter, assigneeFilter, activeTab]);
+
+  // Check if any filters are active
+  const hasActiveFilters = useMemo(() => {
+    return (
+      statusFilter !== "all" ||
+      priorityFilter !== "all" ||
+      typeFilter !== "all" ||
+      categoryFilter !== "all" ||
+      assigneeFilter !== "all"
+    );
+  }, [statusFilter, priorityFilter, typeFilter, categoryFilter, assigneeFilter]);
+
+  // Clear all filters
+  const clearAllFilters = () => {
+    setStatusFilter("all");
+    setPriorityFilter("all");
+    setTypeFilter("all");
+    setCategoryFilter("all");
+    setAssigneeFilter("all");
+  };
   
   // Helper function to map form field values to ticket creation format
   const mapFormDataToTicket = (formData: Record<string, any>) => {
@@ -1057,16 +1077,24 @@ export default function TicketsPage() {
                 ? "No tickets are currently assigned to you."
                 : userRole === "agent" && activeTab === "created"
                 ? "You haven't created any tickets yet."
+                : hasActiveFilters
+                ? "No tickets match your current filters. Try adjusting your filters to see more results."
                 : "No tickets match your current filters."
             }
+            action={
+              (allAgentTickets || tickets)?.length === 0
+                ? {
+                    label: "Create Your First Ticket",
+                    onClick: () => setShowCreateForm(true),
+                  }
+                : hasActiveFilters
+                ? {
+                    label: "Clear All Filters",
+                    onClick: clearAllFilters,
+                  }
+                : undefined
+            }
           />
-          {(allAgentTickets || tickets)?.length === 0 && (
-            <div className="text-center mt-4">
-              <Button variant="gradient" onClick={() => setShowCreateForm(true)}>
-                Create Your First Ticket
-              </Button>
-            </div>
-          )}
         </Card>
       ) : (
         <Card padding="none" className="overflow-hidden border border-slate-200">
