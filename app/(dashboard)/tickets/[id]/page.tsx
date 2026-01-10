@@ -278,6 +278,12 @@ export default function TicketDetailPage({
   
   const generateUploadUrl = useMutation(api.serviceCatalog.generateUploadUrl);
 
+  // Get agents and admins for assignment dropdown - MUST be before early returns (Rules of Hooks)
+  const assignableUsers = useMemo(() => {
+    if (!users) return [];
+    return users.filter((u) => u.role === "agent" || u.role === "admin");
+  }, [users]);
+
   // Close assign dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -390,12 +396,6 @@ export default function TicketDetailPage({
       setAssigning(false);
     }
   };
-
-  // Get agents and admins for assignment dropdown
-  const assignableUsers = useMemo(() => {
-    if (!users) return [];
-    return users.filter((u) => u.role === "agent" || u.role === "admin");
-  }, [users]);
 
   const handleFileUpload = async (file: File): Promise<Id<"_storage"> | null> => {
     setUploadingAttachment(true);
