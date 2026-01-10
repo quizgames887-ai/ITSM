@@ -2,24 +2,26 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 
 export default function NotFound() {
   const router = useRouter();
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
 
   useEffect(() => {
-    // Check if user is logged in
-    const userId = localStorage.getItem("userId");
-    if (userId) {
-      // User is logged in, they might have navigated to wrong URL
-      // Don't auto-redirect, let them see the 404 page
-    } else {
-      // Not logged in, redirect to login after a moment
-      const timer = setTimeout(() => {
-        router.push("/login");
-      }, 3000);
-      return () => clearTimeout(timer);
+    // Check if user is logged in (only runs on client)
+    if (typeof window !== 'undefined') {
+      const userId = localStorage.getItem("userId");
+      setIsLoggedIn(!!userId);
+      
+      if (!userId) {
+        // Not logged in, redirect to login after a moment
+        const timer = setTimeout(() => {
+          router.push("/login");
+        }, 3000);
+        return () => clearTimeout(timer);
+      }
     }
   }, [router]);
 
@@ -38,15 +40,17 @@ export default function NotFound() {
           <Button
             variant="gradient"
             onClick={() => {
-              const userId = localStorage.getItem("userId");
-              if (userId) {
-                router.push("/workplace");
-              } else {
-                router.push("/login");
+              if (typeof window !== 'undefined') {
+                const userId = localStorage.getItem("userId");
+                if (userId) {
+                  router.push("/workplace");
+                } else {
+                  router.push("/login");
+                }
               }
             }}
           >
-            Go to {localStorage.getItem("userId") ? "Dashboard" : "Login"}
+            Go to {isLoggedIn ? "Dashboard" : "Login"}
           </Button>
           <Button
             variant="outline"
