@@ -409,20 +409,39 @@ export default function WorkplacePage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Track if services have been processed to prevent re-running
+  const servicesProcessedRef = useRef(false);
+
   // Open service form when service ID is available and services are loaded
   useEffect(() => {
     const serviceId = serviceIdFromUrlRef.current;
-    if (!serviceId || !services || services.length === 0 || hasOpenedServiceFromUrl.current) return;
+    
+    // Early returns - check all conditions first
+    if (!serviceId) return;
+    if (!services || services.length === 0) return;
+    if (hasOpenedServiceFromUrl.current) return;
+    
+    // Only process once when services first become available
+    if (servicesProcessedRef.current) return;
     
     const service = services.find((s) => s._id === serviceId);
     if (service) {
+      // Mark as processed BEFORE calling handleServiceClick to prevent re-runs
       hasOpenedServiceFromUrl.current = true;
+      servicesProcessedRef.current = true;
       serviceIdFromUrlRef.current = null; // Clear the ref
-      handleServiceClick(service);
+      
+      // Use setTimeout to defer state updates and break the render cycle
+      setTimeout(() => {
+        handleServiceClick(service);
+      }, 0);
+    } else {
+      // Service not found, mark as processed so we don't keep trying
+      servicesProcessedRef.current = true;
     }
-    // Only depend on services, not on serviceIdFromUrl to avoid re-renders
+    // Use services.length as dependency instead of services array to avoid reference changes
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [services]);
+  }, [services?.length]);
 
   const handleToggleFavorite = async (serviceId: Id<"serviceCatalog">, e: React.MouseEvent) => {
     e.stopPropagation();
