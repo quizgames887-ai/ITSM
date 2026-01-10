@@ -346,28 +346,26 @@ function ProfilePageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 py-8 px-4 sm:py-10 sm:px-6 lg:py-14 lg:px-10">
-      <div className="max-w-6xl mx-auto animate-fade-in">
+    <div className="min-h-screen bg-slate-50 py-6 px-4 sm:py-8 sm:px-6">
+      <div className="max-w-4xl mx-auto">
         {/* Impersonation Banner */}
         {isImpersonating && (
-          <Card className="mb-6 border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50" padding="md">
+          <Card className="mb-6 border-amber-200 bg-amber-50" padding="md">
             <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
               <div className="flex items-start gap-3 flex-1">
-                <div className="p-2 bg-amber-100 rounded-lg">
-                  <svg
-                    className="w-5 h-5 text-amber-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
-                    />
-                  </svg>
-                </div>
+                <svg
+                  className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+                  />
+                </svg>
                 <div className="flex-1">
                   <h3 className="text-sm font-semibold text-amber-900 mb-1">
                     Viewing as {user?.name}
@@ -382,29 +380,17 @@ function ProfilePageContent() {
                 variant="outline"
                 size="sm"
                 onClick={handleExitImpersonation}
-                className="border-amber-300 text-amber-700 hover:bg-amber-100 hover:border-amber-400 whitespace-nowrap"
+                className="border-amber-300 text-amber-700 hover:bg-amber-100 whitespace-nowrap"
               >
-                <svg
-                  className="w-4 h-4 mr-1.5"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M6 18L18 6M6 6l12 12"
-                  />
-                </svg>
                 Exit Impersonation
               </Button>
             </div>
           </Card>
         )}
 
-        <div className="mb-8">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
+        {/* Page Header */}
+        <div className="mb-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900 mb-1">
                 {isImpersonating ? `Profile - ${user?.name}` : "Profile"}
@@ -413,571 +399,386 @@ function ProfilePageContent() {
                 {isImpersonating ? "Viewing user profile (read-only)" : "Manage your account information"}
               </p>
             </div>
-            <div className="flex gap-3 w-full sm:w-auto">
-              {isImpersonating ? (
-                <Button
-                  variant="outline"
-                  onClick={handleExitImpersonation}
-                  className="w-full sm:w-auto"
-                >
-                  Exit Impersonation
+            {!isImpersonating && (
+              <Link href="/workplace">
+                <Button variant="outline" size="sm">
+                  ← Back
                 </Button>
-              ) : (
-                <Link href="/workplace" className="w-full sm:w-auto">
-                  <Button variant="outline" className="w-full sm:w-auto">
-                    ← Back to Dashboard
-                  </Button>
-                </Link>
-              )}
-            </div>
+              </Link>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Personal Information - Main Section */}
-          <Card className="lg:col-span-2" hover padding="lg">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 mb-8 pb-8 border-b border-slate-200">
-              <div className="flex-1 min-w-0">
-                <h2 className="text-xl font-semibold text-slate-900 mb-1">
-                  {t("profile.personalInformation", "Personal Information")}
-                </h2>
-                <p className="text-sm text-slate-500">{t("profile.updateDetails", "Update your profile details")}</p>
-              </div>
-              <div className="flex-shrink-0">
-                {!isEditing && !isImpersonating && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setIsEditing(true)}
-                    className="w-full sm:w-auto whitespace-nowrap px-6"
-                  >
-                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                    </svg>
-                    {t("profile.editProfile", "Edit Profile")}
-                  </Button>
-                )}
-                {isImpersonating && (
-                  <div className="px-3 py-1.5 rounded text-sm text-slate-600 bg-slate-100 whitespace-nowrap">
-                    Read-only mode
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {error && (
-              <div className="mb-8 p-5 sm:p-6 bg-red-50 border-l-4 border-red-400 rounded-xl animate-slide-in">
-                <div className="flex items-center">
-                  <svg
-                    className="w-5 h-5 text-red-400 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <p className="text-sm sm:text-base text-red-600 font-medium">{error}</p>
-                </div>
-              </div>
-            )}
-
-            {success && (
-              <div className="mb-8 p-5 sm:p-6 bg-green-50 border-l-4 border-green-400 rounded-xl animate-slide-in">
-                <div className="flex items-center">
-                  <svg
-                    className="w-5 h-5 text-green-400 mr-3"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  <p className="text-sm sm:text-base text-green-600 font-medium">{success}</p>
-                </div>
-              </div>
-            )}
-
-            <div className="space-y-8">
-              {/* Profile Header Section */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 pb-8 border-b border-slate-200">
-                <div className="relative group flex-shrink-0">
-                  {profilePictureUrl ? (
-                    <img
-                      src={profilePictureUrl}
-                      alt={user.name}
-                      className="w-24 h-24 rounded-full object-cover border-2 border-slate-200"
-                      onError={(e) => {
-                        // Fallback to initials if image fails to load
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = "none";
-                        const parent = target.parentElement;
-                        if (parent) {
-                          const fallback = document.createElement("div");
-                          fallback.className = "w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-2xl font-semibold border-2 border-slate-200";
-                          fallback.textContent = getInitials(user.name);
-                          parent.appendChild(fallback);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="w-24 h-24 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-2xl font-semibold border-2 border-slate-200">
-                      {getInitials(user.name)}
-                    </div>
-                  )}
-                  {!isImpersonating && (isEditing || showPasswordReset) && (
-                    <div className="absolute bottom-0 right-0 flex gap-1.5">
-                      <label
-                        className="p-2 bg-slate-700 text-white rounded-full shadow-md hover:bg-slate-800 transition-colors cursor-pointer border-2 border-white"
-                        title="Change profile picture"
-                      >
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleProfilePictureUpload}
-                          disabled={uploadingPhoto}
-                          className="hidden"
-                        />
-                        {uploadingPhoto ? (
-                          <svg className="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
-                          </svg>
-                        )}
-                      </label>
-                      {user.profilePictureId && (
-                        <button
-                          onClick={handleRemoveProfilePicture}
-                          disabled={uploadingPhoto}
-                          className="p-2 bg-red-600 text-white rounded-full shadow-md hover:bg-red-700 transition-colors border-2 border-white"
-                          title="Remove profile picture"
-                        >
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                          </svg>
-                        </button>
-                      )}
-                    </div>
-                  )}
-                </div>
-                <div className="text-center sm:text-left flex-1">
-                  <h3 className="text-2xl font-semibold text-slate-900 mb-1">
-                    {user.name}
-                    {isImpersonating && (
-                      <span className="ml-2 text-sm text-slate-500 font-normal">
-                        (Viewing)
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-sm text-slate-600 mb-3 break-words">{user.email}</p>
-                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded text-sm font-medium border capitalize ${
-                      user.role === "admin"
-                        ? "bg-purple-50 text-purple-700 border-purple-200"
-                        : user.role === "agent"
-                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                        : "bg-slate-50 text-slate-700 border-slate-200"
-                    }`}>
-                      {user.role === "admin" && (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                      )}
-                      {user.role}
-                    </span>
-                    {user.role === "admin" && (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium text-slate-600 bg-slate-50 border border-slate-200">
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                        </svg>
-                        Full Access
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-8 pt-2">
-                <div>
-                  <Input
-                    label="Name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    disabled={!isEditing}
-                    placeholder="Your name"
-                  />
-                </div>
-
-                <div>
-                  <Input
-                    label="Email"
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    disabled={!isEditing}
-                    placeholder="your.email@example.com"
-                  />
-                </div>
-
-                {/* Role Information */}
-                <div className="p-6 bg-slate-50 rounded-lg border border-slate-200">
-                  <label className="block text-sm font-medium text-slate-700 mb-4">
-                    {t("profile.role", "Role")}
-                  </label>
-                  <div className="flex items-center gap-2 mb-3">
-                    <span
-                      className={`px-4 py-2 rounded border font-medium capitalize text-sm ${
-                        user.role === "admin"
-                          ? "bg-purple-50 text-purple-700 border-purple-200"
-                          : user.role === "agent"
-                          ? "bg-blue-50 text-blue-700 border-blue-200"
-                          : "bg-slate-100 text-slate-700 border-slate-200"
-                      }`}
-                    >
-                      {user.role}
-                    </span>
-                  </div>
-                  {user.role !== "admin" && (
-                    <p className="text-xs text-slate-500 mt-3">
-                      Contact an administrator to change your role
-                    </p>
-                  )}
-                </div>
-              </div>
-
-              {isEditing && !isImpersonating && (
-                <div className="flex gap-4 pt-8 border-t border-slate-200">
-                  <Button
-                    variant="outline"
-                    onClick={handleSave}
-                    disabled={loading}
-                    loading={loading}
-                    className="px-8 py-2.5"
-                  >
-                    {loading ? t("common.saving", "Saving...") : t("common.save", "Save")}
-                  </Button>
-                  <Button variant="outline" onClick={handleCancel} className="px-8 py-2.5">
-                    {t("common.cancel", "Cancel")}
-                  </Button>
+        {/* Main Profile Card */}
+        <Card padding="lg" className="mb-6">
+          {/* Profile Header */}
+          <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 mb-8 pb-6 border-b border-slate-200">
+            <div className="relative flex-shrink-0">
+              {profilePictureUrl ? (
+                <img
+                  src={profilePictureUrl}
+                  alt={user.name}
+                  className="w-20 h-20 rounded-full object-cover border-2 border-slate-200"
+                  onError={(e) => {
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = "none";
+                    const parent = target.parentElement;
+                    if (parent) {
+                      const fallback = document.createElement("div");
+                      fallback.className = "w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xl font-semibold border-2 border-slate-200";
+                      fallback.textContent = getInitials(user.name);
+                      parent.appendChild(fallback);
+                    }
+                  }}
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xl font-semibold border-2 border-slate-200">
+                  {getInitials(user.name)}
                 </div>
               )}
-            </div>
-          </Card>
-
-          {/* Password Reset Section */}
-          <Card hover padding="lg">
-            <div className="mb-8 pb-8 border-b border-slate-200">
-              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                <div className="flex-1">
-                  <h2 className="text-xl font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                    <svg
-                      className="w-5 h-5 text-slate-600 flex-shrink-0"
-                      fill="none"
-                      stroke="currentColor"
-                      viewBox="0 0 24 24"
-                    >
-                      <path
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                        strokeWidth={2}
-                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                      />
+              {!isImpersonating && isEditing && (
+                <label
+                  className="absolute bottom-0 right-0 p-1.5 bg-slate-700 text-white rounded-full shadow-md hover:bg-slate-800 transition-colors cursor-pointer border-2 border-white"
+                  title="Change profile picture"
+                >
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleProfilePictureUpload}
+                    disabled={uploadingPhoto}
+                    className="hidden"
+                  />
+                  {uploadingPhoto ? (
+                    <svg className="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Password Reset
-                  </h2>
-                  {!showPasswordReset && (
-                    <p className="text-sm text-slate-500">
-                      Keep your account secure
-                    </p>
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    </svg>
                   )}
-                </div>
-                {!showPasswordReset && !isImpersonating && (
-                  <div className="flex-shrink-0">
-                    <Button
-                      variant="outline"
-                      onClick={() => setShowPasswordReset(true)}
-                      className="p-2.5 sm:p-3"
-                      title="Change Password"
-                    >
-                      <svg
-                        className="w-5 h-5 text-slate-600"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                        />
-                      </svg>
-                    </Button>
-                  </div>
-                )}
+                </label>
+              )}
+            </div>
+            <div className="text-center sm:text-left flex-1 min-w-0">
+              <h2 className="text-xl font-semibold text-slate-900 mb-1">
+                {user.name}
                 {isImpersonating && (
-                  <div className="flex-shrink-0">
-                    <div className="px-3 py-1.5 rounded text-sm text-slate-600 bg-slate-100 whitespace-nowrap">
-                      Not available
-                    </div>
-                  </div>
+                  <span className="ml-2 text-sm text-slate-500 font-normal">(Viewing)</span>
                 )}
+              </h2>
+              <p className="text-sm text-slate-600 mb-3 break-words">{user.email}</p>
+              <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded text-xs font-medium border capitalize ${
+                  user.role === "admin"
+                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                    : user.role === "agent"
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : "bg-slate-50 text-slate-700 border-slate-200"
+                }`}>
+                  {user.role}
+                </span>
               </div>
             </div>
-
-            {showPasswordReset && (
-              <div className="space-y-6">
-                {passwordError && (
-                  <div className="p-5 bg-red-50 border-l-4 border-red-400 rounded-lg animate-slide-in">
-                    <div className="flex items-center">
-                      <svg
-                        className="w-5 h-5 text-red-400 mr-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <p className="text-sm text-red-600 font-medium">{passwordError}</p>
-                    </div>
-                  </div>
-                )}
-
-                {passwordSuccess && (
-                  <div className="p-5 bg-green-50 border-l-4 border-green-400 rounded-lg animate-slide-in">
-                    <div className="flex items-center">
-                      <svg
-                        className="w-5 h-5 text-green-400 mr-3"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      <p className="text-sm text-green-600 font-medium">{passwordSuccess}</p>
-                    </div>
-                  </div>
-                )}
-
-                <div>
-                  <Input
-                    label="Current Password"
-                    type="password"
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    placeholder="Enter your current password"
-                  />
-                </div>
-
-                <div>
-                  <Input
-                    label="New Password"
-                    type="password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="Enter your new password"
-                  />
-                  <PasswordStrength password={newPassword} />
-                </div>
-
-                <div>
-                  <Input
-                    label="Confirm New Password"
-                    type="password"
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your new password"
-                  />
-                  {confirmPassword && newPassword !== confirmPassword && (
-                    <p className="mt-1.5 text-sm text-red-600">Passwords do not match</p>
-                  )}
-                </div>
-
-                <div className="flex gap-4 pt-4">
-                  <Button
-                    variant="outline"
-                    onClick={handlePasswordReset}
-                    disabled={passwordLoading}
-                    loading={passwordLoading}
-                    className="flex-1 py-2.5"
-                  >
-                    {passwordLoading ? "Resetting..." : "Reset Password"}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={handleCancelPasswordReset}
-                    disabled={passwordLoading}
-                    className="flex-1 py-2.5"
-                  >
-                    Cancel
-                  </Button>
-                </div>
+            {!isEditing && !isImpersonating && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setIsEditing(true)}
+                className="flex-shrink-0"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit
+              </Button>
+            )}
+            {isImpersonating && (
+              <div className="px-3 py-1.5 rounded text-xs text-slate-600 bg-slate-100 whitespace-nowrap">
+                Read-only
               </div>
             )}
+          </div>
 
-          </Card>
+          {/* Error/Success Messages */}
+          {error && (
+            <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+              <p className="text-sm text-red-600">{error}</p>
+            </div>
+          )}
 
-          {/* Account Details Section */}
-          <Card hover padding="lg">
-            <h2 className="text-xl font-semibold text-slate-900 mb-8 pb-8 border-b border-slate-200">
-              {t("profile.accountDetails", "Account Details")}
-            </h2>
-            <div className="space-y-5">
-              <div className="p-5 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">
-                    {t("profile.accountCreated", "Account Created")}
-                  </p>
-                </div>
-                <p className="text-slate-900 font-medium text-sm">
-                  {new Date(user.createdAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
+          {success && (
+            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+              <p className="text-sm text-green-600">{success}</p>
+            </div>
+          )}
 
-              <div className="p-5 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">
-                    Last Updated
-                  </p>
-                </div>
-                <p className="text-slate-900 font-medium text-sm">
-                  {new Date(user.updatedAt).toLocaleDateString("en-US", {
-                    year: "numeric",
-                    month: "long",
-                    day: "numeric",
-                  })}
-                </p>
-              </div>
+          {/* Form Fields */}
+          <div className="space-y-6">
+            <div>
+              <Input
+                label="Name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                disabled={!isEditing}
+                placeholder="Your name"
+              />
+            </div>
 
-              <div className="p-5 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-2 mb-3">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">
-                    {t("profile.onboardingStatus", "Onboarding Status")}
-                  </p>
-                </div>
-                <p className="text-slate-900 font-medium text-sm">
-                  {user.onboardingCompleted ? (
-                    <span className="inline-flex items-center gap-1.5 text-green-600">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M5 13l4 4L19 7"
-                        />
-                      </svg>
-                      {t("profile.completed", "Completed")}
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center gap-1.5 text-amber-600">
-                      <svg
-                        className="w-4 h-4"
-                        fill="none"
-                        stroke="currentColor"
-                        viewBox="0 0 24 24"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"
-                        />
-                      </svg>
-                      {t("profile.pending", "Pending")}
-                    </span>
-                  )}
-                </p>
-              </div>
+            <div>
+              <Input
+                label="Email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                disabled={!isEditing}
+                placeholder="your.email@example.com"
+              />
+            </div>
 
-              {/* Language Selection */}
-              <div className="p-5 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-2 mb-4">
-                  <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                  </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-medium">
-                    {t("profile.languagePreference", "Language Preference")}
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-2">
+                {t("profile.role", "Role")}
+              </label>
+              <div className="p-3 bg-slate-50 rounded-lg border border-slate-200">
+                <span className={`inline-flex items-center px-3 py-1 rounded text-sm font-medium border capitalize ${
+                  user.role === "admin"
+                    ? "bg-purple-50 text-purple-700 border-purple-200"
+                    : user.role === "agent"
+                    ? "bg-blue-50 text-blue-700 border-blue-200"
+                    : "bg-slate-100 text-slate-700 border-slate-200"
+                }`}>
+                  {user.role}
+                </span>
+                {user.role !== "admin" && (
+                  <p className="text-xs text-slate-500 mt-2">
+                    Contact an administrator to change your role
                   </p>
-                </div>
-                <div className="flex flex-col gap-3">
-                  <select
-                    value={language}
-                    onChange={(e) => {
-                      const newLanguage = e.target.value as "en" | "ar";
-                      setLanguage(newLanguage);
-                      // Apply immediately
-                      localStorage.setItem("userLanguage", newLanguage);
-                      document.documentElement.setAttribute("dir", newLanguage === "ar" ? "rtl" : "ltr");
-                      document.documentElement.setAttribute("lang", newLanguage);
-                      // Trigger language change event
-                      window.dispatchEvent(new Event("languageChanged"));
-                      // Save to database
-                      if (userId) {
-                        updateUser({
-                          id: userId as Id<"users">,
-                          currentUserId: userId as Id<"users">,
-                          language: newLanguage,
-                        }).catch((err) => {
-                          console.error("Failed to update language:", err);
-                        });
-                      }
-                    }}
-                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 bg-white text-sm"
-                  >
-                    <option value="en">English</option>
-                    <option value="ar">العربية (Arabic)</option>
-                  </select>
-                  <p className="text-xs text-slate-500">
-                    {language === "ar" 
-                      ? t("profile.rightToLeft", "The interface will be displayed from right to left")
-                      : t("profile.leftToRight", "The interface will be displayed from left to right")}
-                  </p>
-                </div>
+                )}
               </div>
             </div>
-          </Card>
-        </div>
+
+            {isEditing && !isImpersonating && (
+              <div className="flex gap-3 pt-4 border-t border-slate-200">
+                <Button
+                  variant="outline"
+                  onClick={handleSave}
+                  disabled={loading}
+                  loading={loading}
+                  className="flex-1"
+                >
+                  {loading ? t("common.saving", "Saving...") : t("common.save", "Save")}
+                </Button>
+                <Button variant="outline" onClick={handleCancel} className="flex-1">
+                  {t("common.cancel", "Cancel")}
+                </Button>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Password Reset Card */}
+        <Card padding="lg" className="mb-6">
+          <div className="flex items-center justify-between mb-6 pb-6 border-b border-slate-200">
+            <div>
+              <h2 className="text-lg font-semibold text-slate-900 mb-1">Password Reset</h2>
+              {!showPasswordReset && (
+                <p className="text-sm text-slate-500">Keep your account secure</p>
+              )}
+            </div>
+            {!showPasswordReset && !isImpersonating && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowPasswordReset(true)}
+                title="Change Password"
+              >
+                <svg
+                  className="w-4 h-4"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                  />
+                </svg>
+              </Button>
+            )}
+            {isImpersonating && (
+              <div className="px-3 py-1.5 rounded text-xs text-slate-600 bg-slate-100">
+                Not available
+              </div>
+            )}
+          </div>
+
+          {showPasswordReset && (
+            <div className="space-y-5">
+              {passwordError && (
+                <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
+                  <p className="text-sm text-red-600">{passwordError}</p>
+                </div>
+              )}
+
+              {passwordSuccess && (
+                <div className="p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <p className="text-sm text-green-600">{passwordSuccess}</p>
+                </div>
+              )}
+
+              <div>
+                <Input
+                  label="Current Password"
+                  type="password"
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  placeholder="Enter your current password"
+                />
+              </div>
+
+              <div>
+                <Input
+                  label="New Password"
+                  type="password"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  placeholder="Enter your new password"
+                />
+                <PasswordStrength password={newPassword} />
+              </div>
+
+              <div>
+                <Input
+                  label="Confirm New Password"
+                  type="password"
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  placeholder="Confirm your new password"
+                />
+                {confirmPassword && newPassword !== confirmPassword && (
+                  <p className="mt-1.5 text-sm text-red-600">Passwords do not match</p>
+                )}
+              </div>
+
+              <div className="flex gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={handlePasswordReset}
+                  disabled={passwordLoading}
+                  loading={passwordLoading}
+                  className="flex-1"
+                >
+                  {passwordLoading ? "Resetting..." : "Reset Password"}
+                </Button>
+                <Button
+                  variant="outline"
+                  onClick={handleCancelPasswordReset}
+                  disabled={passwordLoading}
+                  className="flex-1"
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
+        </Card>
+
+        {/* Account Details Card */}
+        <Card padding="lg">
+          <h2 className="text-lg font-semibold text-slate-900 mb-6 pb-6 border-b border-slate-200">
+            {t("profile.accountDetails", "Account Details")}
+          </h2>
+          <div className="space-y-4">
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1.5">
+                {t("profile.accountCreated", "Account Created")}
+              </p>
+              <p className="text-sm text-slate-900">
+                {new Date(user.createdAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1.5">
+                Last Updated
+              </p>
+              <p className="text-sm text-slate-900">
+                {new Date(user.updatedAt).toLocaleDateString("en-US", {
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-1.5">
+                {t("profile.onboardingStatus", "Onboarding Status")}
+              </p>
+              <p className="text-sm">
+                {user.onboardingCompleted ? (
+                  <span className="inline-flex items-center gap-1.5 text-green-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                    </svg>
+                    {t("profile.completed", "Completed")}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-amber-600">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                    {t("profile.pending", "Pending")}
+                  </span>
+                )}
+              </p>
+            </div>
+
+            <div>
+              <p className="text-xs text-slate-500 uppercase tracking-wide font-medium mb-2">
+                {t("profile.languagePreference", "Language Preference")}
+              </p>
+              <select
+                value={language}
+                onChange={(e) => {
+                  const newLanguage = e.target.value as "en" | "ar";
+                  setLanguage(newLanguage);
+                  localStorage.setItem("userLanguage", newLanguage);
+                  document.documentElement.setAttribute("dir", newLanguage === "ar" ? "rtl" : "ltr");
+                  document.documentElement.setAttribute("lang", newLanguage);
+                  window.dispatchEvent(new Event("languageChanged"));
+                  if (userId) {
+                    updateUser({
+                      id: userId as Id<"users">,
+                      currentUserId: userId as Id<"users">,
+                      language: newLanguage,
+                    }).catch((err) => {
+                      console.error("Failed to update language:", err);
+                    });
+                  }
+                }}
+                className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 bg-white text-sm"
+              >
+                <option value="en">English</option>
+                <option value="ar">العربية (Arabic)</option>
+              </select>
+              <p className="text-xs text-slate-500 mt-1.5">
+                {language === "ar" 
+                  ? t("profile.rightToLeft", "The interface will be displayed from right to left")
+                  : t("profile.leftToRight", "The interface will be displayed from left to right")}
+              </p>
+            </div>
+          </div>
+        </Card>
       </div>
     </div>
   );
