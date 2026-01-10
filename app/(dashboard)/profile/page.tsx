@@ -436,19 +436,26 @@ function ProfilePageContent() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 sm:gap-8 lg:gap-10">
           {/* Personal Information - Main Section */}
-          <Card className="lg:col-span-2" hover padding="lg">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-8 pb-6 border-b border-slate-200">
-              <div>
-                <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
-                  {t("profile.personalInformation", "Personal Information")}
-                </h2>
-                <p className="text-sm sm:text-base text-slate-500">{t("profile.updateDetails", "Update your profile details")}</p>
+          <Card className="lg:col-span-2" hover padding="lg" style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.95), rgba(248,250,252,0.95))' }}>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-8 pb-6 border-b border-slate-200/60">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-xl shadow-lg">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                  </svg>
+                </div>
+                <div>
+                  <h2 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-1">
+                    {t("profile.personalInformation", "Personal Information")}
+                  </h2>
+                  <p className="text-sm sm:text-base text-slate-500">{t("profile.updateDetails", "Update your profile details")}</p>
+                </div>
               </div>
               {!isEditing && !isImpersonating && (
                 <Button
                   variant="gradient"
                   onClick={() => setIsEditing(true)}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto shadow-md hover:shadow-lg transition-all"
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
@@ -457,7 +464,7 @@ function ProfilePageContent() {
                 </Button>
               )}
               {isImpersonating && (
-                <div className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-600 text-sm font-medium">
+                <div className="px-4 py-2 rounded-lg bg-amber-50 text-amber-700 text-sm font-medium border border-amber-200">
                   Read-only mode
                 </div>
               )}
@@ -506,104 +513,113 @@ function ProfilePageContent() {
             )}
 
             <div className="space-y-8">
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8 pb-8 border-b border-slate-200">
-                <div className="relative group flex-shrink-0">
-                  {profilePictureUrl ? (
-                    <img
-                      src={profilePictureUrl}
-                      alt={user.name}
-                      className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full object-cover shadow-xl hover:shadow-2xl transition-all hover:scale-105 ring-4 ring-white"
-                      onError={(e) => {
-                        // Fallback to initials if image fails to load
-                        const target = e.target as HTMLImageElement;
-                        target.style.display = "none";
-                        const parent = target.parentElement;
-                        if (parent) {
-                          const fallback = document.createElement("div");
-                          fallback.className = "w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl font-bold shadow-xl ring-4 ring-white";
-                          fallback.textContent = getInitials(user.name);
-                          parent.appendChild(fallback);
-                        }
-                      }}
-                    />
-                  ) : (
-                    <div className="w-28 h-28 sm:w-32 sm:h-32 lg:w-36 lg:h-36 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl font-bold shadow-xl hover:shadow-2xl transition-all hover:scale-105 ring-4 ring-white">
-                      {getInitials(user.name)}
+              {/* Profile Header Section */}
+              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-indigo-50 via-purple-50 to-pink-50 p-6 sm:p-8 border border-indigo-100/50">
+                <div className="absolute top-0 right-0 w-64 h-64 bg-gradient-to-br from-indigo-200/20 to-purple-200/20 rounded-full blur-3xl -mr-32 -mt-32"></div>
+                <div className="relative flex flex-col sm:flex-row items-center sm:items-start gap-6 sm:gap-8">
+                  <div className="relative group flex-shrink-0">
+                    {profilePictureUrl ? (
+                      <img
+                        src={profilePictureUrl}
+                        alt={user.name}
+                        className="w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-full object-cover shadow-2xl hover:shadow-3xl transition-all hover:scale-105 ring-4 ring-white/80"
+                        onError={(e) => {
+                          // Fallback to initials if image fails to load
+                          const target = e.target as HTMLImageElement;
+                          target.style.display = "none";
+                          const parent = target.parentElement;
+                          if (parent) {
+                            const fallback = document.createElement("div");
+                            fallback.className = "w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-4xl sm:text-5xl lg:text-6xl font-bold shadow-2xl ring-4 ring-white/80";
+                            fallback.textContent = getInitials(user.name);
+                            parent.appendChild(fallback);
+                          }
+                        }}
+                      />
+                    ) : (
+                      <div className="w-32 h-32 sm:w-36 sm:h-36 lg:w-40 lg:h-40 rounded-full bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 flex items-center justify-center text-white text-4xl sm:text-5xl lg:text-6xl font-bold shadow-2xl hover:shadow-3xl transition-all hover:scale-105 ring-4 ring-white/80">
+                        {getInitials(user.name)}
+                      </div>
+                    )}
+                    {!isImpersonating && (
+                      <div className="absolute bottom-0 right-0 flex gap-2">
+                        <label
+                          className="p-3 bg-indigo-600 text-white rounded-full shadow-xl hover:bg-indigo-700 transition-all hover:scale-110 border-4 border-white cursor-pointer"
+                          title="Change profile picture"
+                        >
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleProfilePictureUpload}
+                            disabled={uploadingPhoto}
+                            className="hidden"
+                          />
+                          {uploadingPhoto ? (
+                            <svg className="w-5 h-5 animate-spin" fill="none" viewBox="0 0 24 24">
+                              <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                              <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                            </svg>
+                          ) : (
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                          )}
+                        </label>
+                        {user.profilePictureId && (
+                          <button
+                            onClick={handleRemoveProfilePicture}
+                            disabled={uploadingPhoto}
+                            className="p-3 bg-red-600 text-white rounded-full shadow-xl hover:bg-red-700 transition-all hover:scale-110 border-4 border-white"
+                            title="Remove profile picture"
+                          >
+                            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                            </svg>
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-center sm:text-left flex-1">
+                    <h3 className="text-3xl sm:text-4xl font-bold text-slate-900 mb-2">
+                      {user.name}
+                      {isImpersonating && (
+                        <span className="ml-2 text-sm text-amber-600 font-normal">
+                          (Viewing)
+                        </span>
+                      )}
+                    </h3>
+                    <div className="flex items-center justify-center sm:justify-start gap-2 mb-4">
+                      <svg className="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                      </svg>
+                      <p className="text-base sm:text-lg text-slate-600 break-words">{user.email}</p>
                     </div>
-                  )}
-                  {!isImpersonating && (
-                    <div className="absolute bottom-0 right-0 flex gap-2">
-                      <label
-                        className="p-2.5 sm:p-3 bg-indigo-600 text-white rounded-full shadow-lg hover:bg-indigo-700 transition-colors border-3 border-white cursor-pointer"
-                        title="Change profile picture"
-                      >
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleProfilePictureUpload}
-                          disabled={uploadingPhoto}
-                          className="hidden"
-                        />
-                        {uploadingPhoto ? (
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5 animate-spin" fill="none" viewBox="0 0 24 24">
-                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                          </svg>
-                        ) : (
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
+                    <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
+                      <span className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold border-2 shadow-sm capitalize transition-all hover:scale-105 ${
+                        user.role === "admin"
+                          ? "bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-300"
+                          : user.role === "agent"
+                          ? "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-300"
+                          : "bg-gradient-to-r from-slate-50 to-slate-100 text-slate-700 border-slate-300"
+                      }`}>
+                        {user.role === "admin" && (
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
                           </svg>
                         )}
-                      </label>
-                      {user.profilePictureId && (
-                        <button
-                          onClick={handleRemoveProfilePicture}
-                          disabled={uploadingPhoto}
-                          className="p-2.5 sm:p-3 bg-red-600 text-white rounded-full shadow-lg hover:bg-red-700 transition-colors border-3 border-white"
-                          title="Remove profile picture"
-                        >
-                          <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                        {user.role}
+                      </span>
+                      {user.role === "admin" && (
+                        <span className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-emerald-700 bg-gradient-to-r from-emerald-50 to-emerald-100 border-2 border-emerald-200 shadow-sm">
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                           </svg>
-                        </button>
+                          Full Access
+                        </span>
                       )}
                     </div>
-                  )}
-                </div>
-                <div className="text-center sm:text-left flex-1">
-                  <h3 className="text-2xl sm:text-3xl font-bold text-slate-900 mb-2">
-                    {user.name}
-                    {isImpersonating && (
-                      <span className="ml-2 text-sm text-amber-600 font-normal">
-                        (Viewing)
-                      </span>
-                    )}
-                  </h3>
-                  <p className="text-base sm:text-lg text-slate-600 break-words mb-4">{user.email}</p>
-                  <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
-                    <span className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-lg text-sm font-semibold border capitalize ${
-                      user.role === "admin"
-                        ? "bg-purple-50 text-purple-700 border-purple-200"
-                        : user.role === "agent"
-                        ? "bg-blue-50 text-blue-700 border-blue-200"
-                        : "bg-slate-50 text-slate-700 border-slate-200"
-                    }`}>
-                      {user.role === "admin" && (
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                      )}
-                      {user.role}
-                    </span>
-                    {user.role === "admin" && (
-                      <span className="inline-flex items-center gap-1.5 text-xs text-slate-500 bg-slate-50 px-3 py-1.5 rounded-lg">
-                        <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-                        </svg>
-                        Full Access
-                      </span>
-                    )}
                   </div>
                 </div>
               </div>
@@ -631,25 +647,35 @@ function ProfilePageContent() {
                 </div>
 
                 {/* Role Information */}
-                <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                  <label className="block text-sm font-semibold text-slate-700 mb-3">
-                    {t("profile.role", "Role")}
-                  </label>
-                  <div className="flex items-center gap-2 mb-2">
+                <div className="p-6 bg-gradient-to-br from-slate-50 via-indigo-50/30 to-slate-100 rounded-2xl border-2 border-slate-200/60 shadow-sm">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 bg-indigo-100 rounded-lg">
+                      <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
+                      </svg>
+                    </div>
+                    <label className="block text-sm font-bold text-slate-700 uppercase tracking-wide">
+                      {t("profile.role", "Role")}
+                    </label>
+                  </div>
+                  <div className="flex items-center gap-2 mb-3">
                     <span
-                      className={`px-4 py-2 rounded-lg border font-medium capitalize text-sm ${
+                      className={`px-4 py-2.5 rounded-xl border-2 font-semibold capitalize text-sm shadow-sm ${
                         user.role === "admin"
-                          ? "bg-purple-100 text-purple-700 border-purple-200"
+                          ? "bg-gradient-to-r from-purple-50 to-purple-100 text-purple-700 border-purple-300"
                           : user.role === "agent"
-                          ? "bg-blue-100 text-blue-700 border-blue-200"
-                          : "bg-slate-100 text-slate-700 border-slate-200"
+                          ? "bg-gradient-to-r from-blue-50 to-blue-100 text-blue-700 border-blue-300"
+                          : "bg-gradient-to-r from-slate-50 to-slate-100 text-slate-700 border-slate-300"
                       }`}
                     >
                       {user.role}
                     </span>
                   </div>
                   {user.role !== "admin" && (
-                    <p className="text-xs sm:text-sm text-slate-500 mt-2">
+                    <p className="text-xs sm:text-sm text-slate-500 mt-2 flex items-center gap-1.5">
+                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
                       Contact an administrator to change your role
                     </p>
                   )}
@@ -676,12 +702,12 @@ function ProfilePageContent() {
           </Card>
 
           {/* Password Reset Section */}
-          <Card hover padding="lg" className="border-2 border-slate-200">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-6 pb-6 border-b border-slate-200">
-              <div>
-                <h2 className="text-xl sm:text-2xl font-bold text-slate-900 flex items-center gap-2 mb-2">
+          <Card hover padding="lg" className="border-2 border-slate-200/60 shadow-lg" style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.98), rgba(248,250,252,0.98))' }}>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-6 mb-6 pb-6 border-b border-slate-200/60">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 bg-gradient-to-br from-amber-500 to-orange-600 rounded-xl shadow-lg">
                   <svg
-                    className="w-6 h-6 text-indigo-600"
+                    className="w-6 h-6 text-white"
                     fill="none"
                     stroke="currentColor"
                     viewBox="0 0 24 24"
@@ -693,19 +719,23 @@ function ProfilePageContent() {
                       d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
                     />
                   </svg>
-                  Password Reset
-                </h2>
-                {!showPasswordReset && (
-                  <p className="text-sm sm:text-base text-slate-500">
-                    Keep your account secure
-                  </p>
-                )}
+                </div>
+                <div>
+                  <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-1">
+                    Password Reset
+                  </h2>
+                  {!showPasswordReset && (
+                    <p className="text-sm sm:text-base text-slate-500">
+                      Keep your account secure
+                    </p>
+                  )}
+                </div>
               </div>
               {!showPasswordReset && !isImpersonating && (
                 <Button
                   variant="gradient"
                   onClick={() => setShowPasswordReset(true)}
-                  className="w-full sm:w-auto"
+                  className="w-full sm:w-auto shadow-md hover:shadow-lg transition-all"
                 >
                   <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -714,7 +744,7 @@ function ProfilePageContent() {
                 </Button>
               )}
               {isImpersonating && (
-                <div className="px-3 py-1.5 rounded-lg bg-slate-100 text-slate-500 text-sm font-medium">
+                <div className="px-4 py-2 rounded-lg bg-slate-100 text-slate-500 text-sm font-medium border border-slate-200">
                   Not available
                 </div>
               )}
@@ -823,30 +853,36 @@ function ProfilePageContent() {
           </Card>
 
           {/* Account Details Section */}
-          <Card hover padding="lg">
-            <h2 className="text-xl sm:text-2xl font-bold text-slate-900 mb-6 pb-6 border-b border-slate-200 flex items-center gap-2">
-              <svg
-                className="w-6 h-6 text-indigo-600"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                />
-              </svg>
-              {t("profile.accountDetails", "Account Details")}
-            </h2>
-            <div className="space-y-5">
-              <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
+          <Card hover padding="lg" className="border-2 border-slate-200/60 shadow-lg" style={{ background: 'linear-gradient(to bottom, rgba(255,255,255,0.98), rgba(248,250,252,0.98))' }}>
+            <div className="flex items-center gap-3 mb-6 pb-6 border-b border-slate-200/60">
+              <div className="p-2.5 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-xl shadow-lg">
+                <svg
+                  className="w-6 h-6 text-white"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  />
+                </svg>
+              </div>
+              <h2 className="text-xl sm:text-2xl font-bold text-slate-900">
+                {t("profile.accountDetails", "Account Details")}
+              </h2>
+            </div>
+            <div className="space-y-4">
+              <div className="p-5 bg-gradient-to-br from-blue-50/50 via-indigo-50/30 to-purple-50/50 rounded-2xl border-2 border-blue-100/60 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-blue-100 rounded-lg">
+                    <svg className="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide font-bold">
                     {t("profile.accountCreated", "Account Created")}
                   </p>
                 </div>
@@ -859,12 +895,14 @@ function ProfilePageContent() {
                 </p>
               </div>
 
-              <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                  </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
+              <div className="p-5 bg-gradient-to-br from-amber-50/50 via-orange-50/30 to-yellow-50/50 rounded-2xl border-2 border-amber-100/60 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-amber-100 rounded-lg">
+                    <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide font-bold">
                     Last Updated
                   </p>
                 </div>
@@ -877,18 +915,20 @@ function ProfilePageContent() {
                 </p>
               </div>
 
-              <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-                  </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
+              <div className="p-5 bg-gradient-to-br from-emerald-50/50 via-teal-50/30 to-green-50/50 rounded-2xl border-2 border-emerald-100/60 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-emerald-100 rounded-lg">
+                    <svg className="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide font-bold">
                     {t("profile.onboardingStatus", "Onboarding Status")}
                   </p>
                 </div>
                 <p className="text-slate-900 font-bold text-base">
                   {user.onboardingCompleted ? (
-                    <span className="inline-flex items-center gap-2 text-green-600">
+                    <span className="inline-flex items-center gap-2 text-emerald-600">
                       <svg
                         className="w-5 h-5"
                         fill="none"
@@ -905,7 +945,7 @@ function ProfilePageContent() {
                       {t("profile.completed", "Completed")}
                     </span>
                   ) : (
-                    <span className="inline-flex items-center gap-2 text-yellow-600">
+                    <span className="inline-flex items-center gap-2 text-amber-600">
                       <svg
                         className="w-5 h-5"
                         fill="none"
@@ -926,12 +966,14 @@ function ProfilePageContent() {
               </div>
 
               {/* Language Selection */}
-              <div className="p-5 sm:p-6 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-                <div className="flex items-center gap-2.5 mb-3">
-                  <svg className="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
-                  </svg>
-                  <p className="text-xs text-slate-500 uppercase tracking-wide font-semibold">
+              <div className="p-5 bg-gradient-to-br from-indigo-50/50 via-purple-50/30 to-pink-50/50 rounded-2xl border-2 border-indigo-100/60 shadow-sm hover:shadow-md transition-shadow">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="p-2 bg-indigo-100 rounded-lg">
+                    <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
+                    </svg>
+                  </div>
+                  <p className="text-xs text-slate-600 uppercase tracking-wide font-bold">
                     {t("profile.languagePreference", "Language Preference")}
                   </p>
                 </div>
@@ -958,12 +1000,15 @@ function ProfilePageContent() {
                         });
                       }
                     }}
-                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 bg-white text-sm font-medium"
+                    className="w-full px-4 py-2.5 rounded-xl border-2 border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 bg-white text-sm font-medium shadow-sm"
                   >
                     <option value="en">English</option>
                     <option value="ar">العربية (Arabic)</option>
                   </select>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-slate-500 flex items-center gap-1.5">
+                    <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                    </svg>
                     {language === "ar" 
                       ? t("profile.rightToLeft", "The interface will be displayed from right to left")
                       : t("profile.leftToRight", "The interface will be displayed from left to right")}
