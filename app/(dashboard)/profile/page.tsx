@@ -346,7 +346,7 @@ function ProfilePageContent() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 py-6 px-4 sm:py-8 sm:px-6 lg:py-12 lg:px-8">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-slate-50 py-8 px-4 sm:py-10 sm:px-6 lg:py-14 lg:px-10">
       <div className="max-w-6xl mx-auto animate-fade-in">
         {/* Impersonation Banner */}
         {isImpersonating && (
@@ -403,8 +403,8 @@ function ProfilePageContent() {
           </Card>
         )}
 
-        <div className="mb-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+        <div className="mb-8">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5">
             <div>
               <h1 className="text-2xl font-semibold text-slate-900 mb-1">
                 {isImpersonating ? `Profile - ${user?.name}` : "Profile"}
@@ -433,10 +433,10 @@ function ProfilePageContent() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Personal Information - Main Section */}
           <Card className="lg:col-span-2" hover padding="lg">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-slate-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 mb-8 pb-8 border-b border-slate-200">
               <div>
                 <h2 className="text-xl font-semibold text-slate-900 mb-1">
                   {t("profile.personalInformation", "Personal Information")}
@@ -463,7 +463,7 @@ function ProfilePageContent() {
             </div>
 
             {error && (
-              <div className="mb-6 p-4 sm:p-5 bg-red-50 border-l-4 border-red-400 rounded-xl animate-slide-in">
+              <div className="mb-8 p-5 sm:p-6 bg-red-50 border-l-4 border-red-400 rounded-xl animate-slide-in">
                 <div className="flex items-center">
                   <svg
                     className="w-5 h-5 text-red-400 mr-3"
@@ -484,7 +484,7 @@ function ProfilePageContent() {
             )}
 
             {success && (
-              <div className="mb-6 p-4 sm:p-5 bg-green-50 border-l-4 border-green-400 rounded-xl animate-slide-in">
+              <div className="mb-8 p-5 sm:p-6 bg-green-50 border-l-4 border-green-400 rounded-xl animate-slide-in">
                 <div className="flex items-center">
                   <svg
                     className="w-5 h-5 text-green-400 mr-3"
@@ -504,9 +504,9 @@ function ProfilePageContent() {
               </div>
             )}
 
-            <div className="space-y-6">
+            <div className="space-y-8">
               {/* Profile Header Section */}
-              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-6 pb-6 border-b border-slate-200">
+              <div className="flex flex-col sm:flex-row items-center sm:items-start gap-8 pb-8 border-b border-slate-200">
                 <div className="relative group flex-shrink-0">
                   {profilePictureUrl ? (
                     <img
@@ -608,7 +608,7 @@ function ProfilePageContent() {
                 </div>
               </div>
 
-              <div className="space-y-6 pt-2">
+              <div className="space-y-8 pt-2">
                 <div>
                   <Input
                     label="Name"
@@ -631,13 +631,13 @@ function ProfilePageContent() {
                 </div>
 
                 {/* Role Information */}
-                <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                <div className="p-6 bg-slate-50 rounded-lg border border-slate-200">
+                  <label className="block text-sm font-medium text-slate-700 mb-4">
                     {t("profile.role", "Role")}
                   </label>
-                  <div className="flex items-center gap-2 mb-2">
+                  <div className="flex items-center gap-2 mb-3">
                     <span
-                      className={`px-3 py-1.5 rounded border font-medium capitalize text-sm ${
+                      className={`px-4 py-2 rounded border font-medium capitalize text-sm ${
                         user.role === "admin"
                           ? "bg-purple-50 text-purple-700 border-purple-200"
                           : user.role === "agent"
@@ -649,7 +649,7 @@ function ProfilePageContent() {
                     </span>
                   </div>
                   {user.role !== "admin" && (
-                    <p className="text-xs text-slate-500 mt-2">
+                    <p className="text-xs text-slate-500 mt-3">
                       Contact an administrator to change your role
                     </p>
                   )}
@@ -657,17 +657,17 @@ function ProfilePageContent() {
               </div>
 
               {isEditing && !isImpersonating && (
-                <div className="flex gap-3 pt-6 border-t border-slate-200">
+                <div className="flex gap-4 pt-8 border-t border-slate-200">
                   <Button
                     variant="outline"
                     onClick={handleSave}
                     disabled={loading}
                     loading={loading}
-                    className="px-6"
+                    className="px-8 py-2.5"
                   >
                     {loading ? t("common.saving", "Saving...") : t("common.save", "Save")}
                   </Button>
-                  <Button variant="outline" onClick={handleCancel} className="px-6">
+                  <Button variant="outline" onClick={handleCancel} className="px-8 py-2.5">
                     {t("common.cancel", "Cancel")}
                   </Button>
                 </div>
@@ -677,7 +677,7 @@ function ProfilePageContent() {
 
           {/* Password Reset Section */}
           <Card hover padding="lg">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6 pb-6 border-b border-slate-200">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 mb-8 pb-8 border-b border-slate-200">
               <div>
                 <h2 className="text-xl font-semibold text-slate-900 mb-1 flex items-center gap-2">
                   <svg
@@ -718,12 +718,12 @@ function ProfilePageContent() {
             </div>
 
             {showPasswordReset && (
-              <div className="space-y-5 sm:space-y-6">
+              <div className="space-y-6">
                 {passwordError && (
-                  <div className="p-4 bg-red-50 border-l-4 border-red-400 rounded-lg animate-slide-in">
+                  <div className="p-5 bg-red-50 border-l-4 border-red-400 rounded-lg animate-slide-in">
                     <div className="flex items-center">
                       <svg
-                        className="w-5 h-5 text-red-400 mr-2"
+                        className="w-5 h-5 text-red-400 mr-3"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -741,10 +741,10 @@ function ProfilePageContent() {
                 )}
 
                 {passwordSuccess && (
-                  <div className="p-4 bg-green-50 border-l-4 border-green-400 rounded-lg animate-slide-in">
+                  <div className="p-5 bg-green-50 border-l-4 border-green-400 rounded-lg animate-slide-in">
                     <div className="flex items-center">
                       <svg
-                        className="w-5 h-5 text-green-400 mr-2"
+                        className="w-5 h-5 text-green-400 mr-3"
                         fill="none"
                         stroke="currentColor"
                         viewBox="0 0 24 24"
@@ -795,13 +795,13 @@ function ProfilePageContent() {
                   )}
                 </div>
 
-                <div className="flex gap-3 pt-2">
+                <div className="flex gap-4 pt-4">
                   <Button
                     variant="outline"
                     onClick={handlePasswordReset}
                     disabled={passwordLoading}
                     loading={passwordLoading}
-                    className="flex-1"
+                    className="flex-1 py-2.5"
                   >
                     {passwordLoading ? "Resetting..." : "Reset Password"}
                   </Button>
@@ -809,7 +809,7 @@ function ProfilePageContent() {
                     variant="outline"
                     onClick={handleCancelPasswordReset}
                     disabled={passwordLoading}
-                    className="flex-1"
+                    className="flex-1 py-2.5"
                   >
                     Cancel
                   </Button>
@@ -821,11 +821,11 @@ function ProfilePageContent() {
 
           {/* Account Details Section */}
           <Card hover padding="lg">
-            <h2 className="text-xl font-semibold text-slate-900 mb-6 pb-6 border-b border-slate-200">
+            <h2 className="text-xl font-semibold text-slate-900 mb-8 pb-8 border-b border-slate-200">
               {t("profile.accountDetails", "Account Details")}
             </h2>
-            <div className="space-y-4">
-              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <div className="space-y-5">
+              <div className="p-5 bg-slate-50 rounded-lg border border-slate-200">
                 <div className="flex items-center gap-2 mb-2">
                   <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -843,8 +843,8 @@ function ProfilePageContent() {
                 </p>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="p-5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-2 mb-3">
                   <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                   </svg>
@@ -861,8 +861,8 @@ function ProfilePageContent() {
                 </p>
               </div>
 
-              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-2 mb-2">
+              <div className="p-5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-2 mb-3">
                   <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
                   </svg>
@@ -910,8 +910,8 @@ function ProfilePageContent() {
               </div>
 
               {/* Language Selection */}
-              <div className="p-4 bg-slate-50 rounded-lg border border-slate-200">
-                <div className="flex items-center gap-2 mb-3">
+              <div className="p-5 bg-slate-50 rounded-lg border border-slate-200">
+                <div className="flex items-center gap-2 mb-4">
                   <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129" />
                   </svg>
@@ -919,7 +919,7 @@ function ProfilePageContent() {
                     {t("profile.languagePreference", "Language Preference")}
                   </p>
                 </div>
-                <div className="flex flex-col gap-2">
+                <div className="flex flex-col gap-3">
                   <select
                     value={language}
                     onChange={(e) => {
@@ -942,7 +942,7 @@ function ProfilePageContent() {
                         });
                       }
                     }}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 bg-white text-sm"
+                    className="w-full px-4 py-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 text-slate-900 bg-white text-sm"
                   >
                     <option value="en">English</option>
                     <option value="ar">العربية (Arabic)</option>
