@@ -437,29 +437,31 @@ function ProfilePageContent() {
           {/* Personal Information - Main Section */}
           <Card className="lg:col-span-2" hover padding="lg">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 mb-8 pb-8 border-b border-slate-200">
-              <div>
+              <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-semibold text-slate-900 mb-1">
                   {t("profile.personalInformation", "Personal Information")}
                 </h2>
                 <p className="text-sm text-slate-500">{t("profile.updateDetails", "Update your profile details")}</p>
               </div>
-              {!isEditing && !isImpersonating && (
-                <Button
-                  variant="outline"
-                  onClick={() => setIsEditing(true)}
-                  className="w-full sm:w-auto"
-                >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  {t("profile.editProfile", "Edit Profile")}
-                </Button>
-              )}
-              {isImpersonating && (
-                <div className="px-3 py-1.5 rounded text-sm text-slate-600 bg-slate-100">
-                  Read-only mode
-                </div>
-              )}
+              <div className="flex-shrink-0">
+                {!isEditing && !isImpersonating && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setIsEditing(true)}
+                    className="w-full sm:w-auto whitespace-nowrap px-6"
+                  >
+                    <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                    </svg>
+                    {t("profile.editProfile", "Edit Profile")}
+                  </Button>
+                )}
+                {isImpersonating && (
+                  <div className="px-3 py-1.5 rounded text-sm text-slate-600 bg-slate-100 whitespace-nowrap">
+                    Read-only mode
+                  </div>
+                )}
+              </div>
             </div>
 
             {error && (
@@ -678,7 +680,7 @@ function ProfilePageContent() {
           {/* Password Reset Section */}
           <Card hover padding="lg">
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-5 mb-8 pb-8 border-b border-slate-200">
-              <div>
+              <div className="flex-1 min-w-0">
                 <h2 className="text-xl font-semibold text-slate-900 mb-1 flex items-center gap-2">
                   <svg
                     className="w-5 h-5 text-slate-600"
@@ -701,20 +703,22 @@ function ProfilePageContent() {
                   </p>
                 )}
               </div>
-              {!showPasswordReset && !isImpersonating && (
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPasswordReset(true)}
-                  className="w-full sm:w-auto"
-                >
-                  Change Password
-                </Button>
-              )}
-              {isImpersonating && (
-                <div className="px-3 py-1.5 rounded text-sm text-slate-600 bg-slate-100">
-                  Not available
-                </div>
-              )}
+              <div className="flex-shrink-0">
+                {!showPasswordReset && !isImpersonating && (
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowPasswordReset(true)}
+                    className="w-full sm:w-auto whitespace-nowrap px-6"
+                  >
+                    Change Password
+                  </Button>
+                )}
+                {isImpersonating && (
+                  <div className="px-3 py-1.5 rounded text-sm text-slate-600 bg-slate-100 whitespace-nowrap">
+                    Not available
+                  </div>
+                )}
+              </div>
             </div>
 
             {showPasswordReset && (
