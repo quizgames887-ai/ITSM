@@ -339,6 +339,10 @@ export default function WorkplacePage() {
     ticketIds.length > 0 ? { ticketIds } : "skip"
   );
 
+  // Track service ID from URL to open automatically - MUST be before early returns (Rules of Hooks)
+  const [serviceIdFromUrl, setServiceIdFromUrl] = useState<string | null>(null);
+  const hasOpenedServiceFromUrl = useRef(false);
+
   // Redirect to onboarding if user hasn't completed it
   useEffect(() => {
     if (currentUser && !currentUser.onboardingCompleted && userId) {
@@ -386,10 +390,6 @@ export default function WorkplacePage() {
     // Show the modal - this will trigger the query
     setShowRequestForm(true);
   };
-
-  // Track service ID from URL to open automatically
-  const [serviceIdFromUrl, setServiceIdFromUrl] = useState<string | null>(null);
-  const hasOpenedServiceFromUrl = useRef(false);
 
   // Extract service ID from URL once on mount
   useEffect(() => {
