@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { TicketAudit } from "@/components/tickets/TicketAudit";
-import { useState, use, useMemo, useEffect } from "react";
+import { useState, use, useMemo, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useToastContext } from "@/contexts/ToastContext";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -171,6 +171,7 @@ export default function TicketDetailPage({
   }, [comments, currentUser]);
   const slaPolicies = useQuery(api.sla.list, {});
   const updateTicket = useMutation(api.tickets.update);
+  const assignTicket = useMutation(api.tickets.assign);
   const createComment = useMutation(api.comments.create);
   
   // Calculate SLA details
@@ -270,9 +271,29 @@ export default function TicketDetailPage({
   const [selectedApprovalRequest, setSelectedApprovalRequest] = useState<any>(null);
   const [approvalActionType, setApprovalActionType] = useState<"approve" | "reject" | "need_more_info" | null>(null);
   const [approvalComments, setApprovalComments] = useState("");
+  const [showAssignDropdown, setShowAssignDropdown] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const assignDropdownRef = useRef<HTMLDivElement>(null);
   const { success, error: showError } = useToastContext();
   
   const generateUploadUrl = useMutation(api.serviceCatalog.generateUploadUrl);
+
+  // Close assign dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (assignDropdownRef.current && !assignDropdownRef.current.contains(event.target as Node)) {
+        setShowAssignDropdown(false);
+      }
+    };
+
+    if (showAssignDropdown) {
+      document.addEventListener("mousedown", handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
+  }, [showAssignDropdown]);
 
   if (ticket === undefined || comments === undefined) {
     return (
@@ -336,6 +357,45 @@ export default function TicketDetailPage({
       setUpdating(false);
     }
   };
+
+  const handleAssignTicket = async (assigneeId: Id<"users"> | null) => {
+    if (!currentUserId) {
+      showError("You must be logged in to assign tickets");
+      return;
+    }
+    
+    setAssigning(true);
+    try {
+      if (assigneeId === null) {
+        // Unassign using update mutation
+        await updateTicket({
+          id: ticketId,
+          assignedTo: null,
+        });
+        success("Ticket unassigned successfully!");
+      } else {
+        // Assign using assign mutation (has better notification handling)
+        await assignTicket({
+          id: ticketId,
+          assignedTo: assigneeId,
+          userId: currentUserId as Id<"users">,
+        });
+        success("Ticket assigned successfully!");
+      }
+      setShowAssignDropdown(false);
+    } catch (error: any) {
+      console.error("Failed to assign ticket:", error);
+      showError(error.message || "Failed to assign ticket");
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  // Get agents and admins for assignment dropdown
+  const assignableUsers = useMemo(() => {
+    if (!users) return [];
+    return users.filter((u) => u.role === "agent" || u.role === "admin");
+  }, [users]);
 
   const handleFileUpload = async (file: File): Promise<Id<"_storage"> | null> => {
     setUploadingAttachment(true);
@@ -1226,7 +1286,55 @@ export default function TicketDetailPage({
                   {/* Assignee */}
                   <div>
                     <span className="text-xs font-medium text-slate-500 block mb-1">Assignee</span>
-                    <p className="text-sm font-medium text-slate-900">{getAssigneeName()}</p>
+                    {isAgentOrAdmin ? (
+                      <div className="relative" ref={assignDropdownRef}>
+                        <button
+                          onClick={() => setShowAssignDropdown(!showAssignDropdown)}
+                          disabled={assigning}
+                          className="w-full text-left px-3 py-2 text-sm font-medium text-slate-900 bg-white border border-slate-300 rounded-md hover:bg-slate-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-between"
+                        >
+                          <span>{getAssigneeName()}</span>
+                          <svg
+                            className={`w-4 h-4 text-slate-500 transition-transform ${showAssignDropdown ? "rotate-180" : ""}`}
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                          </svg>
+                        </button>
+                        {showAssignDropdown && (
+                          <div className="absolute z-10 mt-1 w-full bg-white border border-slate-300 rounded-md shadow-lg max-h-60 overflow-auto">
+                            <div className="py-1">
+                              {ticket.assignedTo !== null && (
+                                <button
+                                  onClick={() => handleAssignTicket(null)}
+                                  className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-100"
+                                >
+                                  Unassign
+                                </button>
+                              )}
+                              {assignableUsers.map((user) => (
+                                <button
+                                  key={user._id}
+                                  onClick={() => handleAssignTicket(user._id)}
+                                  className={`w-full text-left px-4 py-2 text-sm hover:bg-slate-100 ${
+                                    ticket.assignedTo === user._id
+                                      ? "bg-blue-50 text-blue-700 font-medium"
+                                      : "text-slate-700"
+                                  }`}
+                                >
+                                  {user.name || user.email}
+                                  {user._id === currentUserId && " (You)"}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <p className="text-sm font-medium text-slate-900">{getAssigneeName()}</p>
+                    )}
                   </div>
                   
                   <div className="pt-4 border-t border-slate-200 space-y-4">
