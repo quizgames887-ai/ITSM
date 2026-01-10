@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnnouncementSlider } from "@/components/dashboard/AnnouncementSlider";
@@ -387,23 +387,32 @@ export default function WorkplacePage() {
     setShowRequestForm(true);
   };
 
-  // Handle service query parameter from search results
+  // Track if we've already processed the service parameter to prevent infinite loops
+  const hasProcessedServiceParam = useRef(false);
+
+  // Handle service query parameter from search results (only once on mount)
   useEffect(() => {
-    if (services && searchParams) {
-      const serviceId = searchParams.get("service");
+    // Only run once and only if we haven't processed it yet
+    if (hasProcessedServiceParam.current || !services) return;
+    
+    // Check URL directly to avoid searchParams dependency issues
+    if (typeof window !== "undefined") {
+      const urlParams = new URLSearchParams(window.location.search);
+      const serviceId = urlParams.get("service");
+      
       if (serviceId) {
         const service = services.find((s) => s._id === serviceId);
         if (service) {
+          hasProcessedServiceParam.current = true;
           handleServiceClick(service);
           // Remove query parameter from URL without page reload
-          if (typeof window !== "undefined") {
-            window.history.replaceState({}, "", "/workplace");
-          }
+          window.history.replaceState({}, "", "/workplace");
         }
       }
     }
+    // Only run when services are loaded, and only once
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [services, searchParams]);
+  }, [services]);
 
   const handleToggleFavorite = async (serviceId: Id<"serviceCatalog">, e: React.MouseEvent) => {
     e.stopPropagation();
