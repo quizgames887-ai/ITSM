@@ -8,9 +8,9 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Id } from "@/convex/_generated/dataModel";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { AnnouncementSlider } from "@/components/dashboard/AnnouncementSlider";
 import { useToastContext } from "@/contexts/ToastContext";
 import { DynamicForm } from "@/components/forms/DynamicForm";
@@ -92,7 +92,7 @@ function LoadingSkeleton() {
 
 export default function WorkplacePage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
+  
   const [userId, setUserId] = useState<string | null>(null);
   const [userRole, setUserRole] = useState<string | null>(null);
   const [suggestionCategory, setSuggestionCategory] = useState("");
@@ -230,16 +230,35 @@ export default function WorkplacePage() {
   const [selectedVoteId, setSelectedVoteId] = useState<Id<"votes"> | null>(null);
   
   // Set default selected vote (first active vote)
+  // CRITICAL FIX: Use ref to track if we've initialized to prevent infinite loop
+  const voteInitializedRef = useRef(false);
+  const previousActiveVotesLengthRef = useRef<number>(0);
+  
   useEffect(() => {
+    const currentLength = activeVotes?.length ?? 0;
+    const previousLength = previousActiveVotesLengthRef.current;
+    previousActiveVotesLengthRef.current = currentLength;
+    
+    // Only update if activeVotes actually changed (length changed)
+    if (currentLength === previousLength && voteInitializedRef.current) {
+      return; // No change, skip
+    }
+    
     if (activeVotes && activeVotes.length > 0) {
-      // If no vote is selected, or selected vote is no longer active, select the first one
-      if (!selectedVoteId || !activeVotes.find(v => v._id === selectedVoteId)) {
-        setSelectedVoteId(activeVotes[0]._id);
-      }
+      // Only set if not initialized or if current selection is invalid
+      setSelectedVoteId(prev => {
+        if (!prev || !activeVotes.find(v => v._id === prev)) {
+          voteInitializedRef.current = true;
+          return activeVotes[0]._id;
+        }
+        return prev; // Keep current selection if still valid
+      });
     } else {
       setSelectedVoteId(null);
+      voteInitializedRef.current = false;
     }
-  }, [activeVotes, selectedVoteId]);
+    // Only depend on activeVotes length, not the array itself
+  }, [activeVotes?.length]);
   
   // Get currently selected vote
   const activeVote = activeVotes?.find(v => v._id === selectedVoteId) || activeVotes?.[0] || null;
@@ -285,31 +304,34 @@ export default function WorkplacePage() {
   );
   
   // Force refresh when modal opens, service changes, or form is updated
+  // Use refs to track previous values and only update when actually changed
+  const previousFormIdRef = useRef<string | undefined>(undefined);
+  const previousUpdatedAtRef = useRef<number | undefined>(undefined);
+  const previousFieldsLengthRef = useRef<number | undefined>(undefined);
+  
   useEffect(() => {
-    if (showRequestForm && selectedService?.formId && serviceForm) {
+    const currentFormId = selectedService?.formId;
+    const currentUpdatedAt = serviceForm?.updatedAt;
+    const currentFieldsLength = serviceForm?.fields?.length;
+    
+    // Check if anything actually changed
+    const formIdChanged = previousFormIdRef.current !== currentFormId;
+    const updatedAtChanged = previousUpdatedAtRef.current !== currentUpdatedAt;
+    const fieldsLengthChanged = previousFieldsLengthRef.current !== currentFieldsLength;
+    
+    // Update refs
+    previousFormIdRef.current = currentFormId;
+    previousUpdatedAtRef.current = currentUpdatedAt;
+    previousFieldsLengthRef.current = currentFieldsLength;
+    
+    // Only increment if modal is open and something actually changed
+    if (showRequestForm && currentFormId && serviceForm && (formIdChanged || updatedAtChanged || fieldsLengthChanged)) {
       // Increment refresh key to force DynamicForm to re-render with latest data
       // This ensures the form always shows the latest changes
       setFormRefreshKey(prev => prev + 1);
     }
   }, [showRequestForm, selectedService?.formId, serviceForm?.updatedAt, serviceForm?.fields?.length]);
   
-  // Debug: Log form changes and service info
-  useEffect(() => {
-    if (selectedService) {
-      console.log('Service selected:', {
-        serviceId: selectedService._id,
-        serviceName: selectedService.name,
-        hasFormId: !!selectedService.formId,
-        formId: selectedService.formId,
-        serviceForm: serviceForm ? {
-          formId: serviceForm._id,
-          updatedAt: serviceForm.updatedAt,
-          fieldsCount: serviceForm.fields?.length,
-          fields: serviceForm.fields?.map(f => ({ name: f.name, label: f.label }))
-        } : 'null/undefined'
-      });
-    }
-  }, [serviceForm, selectedService]);
   
   const createTicket = useMutation(api.tickets.create);
   const toggleFavorite = useMutation((api.serviceCatalog as any).toggleFavorite);
@@ -344,6 +366,7 @@ export default function WorkplacePage() {
   const serviceIdFromUrlRef = useRef<string | null>(null);
   const hasOpenedServiceFromUrl = useRef(false);
   const hasCheckedUrl = useRef(false);
+  const servicesRef = useRef<any[] | undefined>(undefined);
   const servicesLoadedRef = useRef<boolean>(false);
 
   // Redirect to onboarding if user hasn't completed it
@@ -353,6 +376,86 @@ export default function WorkplacePage() {
     }
   }, [currentUser, userId, router]);
   
+  // Extract service ID from URL once on mount - no dependencies
+  // MUST be before early returns (Rules of Hooks)
+  useEffect(() => {
+    if (typeof window !== "undefined" && !hasCheckedUrl.current) {
+      hasCheckedUrl.current = true;
+      const urlParams = new URLSearchParams(window.location.search);
+      const serviceId = urlParams.get("service");
+      if (serviceId) {
+        serviceIdFromUrlRef.current = serviceId;
+        // Remove query parameter from URL immediately
+        window.history.replaceState({}, "", "/workplace");
+      }
+    }
+  }, []);
+
+  // Update services ref on every render (refs don't cause re-renders)
+  servicesRef.current = services;
+  
+  // Handle service opening from URL - use polling pattern to avoid dependency issues
+  // MUST be before early returns (Rules of Hooks)
+  useEffect(() => {
+    // Skip if already processed
+    if (hasOpenedServiceFromUrl.current) {
+      return;
+    }
+    
+    const serviceId = serviceIdFromUrlRef.current;
+    if (!serviceId) {
+      return;
+    }
+    
+    // Use interval to poll for services without creating dependencies
+    const intervalId = setInterval(() => {
+      // Check if already processed (might have been processed in previous interval)
+      if (hasOpenedServiceFromUrl.current) {
+        clearInterval(intervalId);
+        return;
+      }
+      
+      // Access services from ref (always current value, no closure issues)
+      const currentServices = servicesRef.current;
+      if (!currentServices || currentServices.length === 0) {
+        return; // Keep polling
+      }
+      
+      // Services are available, process the service
+      const service = currentServices.find((s) => s._id === serviceId);
+      if (service) {
+        // Mark as processed IMMEDIATELY
+        hasOpenedServiceFromUrl.current = true;
+        serviceIdFromUrlRef.current = null;
+        clearInterval(intervalId);
+        
+        // Defer state update - use state setters directly to avoid dependency on handleServiceClick
+        Promise.resolve().then(() => {
+          // Use state setters directly (service is already found above)
+          setRequestFormData({});
+          setSelectedService(service);
+          setFormRefreshKey(prev => prev + 1);
+          setShowRequestForm(true);
+        });
+      } else {
+        // Service not found
+        hasOpenedServiceFromUrl.current = true;
+        clearInterval(intervalId);
+      }
+    }, 100); // Check every 100ms
+    
+    // Cleanup interval on unmount
+    return () => {
+      clearInterval(intervalId);
+    };
+    
+    // Empty deps - this effect only runs once on mount
+    // The interval accesses services via ref, avoiding dependency issues
+  }, []);
+  
+  // ============================================================================
+  // CRITICAL: ALL HOOKS MUST BE ABOVE THIS LINE
+  // ============================================================================
   // Early return check - must be after ALL hooks
   // Show loading if essential data is still loading
   if (!userId || !userRole) {
@@ -393,63 +496,6 @@ export default function WorkplacePage() {
     // Show the modal - this will trigger the query
     setShowRequestForm(true);
   };
-
-  // Extract service ID from URL once on mount - no dependencies
-  useEffect(() => {
-    if (typeof window !== "undefined" && !hasCheckedUrl.current) {
-      hasCheckedUrl.current = true;
-      const urlParams = new URLSearchParams(window.location.search);
-      const serviceId = urlParams.get("service");
-      if (serviceId) {
-        serviceIdFromUrlRef.current = serviceId;
-        // Remove query parameter from URL immediately
-        window.history.replaceState({}, "", "/workplace");
-      }
-    }
-  }, []);
-
-  // Track when services first become available - use memoized boolean for stability
-  const servicesAreLoaded = useMemo(() => services !== undefined && services.length > 0, [services?.length]);
-  const previousServicesLoadedRef = useRef<boolean>(false);
-  const servicesRef = useRef<any[] | undefined>(services);
-  
-  // Update services ref (doesn't cause re-renders)
-  servicesRef.current = services;
-  
-  // Handle service opening from URL - only when services first load
-  useEffect(() => {
-    // Skip if already processed - critical guard
-    if (hasOpenedServiceFromUrl.current) return;
-    
-    const serviceId = serviceIdFromUrlRef.current;
-    if (!serviceId) return;
-    
-    // Only process when services transition from not loaded to loaded
-    const servicesJustLoaded = !previousServicesLoadedRef.current && servicesAreLoaded;
-    previousServicesLoadedRef.current = servicesAreLoaded;
-    
-    if (!servicesJustLoaded) return;
-    
-    // Use ref to access services (avoids dependency on services array)
-    const currentServices = servicesRef.current;
-    if (!currentServices) return;
-    
-    const service = currentServices.find((s) => s._id === serviceId);
-    if (service) {
-      // Mark as processed IMMEDIATELY before any state updates
-      hasOpenedServiceFromUrl.current = true;
-      serviceIdFromUrlRef.current = null;
-      
-      // Defer state update to break render cycle
-      Promise.resolve().then(() => {
-        handleServiceClick(service);
-      });
-    } else {
-      // Service not found, mark as processed
-      hasOpenedServiceFromUrl.current = true;
-    }
-    // Only depend on memoized servicesAreLoaded boolean
-  }, [servicesAreLoaded]);
 
   const handleToggleFavorite = async (serviceId: Id<"serviceCatalog">, e: React.MouseEvent) => {
     e.stopPropagation();

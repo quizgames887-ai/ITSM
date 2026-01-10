@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense, useRef } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Card } from "@/components/ui/card";
@@ -15,15 +15,21 @@ import { useTranslation } from "@/contexts/TranslationContext";
 
 function ProfilePageContent() {
   const router = useRouter();
-  const [userId, setUserId] = useState<string | null>(null);
+  
+  // Initialize userId synchronously to avoid useEffect delay
+  const initialUserId = typeof window !== 'undefined' ? localStorage.getItem("userId") : null;
+  const initialImpersonating = typeof window !== 'undefined' ? localStorage.getItem("isImpersonating") === "true" : false;
+  const initialAdminName = typeof window !== 'undefined' ? localStorage.getItem("originalAdminName") : null;
+  
+  const [userId] = useState<string | null>(initialUserId);
   const [isEditing, setIsEditing] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isImpersonating, setIsImpersonating] = useState(false);
-  const [originalAdminName, setOriginalAdminName] = useState<string | null>(null);
+  const [isImpersonating] = useState(initialImpersonating);
+  const [originalAdminName] = useState<string | null>(initialAdminName);
   
   // Password reset state
   const [showPasswordReset, setShowPasswordReset] = useState(false);
@@ -34,19 +40,6 @@ function ProfilePageContent() {
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [passwordLoading, setPasswordLoading] = useState(false);
   const [language, setLanguage] = useState<"en" | "ar">("en");
-
-  useEffect(() => {
-    const storedUserId = localStorage.getItem("userId");
-    const impersonating = localStorage.getItem("isImpersonating") === "true";
-    const adminName = localStorage.getItem("originalAdminName");
-    
-    if (storedUserId) {
-      setUserId(storedUserId);
-    }
-    
-    setIsImpersonating(impersonating);
-    setOriginalAdminName(adminName);
-  }, []);
 
   const { t } = useTranslation();
   

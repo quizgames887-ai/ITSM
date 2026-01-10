@@ -87,12 +87,25 @@ export default function LoginPage() {
         router.push("/workplace");
       }
     } catch (err: any) {
-      // Log full error details to console for debugging (includes stack trace)
-      console.error("Login error:", err);
-      
       // Show user-friendly message in UI
       const friendlyError = parseConvexError(err);
       setError(friendlyError);
+      
+      // Only log unexpected errors to console (not expected auth failures)
+      // Expected errors: email not registered, incorrect password, validation errors
+      const errorMessage = err?.message || String(err);
+      const isExpectedAuthError = 
+        errorMessage.toLowerCase().includes("email not registered") ||
+        errorMessage.toLowerCase().includes("incorrect password") ||
+        errorMessage.toLowerCase().includes("password is required") ||
+        errorMessage.toLowerCase().includes("please enter a valid email") ||
+        errorMessage.toLowerCase().includes("validationerror") ||
+        errorMessage.toLowerCase().includes("authenticationerror");
+      
+      if (!isExpectedAuthError) {
+        // Log unexpected errors for debugging
+        console.error("Unexpected login error:", err);
+      }
     } finally {
       setLoading(false);
     }
