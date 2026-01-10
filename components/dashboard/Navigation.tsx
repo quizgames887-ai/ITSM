@@ -79,6 +79,26 @@ export function Navigation() {
   }, [showUserMenu, showMobileMenu]);
 
   const handleLogout = () => {
+    // Set logout flag in multiple places for maximum reliability
+    if (typeof window !== 'undefined') {
+      const logoutTime = Date.now().toString();
+      // Cookie persists across bfcache (most reliable) - set with proper attributes
+      document.cookie = 'loggedOut=true;path=/;max-age=3600;SameSite=Strict';
+      document.cookie = 'pageUnloaded=' + logoutTime + ';path=/;max-age=60;SameSite=Strict';
+      // SessionStorage as backup
+      sessionStorage.setItem('logoutTimestamp', logoutTime);
+      sessionStorage.setItem('loggedOut', 'true');
+      sessionStorage.setItem('pageUnloaded', logoutTime);
+      // localStorage timestamp as additional check
+      localStorage.setItem('logoutTimestamp', logoutTime);
+      // Also set a flag that persists even if localStorage is cleared
+      try {
+        localStorage.setItem('_logout_' + logoutTime, '1');
+      } catch (e) {
+        // Ignore quota errors
+      }
+    }
+    
     localStorage.removeItem("userId");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userName");
@@ -87,7 +107,19 @@ export function Navigation() {
     localStorage.removeItem("originalAdminId");
     localStorage.removeItem("originalAdminName");
     localStorage.removeItem("originalAdminEmail");
-    router.push("/login");
+    localStorage.removeItem("sessionExpiry");
+    localStorage.removeItem("lastActivity");
+    
+    // Use replace instead of push to prevent back button navigation
+    router.replace("/login");
+    
+    // Clear any cached data and force navigation
+    if (typeof window !== 'undefined') {
+      // Replace history to prevent back navigation
+      window.history.replaceState(null, '', '/login');
+      // Force a hard reload to clear cache
+      window.location.href = "/login";
+    }
   };
 
   const handleExitImpersonation = () => {

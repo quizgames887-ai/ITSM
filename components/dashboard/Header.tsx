@@ -43,14 +43,6 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
     if (role) setUserRole(role);
   }, []);
 
-  // #region agent log
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      fetch('http://127.0.0.1:7243/ingest/b4baa00f-0fc1-4b1d-a100-728c6955253f',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'Header.tsx:22',message:'Header render - branding values',data:{enabled:branding?.enabled,chatIconUrl:branding?.chatIconUrl,searchIconUrl:branding?.searchIconUrl,notificationIconUrl:branding?.notificationIconUrl,userIconUrl:branding?.userIconUrl,hasBranding:!!branding},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'A,B,C'})}).catch(()=>{});
-    }
-  }, [branding]);
-  // #endregion
-
   // Fetch data for search
   const tickets = useQuery(
     api.tickets.list,
@@ -202,11 +194,47 @@ export function Header({ title = "My Workspace", onMenuClick }: HeaderProps) {
   })();
 
   const handleLogout = () => {
+    // Set logout flag in multiple places for maximum reliability
+    if (typeof window !== 'undefined') {
+      const logoutTime = Date.now().toString();
+      // Cookie persists across bfcache (most reliable) - set with proper attributes
+      document.cookie = 'loggedOut=true;path=/;max-age=3600;SameSite=Strict';
+      document.cookie = 'pageUnloaded=' + logoutTime + ';path=/;max-age=60;SameSite=Strict';
+      // SessionStorage as backup
+      sessionStorage.setItem('logoutTimestamp', logoutTime);
+      sessionStorage.setItem('loggedOut', 'true');
+      sessionStorage.setItem('pageUnloaded', logoutTime);
+      // localStorage timestamp as additional check
+      localStorage.setItem('logoutTimestamp', logoutTime);
+      // Also set a flag that persists even if localStorage is cleared
+      try {
+        localStorage.setItem('_logout_' + logoutTime, '1');
+      } catch (e) {
+        // Ignore quota errors
+      }
+    }
+    
     localStorage.removeItem("userId");
     localStorage.removeItem("userEmail");
     localStorage.removeItem("userName");
     localStorage.removeItem("userRole");
-    router.push("/login");
+    localStorage.removeItem("isImpersonating");
+    localStorage.removeItem("originalAdminId");
+    localStorage.removeItem("originalAdminName");
+    localStorage.removeItem("originalAdminEmail");
+    localStorage.removeItem("sessionExpiry");
+    localStorage.removeItem("lastActivity");
+    
+    // Use replace instead of push to prevent back button navigation
+    router.replace("/login");
+    
+    // Clear any cached data and force navigation
+    if (typeof window !== 'undefined') {
+      // Replace history to prevent back navigation
+      window.history.replaceState(null, '', '/login');
+      // Force a hard reload to clear cache
+      window.location.href = "/login";
+    }
   };
 
   const handleNotificationClick = async (notificationId: Id<"notifications">, ticketId: string | null) => {

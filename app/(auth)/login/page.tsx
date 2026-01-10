@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -19,6 +19,27 @@ export default function LoginPage() {
   const signIn = useMutation(api.authHelpers.signIn);
   const updateLastSession = useMutation(api.auth.updateLastSession);
 
+  // Check if user is already logged in
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    
+    // Clear any logout flags when on login page
+    if (typeof document !== 'undefined') {
+      document.cookie = 'loggedOut=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Strict';
+      document.cookie = 'pageUnloaded=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Strict';
+    }
+    sessionStorage.removeItem('loggedOut');
+    sessionStorage.removeItem('logoutTimestamp');
+    sessionStorage.removeItem('pageUnloaded');
+    localStorage.removeItem('logoutTimestamp');
+    
+    const userId = localStorage.getItem("userId");
+    
+    if (userId) {
+      router.push("/workplace");
+    }
+  }, [router]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -26,11 +47,30 @@ export default function LoginPage() {
 
     try {
       const result = await signIn({ email, password });
+      
+      // Clear any logout flags on successful login
+      if (typeof window !== 'undefined') {
+        if (typeof document !== 'undefined') {
+          document.cookie = 'loggedOut=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Strict';
+          document.cookie = 'pageUnloaded=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/;SameSite=Strict';
+        }
+        sessionStorage.removeItem('loggedOut');
+        sessionStorage.removeItem('logoutTimestamp');
+        sessionStorage.removeItem('pageUnloaded');
+        localStorage.removeItem('logoutTimestamp');
+      }
+      
       // Store user session (in production, use proper session management)
       localStorage.setItem("userId", result.userId);
       localStorage.setItem("userEmail", result.email);
       localStorage.setItem("userName", result.name);
       localStorage.setItem("userRole", result.role || "user");
+      
+      // Set session expiry (30 minutes of inactivity)
+      const sessionTimeout = 30 * 60 * 1000; // 30 minutes in milliseconds
+      const expiryTime = Date.now() + sessionTimeout;
+      localStorage.setItem("sessionExpiry", expiryTime.toString());
+      localStorage.setItem("lastActivity", Date.now().toString());
       
       // Update last session timestamp
       try {
