@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import Link from "next/link";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef, useMemo } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AnnouncementSlider } from "@/components/dashboard/AnnouncementSlider";
@@ -344,7 +344,7 @@ export default function WorkplacePage() {
   const serviceIdFromUrlRef = useRef<string | null>(null);
   const hasOpenedServiceFromUrl = useRef(false);
   const hasCheckedUrl = useRef(false);
-  const previousServicesLengthRef = useRef<number>(0);
+  const servicesLoadedRef = useRef<boolean>(false);
 
   // Redirect to onboarding if user hasn't completed it
   useEffect(() => {
@@ -408,40 +408,48 @@ export default function WorkplacePage() {
     }
   }, []);
 
-  // Open service form when services first load - only trigger when services.length changes from 0 to >0
+  // Track when services first become available - use memoized boolean for stability
+  const servicesAreLoaded = useMemo(() => services !== undefined && services.length > 0, [services?.length]);
+  const previousServicesLoadedRef = useRef<boolean>(false);
+  const servicesRef = useRef<any[] | undefined>(services);
+  
+  // Update services ref (doesn't cause re-renders)
+  servicesRef.current = services;
+  
+  // Handle service opening from URL - only when services first load
   useEffect(() => {
-    // Skip if already processed - this is the primary guard
+    // Skip if already processed - critical guard
     if (hasOpenedServiceFromUrl.current) return;
     
     const serviceId = serviceIdFromUrlRef.current;
     if (!serviceId) return;
     
-    const currentServicesLength = services?.length ?? 0;
-    const previousLength = previousServicesLengthRef.current;
+    // Only process when services transition from not loaded to loaded
+    const servicesJustLoaded = !previousServicesLoadedRef.current && servicesAreLoaded;
+    previousServicesLoadedRef.current = servicesAreLoaded;
     
-    // Update ref to track current length
-    previousServicesLengthRef.current = currentServicesLength;
+    if (!servicesJustLoaded) return;
     
-    // Only process when services transition from 0 to >0 (first load)
-    if (previousLength === 0 && currentServicesLength > 0) {
-      if (!services || services.length === 0) return;
+    // Use ref to access services (avoids dependency on services array)
+    const currentServices = servicesRef.current;
+    if (!currentServices) return;
+    
+    const service = currentServices.find((s) => s._id === serviceId);
+    if (service) {
+      // Mark as processed IMMEDIATELY before any state updates
+      hasOpenedServiceFromUrl.current = true;
+      serviceIdFromUrlRef.current = null;
       
-      const service = services.find((s) => s._id === serviceId);
-      if (service) {
-        // Mark as processed IMMEDIATELY before any state updates
-        hasOpenedServiceFromUrl.current = true;
-        serviceIdFromUrlRef.current = null;
-        
-        // Open the service form - this will update state but effect won't run again due to guard
+      // Defer state update to break render cycle
+      Promise.resolve().then(() => {
         handleServiceClick(service);
-      } else {
-        // Service not found, mark as processed
-        hasOpenedServiceFromUrl.current = true;
-      }
+      });
+    } else {
+      // Service not found, mark as processed
+      hasOpenedServiceFromUrl.current = true;
     }
-    // Only depend on services?.length to avoid re-runs when array reference changes
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [services?.length]);
+    // Only depend on memoized servicesAreLoaded boolean
+  }, [servicesAreLoaded]);
 
   const handleToggleFavorite = async (serviceId: Id<"serviceCatalog">, e: React.MouseEvent) => {
     e.stopPropagation();
