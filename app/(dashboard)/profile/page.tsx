@@ -679,45 +679,47 @@ function ProfilePageContent() {
 
           {/* Password Reset Section */}
           <Card hover padding="lg">
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6 mb-8 pb-8 border-b border-slate-200">
-              <div className="flex-1 min-w-0 w-full sm:w-auto">
-                <h2 className="text-xl font-semibold text-slate-900 mb-2 flex items-center gap-2">
-                  <svg
-                    className="w-5 h-5 text-slate-600"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth={2}
-                      d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
-                    />
-                  </svg>
-                  Password Reset
-                </h2>
-                {!showPasswordReset && (
-                  <p className="text-sm text-slate-500 mt-1">
-                    Keep your account secure
-                  </p>
-                )}
-              </div>
-              <div className="flex-shrink-0 w-full sm:w-auto mt-4 sm:mt-0">
-                {!showPasswordReset && !isImpersonating && (
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowPasswordReset(true)}
-                    className="w-full sm:w-auto whitespace-nowrap px-6"
-                  >
-                    Change Password
-                  </Button>
-                )}
-                {isImpersonating && (
-                  <div className="px-3 py-1.5 rounded text-sm text-slate-600 bg-slate-100 whitespace-nowrap">
-                    Not available
-                  </div>
-                )}
+            <div className="mb-8 pb-8 border-b border-slate-200">
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-6">
+                <div className="flex-1 min-w-0">
+                  <h2 className="text-xl font-semibold text-slate-900 mb-3 flex items-center gap-2">
+                    <svg
+                      className="w-5 h-5 text-slate-600 flex-shrink-0"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth={2}
+                        d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z"
+                      />
+                    </svg>
+                    <span>Password Reset</span>
+                  </h2>
+                  {!showPasswordReset && (
+                    <p className="text-sm text-slate-500 ml-7">
+                      Keep your account secure
+                    </p>
+                  )}
+                </div>
+                <div className="flex-shrink-0 w-full sm:w-auto">
+                  {!showPasswordReset && !isImpersonating && (
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowPasswordReset(true)}
+                      className="w-full sm:w-auto whitespace-nowrap px-6"
+                    >
+                      Change Password
+                    </Button>
+                  )}
+                  {isImpersonating && (
+                    <div className="px-3 py-1.5 rounded text-sm text-slate-600 bg-slate-100 whitespace-nowrap">
+                      Not available
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 
