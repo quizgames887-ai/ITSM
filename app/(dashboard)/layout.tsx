@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Header } from "@/components/dashboard/Header";
 import { usePathname, useRouter } from "next/navigation";
@@ -121,9 +121,10 @@ export default function DashboardLayout({
       return;
     }
     
-    // Initialize session expiry if missing (for existing sessions)
+    // Initialize or validate session expiry
     const now = Date.now();
     if (!sessionExpiry) {
+      // No session expiry found - initialize for existing session
       const sessionTimeout = 30 * 60 * 1000; // 30 minutes
       const newExpiry = now + sessionTimeout;
       localStorage.setItem("sessionExpiry", newExpiry.toString());
@@ -133,9 +134,18 @@ export default function DashboardLayout({
       const expiryTime = parseInt(sessionExpiry, 10);
       
       if (now > expiryTime) {
+        // Session expired - clear only session-related storage and redirect
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("userName");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("sessionExpiry");
+        localStorage.removeItem("lastActivity");
+        localStorage.removeItem("isImpersonating");
+        localStorage.removeItem("originalAdminId");
+        localStorage.removeItem("originalAdminName");
+        localStorage.removeItem("originalAdminEmail");
         
-        // Session expired - clear storage and redirect
-        localStorage.clear();
         window.history.replaceState(null, '', '/login');
         router.replace("/login");
         if (window.location.pathname !== '/login') {
@@ -144,36 +154,63 @@ export default function DashboardLayout({
         return;
       }
       
+      // Session is still valid - update last activity and extend if needed
+      // Only extend if we're within 5 minutes of expiry (to avoid constant updates)
+      const timeUntilExpiry = expiryTime - now;
+      const fiveMinutes = 5 * 60 * 1000;
+      
+      if (timeUntilExpiry < fiveMinutes) {
+        // Extend session by another 30 minutes
+        const sessionTimeout = 30 * 60 * 1000;
+        const newExpiry = now + sessionTimeout;
+        localStorage.setItem("sessionExpiry", newExpiry.toString());
+      }
+      
       // Update last activity timestamp
       localStorage.setItem("lastActivity", now.toString());
     }
   }, [pathname, router]);
   
   // Session timeout monitoring and activity tracking
+  const activityThrottleRef = useRef<NodeJS.Timeout | null>(null);
+  
   useEffect(() => {
     if (typeof window === 'undefined') return;
     
     const checkSessionTimeout = () => {
       const userId = localStorage.getItem("userId");
       const sessionExpiry = localStorage.getItem("sessionExpiry");
-      const lastActivity = localStorage.getItem("lastActivity");
       
-      if (!userId || !sessionExpiry) return;
+      if (!userId || !sessionExpiry) {
+        // If no userId or sessionExpiry, session is invalid
+        if (!userId) {
+          setIsAuthenticated(false);
+          window.history.replaceState(null, '', '/login');
+          router.replace("/login");
+        }
+        return;
+      }
       
       const expiryTime = parseInt(sessionExpiry, 10);
       const now = Date.now();
       
       if (now > expiryTime) {
+        // Session expired - clear only session-related storage
+        localStorage.removeItem("userId");
+        localStorage.removeItem("userEmail");
+        localStorage.removeItem("userName");
+        localStorage.removeItem("userRole");
+        localStorage.removeItem("sessionExpiry");
+        localStorage.removeItem("lastActivity");
+        localStorage.removeItem("isImpersonating");
+        localStorage.removeItem("originalAdminId");
+        localStorage.removeItem("originalAdminName");
+        localStorage.removeItem("originalAdminEmail");
         
-        localStorage.clear();
+        setIsAuthenticated(false);
         router.replace("/login");
-      } else if (lastActivity) {
-        // Extend session on activity (30 minutes from last activity)
-        const sessionTimeout = 30 * 60 * 1000;
-        const newExpiry = now + sessionTimeout;
-        localStorage.setItem("sessionExpiry", newExpiry.toString());
-        localStorage.setItem("lastActivity", now.toString());
       }
+      // Note: Session extension is handled by updateActivity, not here
     };
     
     // Check immediately
@@ -183,15 +220,25 @@ export default function DashboardLayout({
     const interval = setInterval(checkSessionTimeout, 60000);
     
     // Track user activity (mouse, keyboard, touch, scroll)
+    // Use throttling to avoid excessive localStorage writes
     const updateActivity = () => {
       const userId = localStorage.getItem("userId");
-      if (userId) {
-        localStorage.setItem("lastActivity", Date.now().toString());
-        // Extend session expiry on activity
+      if (!userId) return;
+      
+      // Throttle activity updates to once per 30 seconds
+      if (activityThrottleRef.current) return;
+      
+      activityThrottleRef.current = setTimeout(() => {
+        const now = Date.now();
+        localStorage.setItem("lastActivity", now.toString());
+        
+        // Extend session expiry on activity (30 minutes from now)
         const sessionTimeout = 30 * 60 * 1000;
-        const newExpiry = Date.now() + sessionTimeout;
+        const newExpiry = now + sessionTimeout;
         localStorage.setItem("sessionExpiry", newExpiry.toString());
-      }
+        
+        activityThrottleRef.current = null;
+      }, 30000); // Throttle to once per 30 seconds
     };
     
     const events = ['mousedown', 'keydown', 'touchstart', 'scroll'];
@@ -255,6 +302,10 @@ export default function DashboardLayout({
     
     return () => {
       clearInterval(interval);
+      if (activityThrottleRef.current) {
+        clearTimeout(activityThrottleRef.current);
+        activityThrottleRef.current = null;
+      }
       events.forEach(event => {
         window.removeEventListener(event, updateActivity);
       });
